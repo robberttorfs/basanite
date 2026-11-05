@@ -387,6 +387,8 @@ function notify(key, title, body, tileId) {
   const last = notified.get(key) || 0;
   if (Date.now() - last < 30000) return;
   notified.set(key, Date.now());
+  // Off-screen test copies log notifications instead of showing them.
+  if (process.env.HANGAR_DEV_OFFSCREEN) { console.log(`[notify] ${title}: ${body}`); return; }
   if (!Notification.isSupported()) return;
   const n = new Notification({ title, body, silent: false });
   n.on('click', () => {
@@ -621,6 +623,9 @@ function pollChats() {
 
 function createWindow() {
   const saved = loadJSON(path.join(paths.dataDir(), 'window.json'), {});
+  // Automated checks (tools/dev.sh) run the app off screen at a fixed size, so it never shows up or takes focus.
+  const offscreen = !!process.env.HANGAR_DEV_OFFSCREEN;
+  if (offscreen) Object.assign(saved, { x: -4000, y: 0, width: 1400, height: 900, maximized: false, fullscreen: false });
   win = new BrowserWindow({
     width: saved.width || 1400, height: saved.height || 900, x: saved.x, y: saved.y,
     minWidth: 720, minHeight: 480,
