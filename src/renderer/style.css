@@ -502,9 +502,13 @@ body.polish #ov-term { margin: 4px 6px 0 14px; }
 .sk-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 28px; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; }
 @media (prefers-reduced-motion: reduce) { .pop.palette { animation: none; } }
 
-/* Top-bar counts open the overview */
-.summary button.s { cursor: pointer; }
-.summary button.s:not(.needs):hover { background: var(--panel); color: var(--text); }
+/* Top-bar counts and the grid button open the overview */
+.summary button.s { cursor: pointer; transition: background-color .12s, color .12s; }
+.summary button.s:not(.needs):hover { background: var(--hover); color: var(--text); }
+#btn-overview { color: var(--muted); }
+#btn-overview:hover { color: var(--text); }
+body.ovw-open #btn-overview { color: var(--text); border-color: #3a4560; background: #1a1f2b; }
+#btn-overview + .summary { margin-left: -4px; }
 
 /* Snoozed: a tiny moon instead of the glow */
 .tile.snoozed.st-needs_input { border-color: var(--line); box-shadow: none; }

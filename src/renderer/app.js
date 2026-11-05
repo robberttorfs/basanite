@@ -747,6 +747,10 @@ function renderBar() {
   const sum = $('#summary');
   const html = parts.join('');
   if (sum.innerHTML !== html) sum.innerHTML = html;
+  // The overview's own way in: shown once there is a session anywhere, tooltip from the registry.
+  const ovb = $('#btn-overview');
+  ovb.hidden = !(state.allTiles || state.tiles).length;
+  if (ovb.title !== ovKey) ovb.title = ovKey;
 
   const rl = state.rateLimits;
   const u = [];
@@ -770,6 +774,10 @@ $('#summary').addEventListener('click', (e) => {
   if (b.dataset.act === 'next' && jumpOnly()) nextWaiting();
   else window.HangarOverview?.open();
 });
+$('#btn-overview').onmousedown = (e) => e.preventDefault();
+$('#btn-overview').onclick = () => window.HangarOverview?.open();
+new MutationObserver(() => $('#btn-overview').setAttribute('aria-pressed', String(document.body.classList.contains('ovw-open'))))
+  .observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
 function nextWaiting() {
   if (window.HangarWs) return HangarWs.nextWaiting();  // hops workspaces when it has to

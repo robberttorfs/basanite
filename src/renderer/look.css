@@ -82,6 +82,7 @@ body.compact #stage { margin: 4px; }
   .btn.primary { background: #e6eefc; border-color: #c3d3f3; }
   .btn.primary:hover { background: #dbe6fb; }
   .btn.on { border-color: #b9c8e6; background: #e9effa; }
+  body.ovw-open #btn-overview { border-color: #b9c8e6; background: #e9effa; }
   .ov-btn.on { border-color: rgba(118, 82, 214, .4); background: rgba(118, 82, 214, .08); color: #4b2fa6; }
   .ov-title { color: #3d2a85; }
   .ov-model { border-color: rgba(118, 82, 214, .3); }
