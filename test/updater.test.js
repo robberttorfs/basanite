@@ -40,6 +40,17 @@ test('windows downloads, then offers a restart', () => {
   assert.deepEqual(seen, ['ready']);
 });
 
+test('cancelling the still-working question cancels the restart', () => {
+  const a = fake(); let ok = false; let asked = 0;
+  const u = createUpdater({ autoUpdater: a, feed, platform: 'win32', packaged: true, dev: false, confirmInstall: () => { asked++; return ok; } });
+  a.emit('update-downloaded', { version: '0.5.0' });
+  u.act();
+  assert.equal(a.installs, 0, 'Cancel keeps the app and starts no installer');
+  ok = true; u.act();
+  assert.equal(a.installs, 1);
+  assert.equal(asked, 2);
+});
+
 test('mac only offers the download page', () => {
   const a = fake(); const opened = [];
   const u = createUpdater({ autoUpdater: a, feed, platform: 'darwin', packaged: true, dev: false, openUrl: (x) => opened.push(x) });

@@ -77,7 +77,7 @@ Sizes: S = small, M = medium, L = large. Ranking is by value for the clutter it 
 **What a workspace is:** a named set of sessions plus their layout (order, pins, sizes, modes, view). Examples: "Nichenaut", "School", "Portfolio".
 
 - **Switching:** pills in the top bar, **only shown once there are 2 or more workspaces**. The active pill is bright and the others are muted. A hidden workspace with a session that needs you gets an amber dot on its pill. Past about 6 pills, the rest fold into a `▾` menu.
-- **Keys:** Ctrl+⌘←/→ (Windows Ctrl+Alt+←/→), ⌥⌘1-9, or the palette.
+- **Keys:** Ctrl+⌘←/→ (Windows Ctrl+Shift+PageUp/PageDown; Ctrl+Alt+arrows is the Intel screen-rotate hotkey), ⌥⌘1-9, or the palette.
 - **Background sessions keep running.** Switching only changes what's drawn, and it's instant with a 100 ms fade.
 - **Put away** a workspace: its sessions stop and resume later, exactly like quitting does today. **Reopen** it with one click from the pill menu or the palette. This gives you saved setups, like "open my Nichenaut workspace" bringing back 4 sessions in their modes.
 - **Moving sessions:** drag a tile header onto a pill. Dropping a folder onto a pill starts a session there. New sessions land in the current workspace.

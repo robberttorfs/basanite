@@ -33,6 +33,8 @@ jobs:
           path: |
             dist/Hangar-mac-*.dmg
             dist/Hangar-mac-*.dmg.blockmap
+            dist/Hangar-mac-*.zip
+            dist/Hangar-mac-*.zip.blockmap
             dist/latest-mac.yml
           if-no-files-found: error
 

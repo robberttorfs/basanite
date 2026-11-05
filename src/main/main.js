@@ -24,10 +24,15 @@ let updater = null;
 const isWin = process.platform === 'win32';
 const isMac = process.platform === 'darwin';
 
-app.setName('Hangar');
+const brand = require('../shared/brand');
+app.setName(brand.name);
 app.setPath('userData', paths.dataDir());
-if (isWin) app.setAppUserModelId('com.robberttorfs.hangar');
-if (!app.requestSingleInstanceLock()) { app.quit(); }
+// Must match package.json build.appId (the installer stamps it on the Start menu
+// shortcut), or Windows files notifications under another app.
+if (isWin) app.setAppUserModelId(brand.appId);
+// A second launch only wakes the first. Stop here, before anything starts a server
+// or touches server.json (app.quit() alone would let whenReady still run).
+if (!app.requestSingleInstanceLock()) { app.exit(0); return; }
 
 let win = null;
 let server = null;
@@ -302,10 +307,12 @@ function freshStart(s) {
     `decisions made and why, hard rules and how the user likes to work, key files and commands. Update any progress notes or memory this project uses. ` +
     'Keep it complete but tight. When it is written, reply with one short line.');
   broadcast();
-  setTimeout(() => { if (s.handover?.at && Date.now() - s.handover.at >= HANDOVER_TIMEOUT && s.handover.stage !== 'continuing') failHandover(s, 'It took too long.'); }, HANDOVER_TIMEOUT + 1000);
+  const h = s.handover;
+  h.timer = setTimeout(() => { if (s.handover === h && h.stage !== 'continuing') failHandover(s, 'It took too long.'); }, HANDOVER_TIMEOUT + 1000);
 }
 
 function failHandover(s, why) {
+  clearTimeout(s.handover?.timer);
   s.handover = null;
   send('tile:notice', { id: s.id, text: `Fresh start stopped. ${why}` });
   broadcast();
@@ -333,6 +340,7 @@ function stepHandover(s, ev) {
     h.stage = 'continuing';
     setTimeout(() => {
       typeInto(s, `[Hangar fresh start] Read ${h.file} and continue the work from where it stopped. Follow its rules and next steps.`);
+      clearTimeout(h.timer);
       s.handover = null;
       send('tile:notice', { id: s.id, text: 'Fresh start done. Continuing from the handover.' });
       broadcast();
@@ -351,8 +359,17 @@ function closeSession(id) {
   if (focusedTile === id) focusedTile = null;
   chats.delete(id);
   data?.forget(id);
+  forgetNotified(id);
   saveWorkspace();
   broadcast();
+}
+
+/** Drops a closed tile's notification keys (id given), and timed ones older than a day. */
+function forgetNotified(id) {
+  const day = Date.now() - 86400000;
+  for (const [k, t] of notified) {
+    if ((id && (k.includes(`:${id}:`) || k.endsWith(`:${id}`))) || (t !== Infinity && t < day)) notified.delete(k);
+  }
 }
 
 function saveWorkspace() {
@@ -420,6 +437,7 @@ function notify(key, title, body, tileId) {
   const last = notified.get(key) || 0;
   if (Date.now() - last < 30000) return;
   notified.set(key, Date.now());
+  if (notified.size > 200) forgetNotified(null);
   // Off-screen test copies log notifications instead of showing them.
   if (process.env.HANGAR_DEV_OFFSCREEN) { console.log(`[notify] ${title}: ${body}`); return; }
   if (!Notification.isSupported()) return;
@@ -704,7 +722,7 @@ function buildMenu() {
   const others = (menuSpec || []).filter((m) => !known.includes(m.label)).map((m) => ({ label: m.label, submenu: items(m.label) }));
   const sub = (label, list) => (list.length ? [{ label, submenu: list }] : []);
   const template = [
-    ...(isMac ? [{ label: 'Hangar', submenu: [
+    ...(isMac ? [{ label: brand.name, submenu: [
       { role: 'about' }, ...(updater?.menuItem() ? [updater.menuItem()] : []), { type: 'separator' },
       ...withSep(items('App')),
       { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' },
@@ -728,7 +746,8 @@ function buildMenu() {
     ...others,
     { label: 'Window', submenu: [
       ...withSep(items('Window')),
-      { role: 'minimize' }, ...(isMac ? [{ role: 'zoom', label: 'Fill Screen' }] : [{ label: 'Maximize', click: () => (win.isMaximized() ? win.unmaximize() : win.maximize()) }]),
+      // Not Ctrl+M on Windows: in a terminal that is Enter.
+      { role: 'minimize', ...(isMac ? {} : { registerAccelerator: false, accelerator: undefined }) }, ...(isMac ? [{ role: 'zoom', label: 'Fill Screen' }] : [{ label: 'Maximize', click: () => (win.isMaximized() ? win.unmaximize() : win.maximize()) }]),
     ] },
     ...(items('Help').length ? [{ role: 'help', submenu: items('Help') }] : []),
   ];
@@ -782,6 +801,8 @@ function stopSessions(wsId) {
     sessions.splice(sessions.indexOf(s), 1);
     if (focusedTile === s.id) focusedTile = null;
     chats.delete(s.id);
+    data?.forget(s.id);
+    forgetNotified(s.id);
   }
   return out;
 }
@@ -1153,7 +1174,7 @@ app.whenReady().then(async () => {
   ipcMain.on('update:action', () => updater?.act());
   require('./shellops').register({ ipcMain, shell });
   data = dataIpc.register({ ipcMain, sessions, find, addSession, uniqueName, send, broadcast, defaultWs: () => workspaces.active });
-  updater = updaterMod.init({ app, onChange: (st) => { buildMenu(); send('update:state', st); } });
+  updater = updaterMod.init({ app, onChange: (st) => { buildMenu(); send('update:state', st); }, confirmInstall: () => (quitConfirmed = confirmBusyQuit()) });
   pruneImages();
   buildMenu();
   createWindow();
@@ -1164,6 +1185,7 @@ app.whenReady().then(async () => {
   win.webContents.once('did-finish-load', () => {
     // Every open workspace's sessions come back; put away ones wait until reopened.
     for (const w of workspaces.open()) { const saved = w.tiles; w.tiles = []; resumeSessions(w.id, saved); }
+    workspaces.restored = true;
     broadcast();
   });
   setInterval(pollLoop, 1000);
@@ -1172,18 +1194,22 @@ app.whenReady().then(async () => {
 
 let quitting = false;
 let ptysClosed = false;
+let quitConfirmed = false;   // set when Restart to update already asked
+/** Asks before stopping busy sessions; true means go ahead. */
+function confirmBusyQuit() {
+  const busy = sessions.filter((s) => s.status === 'working' || s.status === 'needs_input');
+  if (!busy.length || !win) return true;
+  const r = dialog.showMessageBoxSync(win, {
+    type: 'question', buttons: ['Quit', 'Cancel'], defaultId: 1, cancelId: 1,
+    message: `${busy.length} session${busy.length > 1 ? 's are' : ' is'} still working.`,
+    detail: `Quitting stops them. They can be resumed next time you open ${brand.name}.`,
+  });
+  return r !== 1;
+}
 app.on('before-quit', (e) => {
   if (ptysClosed) return;
   if (quitting) { e.preventDefault(); return; }
-  const busy = sessions.filter((s) => s.status === 'working' || s.status === 'needs_input');
-  if (busy.length && win) {
-    const r = dialog.showMessageBoxSync(win, {
-      type: 'question', buttons: ['Quit', 'Cancel'], defaultId: 1, cancelId: 1,
-      message: `${busy.length} session${busy.length > 1 ? 's are' : ' is'} still working.`,
-      detail: 'Quitting stops them. They can be resumed next time you open Hangar.',
-    });
-    if (r === 1) { e.preventDefault(); return; }
-  }
+  if (!quitConfirmed && !confirmBusyQuit()) { e.preventDefault(); return; }
   quitting = true;
   saveWorkspace();
   try { fs.unlinkSync(paths.serverFile()); } catch {}

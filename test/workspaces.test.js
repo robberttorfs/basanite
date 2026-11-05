@@ -141,3 +141,13 @@ test('workspaces: pills fold into the menu past six, the active one always shows
   assert.deepEqual(p.folded, ['6', '7']);
   assert.deepEqual(pillPlan(['1', '2'], '1', 6).folded, []);
 });
+
+test('workspaces: a save before the saved sessions are resumed keeps them', () => {
+  const ws = migrate({ tiles: [tile('a'), tile('b')] });
+  // Startup: nothing running yet, e.g. a quit or a settings change during load.
+  assert.deepEqual(ws.toJSON({}).workspaces[0].tiles.map((t) => t.id), ['a', 'b']);
+  ws.current().tiles = [];
+  ws.restored = true;
+  assert.deepEqual(ws.toJSON({}).workspaces[0].tiles, [], 'after restore, no running tiles means none');
+  assert.deepEqual(ws.toJSON({ [MAIN_ID]: [tile('c')] }).workspaces[0].tiles.map((t) => t.id), ['c']);
+});

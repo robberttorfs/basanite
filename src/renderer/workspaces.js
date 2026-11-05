@@ -337,8 +337,8 @@
     const W = { menu: 'Workspace' };
     C.register([
       { id: 'workspace.new', label: 'New workspace', group: 'Workspaces', menu: { ...W, section: 'new' }, run: () => createWs() },
-      { id: 'workspace.next', label: 'Next workspace', group: 'Workspaces', shortcut: { mac: 'Control+Command+Right', win: 'Control+Alt+Right' }, menu: { ...W, section: 'go' }, when: () => openList().length > 1, run: () => step(1) },
-      { id: 'workspace.prev', label: 'Previous workspace', group: 'Workspaces', shortcut: { mac: 'Control+Command+Left', win: 'Control+Alt+Left' }, menu: { ...W, section: 'go' }, when: () => openList().length > 1, run: () => step(-1) },
+      { id: 'workspace.next', label: 'Next workspace', group: 'Workspaces', shortcut: { mac: 'Control+Command+Right', win: 'Ctrl+Shift+PageDown' }, menu: { ...W, section: 'go' }, when: () => openList().length > 1, run: () => step(1) },
+      { id: 'workspace.prev', label: 'Previous workspace', group: 'Workspaces', shortcut: { mac: 'Control+Command+Left', win: 'Ctrl+Shift+PageUp' }, menu: { ...W, section: 'go' }, when: () => openList().length > 1, run: () => step(-1) },
       { id: 'workspace.rename', label: 'Rename workspace…', group: 'Workspaces', menu: { ...W, section: 'this' }, run: () => openRename(state.activeWs) },
       { id: 'workspace.options', label: 'Workspace options…', group: 'Workspaces', aliases: ['colour', 'color', 'notifications', 'default mode'], menu: { ...W, section: 'this' }, run: () => openMenu(state.activeWs) },
       { id: 'workspace.putaway', label: 'Put away workspace', group: 'Workspaces', menu: { ...W, section: 'this' }, when: () => openList().length > 1, run: () => putAway(state.activeWs) },
@@ -353,7 +353,7 @@
         const i = open.indexOf(w);
         return {
           id: `workspace.go.${w.id}`, label: `Switch to ${w.name}`, group: 'Workspaces', menu: { ...W, section: 'list', label: w.name },
-          shortcut: i < 9 ? { mac: `Alt+Command+${i + 1}`, win: `Control+Shift+${i + 1}` } : undefined,
+          shortcut: i < 9 ? { mac: `Alt+Command+${i + 1}`, win: `Ctrl+Shift+${i + 1}` } : undefined,
           when: () => w.id !== state.activeWs, run: () => switchTo(w.id),
         };
       });

@@ -178,7 +178,9 @@ class Workspaces {
 
   /** The file content. tilesByWs: open workspace id -> its running tiles, in order. */
   toJSON(tilesByWs = {}, recent = []) {
-    const workspaces = this.list.map((w) => ({ ...w, tiles: w.putAway ? w.tiles : tilesByWs[w.id] || [] }));
+    // Until main has resumed the saved sessions (restored), an open workspace keeps
+    // its saved tiles, so a save during startup or an early quit never wipes them.
+    const workspaces = this.list.map((w) => ({ ...w, tiles: w.putAway ? w.tiles : tilesByWs[w.id] || (this.restored ? [] : w.tiles || []) }));
     const tiles = workspaces.filter((w) => !w.putAway).flatMap((w) => w.tiles);
     return { version: 2, active: this.active, workspaces, tiles, recent };
   }

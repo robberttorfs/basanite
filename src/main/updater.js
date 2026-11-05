@@ -25,7 +25,8 @@ function enabled({ feed, packaged, dev }) {
 
 /**
  * Wires an autoUpdater (injected so tests can fake it). Returns the controller.
- * opts: { autoUpdater, feed, platform, packaged, dev, onChange(state), openUrl(url), timers }
+ * opts: { autoUpdater, feed, platform, packaged, dev, onChange(state), openUrl(url), timers,
+ *         confirmInstall() -> false to keep running (asked before the installer starts) }
  */
 function createUpdater(opts) {
   const { autoUpdater, feed, platform, onChange } = opts;
@@ -68,7 +69,12 @@ function createUpdater(opts) {
     stop() { timers.forEach((t) => { clearTimeout(t); clearInterval(t); }); timers = []; },
     /** The one action for the current state: restart into the new version, or open the page. */
     act() {
-      if (state.kind === 'ready') autoUpdater.quitAndInstall(false, true);
+      if (state.kind === 'ready') {
+        // Ask about busy sessions before the installer starts, not after: a Cancel
+        // at the quit dialog would leave the installer running against a live app.
+        if (opts.confirmInstall && !opts.confirmInstall()) return;
+        autoUpdater.quitAndInstall(false, true);
+      }
       else if (state.kind === 'available' && state.url) openUrl(state.url);
     },
     label() {
@@ -85,7 +91,7 @@ function createUpdater(opts) {
 }
 
 /** Real wiring for main.js. */
-function init({ app, onChange }) {
+function init({ app, onChange, confirmInstall }) {
   let autoUpdater = null;
   const packaged = app.isPackaged;
   const dev = !!process.env.HANGAR_DEV;
@@ -95,7 +101,7 @@ function init({ app, onChange }) {
   const u = createUpdater({
     autoUpdater: autoUpdater || { on() {}, setFeedURL() {}, checkForUpdates() {} },
     feed: autoUpdater ? brand.releases : null,
-    platform: process.platform, packaged, dev, onChange,
+    platform: process.platform, packaged, dev, onChange, confirmInstall,
   });
   u.start();
   return u;
