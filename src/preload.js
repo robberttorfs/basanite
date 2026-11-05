@@ -82,8 +82,6 @@ contextBridge.exposeInMainWorld('hangar', {
   setMenu: (spec) => ipcRenderer.send('menu:set', spec),
   look: () => ipcRenderer.invoke('look'),
   onLook: on('look'),
-  look: () => ipcRenderer.invoke('look'),
-  onLook: on('look'),
   onCommand: on('cmd:run'),
 
   onState: on('state'),
