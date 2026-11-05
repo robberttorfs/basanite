@@ -103,6 +103,10 @@ function cleanEnv(extra) {
     'CLAUDE_CODE_ENTRYPOINT', 'CLAUDE_CODE_SSE_PORT', 'CLAUDE_CODE_SESSION_ID', 'CLAUDE_CODE_CHILD_SESSION',
     'CLAUDE_CODE_SESSION_ATTENDED', 'CLAUDE_CODE_MESSAGING_SOCKET', 'CLAUDE_CODE_MESSAGING_TOKEN',
     'CLAUDE_CODE_BRIDGE_SESSION_ID', 'CLAUDE_CODE_EXECPATH'];
+  // A Claude Code tool shell also sets NO_COLOR=1 for its own subprocesses; inherited,
+  // it turns every tile's Claude Code plain white. Only dropped when it came from such
+  // a parent, so a user's own NO_COLOR preference is kept.
+  if (process.env.CLAUDECODE) { delete env.NO_COLOR; delete env.GIT_TERMINAL_PROMPT; }
   for (const k of inherited) delete env[k];
   if (!env.LANG) env.LANG = 'en_US.UTF-8';
   return env;
