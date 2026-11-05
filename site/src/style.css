@@ -129,7 +129,8 @@ h3 { font: 700 clamp(22px, 2vw, 28px)/1.1 var(--sans); font-stretch: 108%; lette
 .panel { border: 1px solid var(--line); border-radius: 10px; background: var(--tile); overflow: hidden; }
 .panel > .th { background: var(--tile); }
 .panel > .th kbd { margin-left: auto; }
-.panel img { display: block; width: 100%; }
+.panel { background: var(--bg); }
+.panel img { display: block; width: auto; max-width: 100%; margin: 0 auto; }
 
 .feat { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 8fr); gap: clamp(28px, 4vw, 64px); align-items: center; margin: 0 0 clamp(64px, 8vw, 112px); }
 .feat:nth-of-type(even) { grid-template-columns: minmax(0, 8fr) minmax(0, 5fr); }
@@ -273,3 +274,8 @@ dialog.pal::backdrop { background: rgba(0, 0, 0, .45); }
   .toc summary::after { content: '+'; color: var(--faint); }
   .toc[open] summary::after { content: '\2212'; }
 }
+/* The overview shot is wide: copy beside a short intro, shot full width under it. */
+.feat.wide { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+.feat.wide .copy { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 8fr); gap: 0 clamp(28px, 4vw, 64px); max-width: none; }
+.feat.wide .copy h3 { grid-row: span 2; }
+@media (max-width: 1000px) { .feat.wide .copy { display: block; } }

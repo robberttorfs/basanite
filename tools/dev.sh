@@ -8,6 +8,7 @@
 #   bash tools/dev.sh key NAME KEY MODS  real key press, e.g. key K control,shift
 #   bash tools/dev.sh open NAME DIR      open a Claude session on DIR (no prompt is sent)
 #   bash tools/dev.sh api NAME CMD 'QUERY'   any GET /api command (list, screen, log...)
+# DEV_ELECTRON_ARGS adds Electron/Chromium flags, e.g. --force-device-scale-factor=2 for 2x shots.
 # Claude sessions started here use Haiku (cheap) and must not be sent prompts unless a
 # check truly needs one; keep any prompt to a few words.
 set -e
@@ -23,7 +24,7 @@ case "$cmd" in
   start)
     stop; mkdir -p "$dir"
     (cd "$root" && HANGAR_DEV=1 HANGAR_DEV_OFFSCREEN=1 HANGAR_DATA_DIR="$dir" HANGAR_DEV_CLAUDE_ARGS="--model haiku" \
-      npx electron . --mute-audio > "$dir/run.log" 2>&1 &)
+      npx electron . --mute-audio ${DEV_ELECTRON_ARGS:-} > "$dir/run.log" 2>&1 &)
     for i in $(seq 1 40); do [ -f "$json" ] && break; sleep 1; done
     [ -f "$json" ] || { echo "did not start, see $dir/run.log"; exit 1; }
     sleep 3; echo "ready ($name)";;

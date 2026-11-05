@@ -10,3 +10,4 @@
 - Direction pages load ../src/wall.js, so they share later wall.js changes (fine for now; copy it in if they must stay frozen).
 - Screenshots are whole-window shots shown at ~760 px, so text in them is small; tighter crops of each feature would read better (needs a new tools/site-shots.sh run).
 - Real ⌘K on a Mac and the Windows ARM detection weren't tried on real hardware.
+- 23:13 lead request: tools/site-shots.sh now captures at 2x (dev.sh DEV_ELECTRON_ARGS) and crops each feature to its own part (overview at 940x500 with a sample preview + permission menu, palette, mode menu, usage popover) plus phone crops for overview/palette; site markup uses 1x/2x srcset at natural size, overview feature full width. Checked 1440/700/390 dark+light. (Earlier log times 23:15-23:45 were estimates; the clock read 23:01 when this round started.)

@@ -2,6 +2,10 @@
 # Real app screenshots for the website, dark and light, into site/public/shots.
 #   bash tools/site-shots.sh            capture PNGs, then make webp sizes (needs Python + Pillow)
 #   bash tools/site-shots.sh --images   only remake the webp files from the last capture
+# Captures at 2x (DEV_ELECTRON_ARGS=--force-device-scale-factor=2). Each feature gets a tight
+# crop of its own part of the window (box measured in the renderer), saved as <name>-<theme>.webp
+# (2x) and <name>-<theme>-1x.webp; the site shows them at their 1x CSS size. The wall stays whole.
+# Sample data only: preview text, the permission menu and usage names are swapped in by JS.
 # Uses the quiet dev copy (tools/dev.sh, NAME "site"). It opens Claude sessions on small
 # demo folders under .devdata/site-demo and never sends a prompt to Claude: tile states
 # are set by posting the same hook events Claude Code would send (they cost nothing).
@@ -22,7 +26,7 @@ for d in api-server web-app scraper notes; do
   [ -f "$demo/$d/README.md" ] || printf '# %s\n\nDemo folder for website screenshots.\n' "$d" > "$demo/$d/README.md"
 done
 
-dev start "$NAME"
+DEV_ELECTRON_ARGS=--force-device-scale-factor=2 dev start "$NAME"
 json="$root/.devdata/$NAME/server.json"
 port=$(sed 's/.*"port":\([0-9]*\).*/\1/' "$json"); token=$(sed 's/.*"token":"\([a-f0-9]*\)".*/\1/' "$json")
 js() { dev js "$NAME" "$1"; }
@@ -31,6 +35,11 @@ winpath() { if command -v cygpath >/dev/null; then cygpath -w "$1"; else echo "$
 shot() { dev shot "$NAME" "$(winpath "$raw/$1.png")" >/dev/null; echo "shot $1"; }
 run() { js "window.HangarCommands.run('$1'); 'ok'" >/dev/null; sleep 1.2; }
 esc() { dev key "$NAME" Escape '' >/dev/null; sleep .6; }
+# box NAME 'JS returning [x,y,w,h] in CSS px': saves the crop box (device px) next to the shot.
+box() { js "(function(){const b=$2;const d=devicePixelRatio;return b.map(v=>Math.round(v*d)).join(' ');})()" | sed 's/.*"text":"\([^"]*\)".*/\1/' > "$raw/$1.box"; }
+R='((s)=>{const e=document.querySelector(s);if(!e)return null;const r=e.getBoundingClientRect();return [r.left,r.top,r.right,r.bottom]})'
+# Union of the elements plus padding, clamped to the window, as [x,y,w,h].
+U="((list,p)=>{const rs=list.map(s=>$R(s)).filter(Boolean);const a=Math.max(0,Math.min(...rs.map(r=>r[0]))-p),b=Math.max(0,Math.min(...rs.map(r=>r[1]))-p),c=Math.min(innerWidth,Math.max(...rs.map(r=>r[2]))+p),d=Math.min(innerHeight,Math.max(...rs.map(r=>r[3]))+p);return [a,b,c-a,d-b]})"
 
 for d in api-server web-app scraper notes; do dev open "$NAME" "$(winpath "$demo/$d")" >/dev/null; sleep 1; done
 echo "waiting for Claude Code to start in the tiles"; sleep 18
@@ -68,18 +77,39 @@ capture() {  # $1 = dark | light
   js "document.activeElement && document.activeElement.blur(); 'ok'" >/dev/null
   state "$A" working; sleep 1   # a quiet tile can drop back to idle; show it working
   shot "wall-$t"
-  run view.overview;  shot "overview-$t"; esc
+  run view.overview
+  # Lay the overview out at a smaller size so the crop stays readable on the page.
+  js "(function(){const o=document.getElementById('overview'); o.style.width='940px'; o.style.height='500px'; return 'ok';})()" >/dev/null; sleep .5
+  # No prompt was ever sent, so the preview has no messages and no menu. Draw sample ones
+  # with the overview's own markup (the menu reads like Claude Code's edit prompt).
+  # The overview redraws itself every second, so an observer puts the sample back each time.
+  js "(function(){const p=document.querySelector('.ovw-preview'); if(!p) return 'no preview';
+    const head=p.querySelector('.ovw-ph').outerHTML;
+    const html=head+'<div class=\"ovw-feed\"><div class=\"msg you\"><div class=\"bubble\">move the date picker to the new API</div></div>'+
+      '<div class=\"msg claude\"><p>The new picker needs <code>date-fns</code> 4, so I\u2019ll bump it in <code>package.json</code> first, then update <code>DatePicker.tsx</code> and run its tests.</p></div></div>'+
+      '<pre class=\"ovw-menu\">Edit file package.json\n\n  \"date-fns\": \"^3.6.0\"  \u2192  \"^4.1.0\"\n\nDo you want to make this edit to package.json?\n\u276f 1. Yes\n  2. Yes, allow all edits during this session (shift+tab)\n  3. No, and tell Claude what to do differently (esc)</pre>'+
+      '<div class=\"ovw-acts\"><button class=\"btn small\">1</button><button class=\"btn small\">2</button><button class=\"btn small\">3</button><div class=\"grow\"></div><button class=\"btn small primary\">Open<kbd>\u21a9</kbd></button></div>';
+    const put=()=>{ if(p.innerHTML!==html){ p.innerHTML=html; } }; put();
+    new MutationObserver(put).observe(p,{childList:true,subtree:true,characterData:true}); return 'ok';})()" >/dev/null
+  sleep .4
+  box "overview-$t" "$U(['#overview'],0)"
+  shot "overview-$t"; esc
+  js "(function(){const o=document.getElementById('overview'); o.style.width=''; o.style.height=''; return 'ok';})()" >/dev/null
   run app.palette
   # A query that matches commands only (recent-folder rows would show this PC's paths).
   for k in s e s s i o n; do dev key "$NAME" "$k" '' >/dev/null; sleep .15; done; sleep .6
+  box "palette-$t" "$U(['.pop.palette'],28)"
   shot "palette-$t";  esc
   js "window.HangarCommands.setScope && window.HangarCommands.setScope('$A'); 'ok'" >/dev/null
-  run mode.choose;    shot "modes-$t";    esc
+  run mode.choose
+  box "modes-$t" "(()=>{const b=$U(['.pop.modes-menu'],20);return [b[0],b[1]+14,b[2],b[3]-14]})()"
+  shot "modes-$t";    esc
   run app.usage; sleep 1.5
   # The 14-day chart reads this PC's real transcripts: swap its names and sums for sample ones.
   js "(function(){const P=[['api-server','3.1M','\$148'],['web-app','2.4M','\$97'],['scraper','1.2M','\$61'],['notes','0.4M','\$12'],['docs','0.2M','\$6']];
     const h=document.querySelector('.uh-read'); if(!h) return 'no chart'; h.parentElement.querySelectorAll('.ur').forEach((r,i)=>{const p=P[i]||P[4];r.querySelector('.un').textContent=p[0];r.querySelector('.un').title='';r.querySelector('.uo').textContent=p[1];r.querySelector('.uc').textContent='≈'+p[2];});
     h.textContent='14 days  7.3M tokens  ≈\$324'; return 'ok';})()" >/dev/null
+  box "usage-$t" "(()=>{const b=$U(['.pop.usage-pop'],20);return [b[0],0,b[2],b[1]+b[3]]})()"
   shot "usage-$t";    esc
 }
 js "window.hangar.setSettings({ theme: 'dark' }); 'ok'" >/dev/null; sleep 1.5
@@ -90,31 +120,30 @@ js "window.hangar.setSettings({ theme: 'system' }); 'ok'" >/dev/null
 dev stop "$NAME"
 fi
 
-# webp in three widths for srcset (the PNGs stay in .devdata).
+# The wall: whole window in three widths (README and og:image). Features: their crop box,
+# at 2x and 1x. The site's <img> width/height are the 1x sizes printed here.
 python - "$raw" "$out" <<'PY'
 import sys, pathlib
 from PIL import Image
 raw, out = map(pathlib.Path, sys.argv[1:3])
-# Phone crops in 1400x900 window coordinates. Sizes must match the site's <source> width/height.
-CROPS = {
-    'overview': (0, 0, 760, 480),
-    'palette': (400, 160, 1000, 520),
-    'modes': (0, 44, 560, 584),
-    'usage': (650, 34, 1050, 710),
-}
+PHONE = {'overview': (395, 40, 940, 500), 'palette': (28, 28, 588, 289)}
 for p in sorted(raw.glob('*.png')):
     im = Image.open(p).convert('RGB')
-    for w in (640, 1100, 1400):   # fixed widths: the site's srcset names them
-        h = round(im.height * w / im.width)
-        im.resize((w, h), Image.LANCZOS).save(out / f'{p.stem}-{w}.webp', 'WEBP', quality=82, method=6)
-    # A close crop for phones, where the whole window would be too small to read.
-    name = p.stem.rsplit('-', 1)[0]
-    box = CROPS.get(name)
-    if box:
-        sx = im.width / 1400
-        c = im.crop(tuple(round(v * sx) for v in box))
-        c = c.resize((box[2] - box[0], box[3] - box[1]), Image.LANCZOS)
-        c.save(out / f'{p.stem}-crop.webp', 'WEBP', quality=84, method=6)
-    print(p.stem, im.size)
+    b = p.with_suffix('.box')
+    if not b.exists():
+        for w in (640, 1100, 1400):
+            h = round(im.height * w / im.width)
+            im.resize((w, h), Image.LANCZOS).save(out / f'{p.stem}-{w}.webp', 'WEBP', quality=82, method=6)
+        print(p.stem, im.size); continue
+    x, y, w, h = map(int, b.read_text().split())
+    c = im.crop((x, y, x + w, y + h))
+    c.save(out / f'{p.stem}.webp', 'WEBP', quality=86, method=6)
+    c.resize((w // 2, h // 2), Image.LANCZOS).save(out / f'{p.stem}-1x.webp', 'WEBP', quality=84, method=6)
+    # Phones get a closer crop (CSS px inside the crop above): the preview pane, the palette box.
+    ph = PHONE.get(p.stem.rsplit('-', 1)[0])
+    if ph:
+        c.crop(tuple(v * 2 for v in ph)).save(out / f'{p.stem}-phone.webp', 'WEBP', quality=86, method=6)
+        print(p.stem, 'phone css', ph[2] - ph[0], 'x', ph[3] - ph[1])
+    print(p.stem, 'css', w // 2, 'x', h // 2)
 PY
 echo "done: $out"
