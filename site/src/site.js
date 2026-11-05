@@ -35,7 +35,7 @@
   function label() {
     for (const b of document.querySelectorAll('[data-theme-btn]')) b.setAttribute('aria-label', now() === 'light' ? 'Dark theme' : 'Light theme');
     const m = document.querySelector('meta[name="theme-color"]:not([media])');
-    if (m) m.content = now() === 'light' ? '#ebeae6' : '#0b0b0a';
+    if (m) m.content = now() === 'light' ? '#f1f4f5' : '#0a1317';
   }
   for (const b of document.querySelectorAll('[data-theme-btn]')) { b.addEventListener('click', flip); b.title = 'Theme'; }
   document.addEventListener('site:theme', flip);

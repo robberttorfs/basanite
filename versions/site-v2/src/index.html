@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{name}}</title>
+<meta name="description" content="A free, open-source desktop app for Mac and Windows. All your Claude Code sessions on one screen as real terminals; the one waiting on you grows and turns amber.">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0b0b0a">
+<meta property="og:title" content="{{name}}">
+<meta property="og:description" content="All your Claude Code sessions on one screen. The one waiting on you grows and turns amber. Free, for Mac and Windows.">
+<meta property="og:image" content="/shots/wall-dark-1400.webp">
+<link rel="icon" href="/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<script>try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/style.css">
+<script src="/wall.js" defer></script>
+<script src="/palette.js" defer></script>
+<script src="/site.js" defer></script>
+</head>
+<body id="top">
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav">
+  <a class="logo" href="/"><img src="/icon-64.png" alt="" width="22" height="22"><span>{{name}}</span></a>
+  <a class="link" href="/docs">Docs</a>
+  <a class="link" href="{{github}}">GitHub</a>
+  <a class="link" href="/#download">Download</a>
+  <button class="ib" type="button" data-palette aria-label="Command palette" title="Command palette"><span class="key"><span data-mod>⌘</span> K</span></button>
+  <button class="ib" type="button" data-theme-btn aria-label="Theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg></button>
+</header>
+
+<main id="main">
+  <section class="hero" aria-label="{{name}}">
+    <div class="win" data-wall>
+      <div class="bar">
+        <span data-count="needs">◆ <span class="n">0</span> needs you</span>
+        <span data-count="working">● <span class="n">0</span> working</span>
+        <span data-count="done">✓ <span class="n">0</span> done</span>
+        <span class="r" aria-hidden="true"><span>5h<span class="meter"><i style="width:34%"></i></span>34%</span><span>week<span class="meter"><i style="width:52%"></i></span>52%</span></span>
+      </div>
+      <div class="grid">
+        <div class="tile mine">
+          <div class="th" aria-hidden="true"><span class="sh">●</span><span class="nm">you</span><span class="st">Typing</span><span class="br">main</span></div>
+          <div class="body">
+            <h1>Which one needs&nbsp;you?</h1>
+            <p class="lede">All your Claude Code sessions on one screen, each a real terminal. <strong>The one waiting on you grows and turns amber.</strong> The one you're typing in stays put.</p>
+            <div class="cta">
+              <a class="btn main" data-dl-auto href="#download" data-mac-arm="{{dl.macArm}}" data-win="{{dl.win}}" data-win-arm="{{dl.winArm}}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg><span>Download</span></a>
+              <a class="btn" href="{{github}}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.5 2 2 6.6 2 12.2c0 4.5 2.9 8.3 6.8 9.7.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.4-3.4-1.4-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.3 4.7-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10.2 10.2 0 0 0 22 12.2C22 6.6 17.5 2 12 2z"/></svg><span>Source</span></a>
+            </div>
+            <div class="also">
+              <div class="builds"><a href="{{dl.macArm}}">Mac, Apple silicon</a><a href="{{dl.macIntel}}">Mac, Intel</a><a href="{{dl.win}}">Windows x64</a><a href="{{dl.winArm}}">Windows on ARM</a></div>
+              Free, MIT licensed. Needs <a href="{{claudeCode}}">Claude Code</a>.<br>Not signed yet, so the <a href="#download">first launch</a> takes one extra step.
+            </div>
+          </div>
+          <div class="prompt" aria-hidden="true">&gt; <span class="caret"></span></div>
+        </div>
+        <div class="col" aria-label="Sample sessions"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="what">
+    <div class="two">
+      <h2>It's the claude you already run.</h2>
+      <div>
+        <p class="big">Same login, settings, skills and slash commands. {{name}} gives each session a tile, listens to Claude Code's hooks to know what it's doing, and points at the one that's waiting.</p>
+        <p class="big"><strong>Watching costs nothing.</strong> The hooks reply with nothing and the counters come from local files.</p>
+        <dl class="legend">
+          <dt>○ Idle</dt><dd>Nothing to do.</dd>
+          <dt>● Working</dt><dd>Leave it alone.</dd>
+          <dt class="a">◆ Needs you</dt><dd>A question or a permission menu. It waits as long as you do.</dd>
+          <dt>✓ Done</dt><dd>Stays done until you've looked.</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec feats" aria-label="Features">
+    <div class="feat wide">
+      <div class="copy">
+        <h3>Everything, sorted by who's waiting.</h3>
+        <p>The overview is one list of every session in every workspace, needs-you first. The side pane shows the end of the conversation, and a number key answers a permission menu right from there.</p>
+        <p>Snooze the one that keeps asking. Done stays green until you've looked at it.</p>
+      </div>
+      <figure class="panel" style="margin:0">
+        <div class="th"><span class="sh">◆</span><span class="nm">Overview</span><kbd data-mac="⇧⌘A" data-win="Ctrl+Shift+A">⇧⌘A</kbd></div>
+        <picture class="only-dark"><source media="(max-width: 640px)" srcset="/shots/overview-dark-phone.webp 2x" width="545" height="460"><img src="/shots/overview-dark-1x.webp" srcset="/shots/overview-dark-1x.webp 1x, /shots/overview-dark.webp 2x" width="940" height="500" loading="lazy" decoding="async" alt="The overview: sessions grouped under Needs you, Done and Idle, with a preview pane."></picture>
+        <picture class="only-light"><source media="(max-width: 640px)" srcset="/shots/overview-light-phone.webp 2x" width="545" height="460"><img src="/shots/overview-light-1x.webp" srcset="/shots/overview-light-1x.webp 1x, /shots/overview-light.webp 2x" width="940" height="500" loading="lazy" decoding="async" alt="The overview: sessions grouped under Needs you, Done and Idle, with a preview pane."></picture>
+      </figure>
+    </div>
+
+    <div class="feat">
+      <div class="copy">
+        <h3>Plan mode that can't edit. Really.</h3>
+        <p>Pick how a session works: Notes, Plan, Build, Review, Debug, Until done, or one you write. Add-ons like <em>Verify at end</em> stack on top. The mode goes to Claude once, not with every message, and shows its token cost as dots.</p>
+        <p>In Plan and Review, a hook blocks file edits. Careful blocks pushes, deploys and other risky commands. It stops the tool call itself, so it doesn't depend on Claude remembering the rules.</p>
+      </div>
+      <figure class="panel" style="margin:0">
+        <div class="th"><span class="sh">●</span><span class="nm">Modes</span><kbd data-mac="⇧⌘M" data-win="Ctrl+Shift+M">⇧⌘M</kbd></div>
+        <picture class="only-dark"><img src="/shots/modes-dark-1x.webp" srcset="/shots/modes-dark-1x.webp 1x, /shots/modes-dark.webp 2x" width="360" height="491" loading="lazy" decoding="async" alt="The mode menu on a tile: Notes, Plan, Build, Overnight, Review, Careful, Until done, with add-ons below."></picture>
+        <picture class="only-light"><img src="/shots/modes-light-1x.webp" srcset="/shots/modes-light-1x.webp 1x, /shots/modes-light.webp 2x" width="360" height="491" loading="lazy" decoding="async" alt="The mode menu on a tile: Notes, Plan, Build, Overnight, Review, Careful, Until done, with add-ons below."></picture>
+      </figure>
+    </div>
+
+    <div class="feat">
+      <div class="copy">
+        <h3>Type, don't hunt.</h3>
+        <p><kbd>⌘K</kbd> on Mac, <kbd>Ctrl+Shift+K</kbd> on Windows. Sessions, workspaces, modes, recent folders and every action. Each row shows its own shortcut, so after a week you won't need the palette much.</p>
+        <p>Menus, shortcuts and the palette all come from one list, so they always agree. This page has a small one too: <button class="btn" type="button" data-palette style="min-height:40px;padding:0 12px;vertical-align:middle"><span data-mod>⌘</span> K</button></p>
+      </div>
+      <figure class="panel" style="margin:0">
+        <div class="th"><span class="sh">●</span><span class="nm">Palette</span><kbd data-mac="⌘K" data-win="Ctrl+Shift+K">⌘K</kbd></div>
+        <picture class="only-dark"><source media="(max-width: 640px)" srcset="/shots/palette-dark-phone.webp 2x" width="560" height="261"><img src="/shots/palette-dark-1x.webp" srcset="/shots/palette-dark-1x.webp 1x, /shots/palette-dark.webp 2x" width="616" height="317" loading="lazy" decoding="async" alt="The command palette over the tiles, listing sessions and actions with their shortcuts."></picture>
+        <picture class="only-light"><source media="(max-width: 640px)" srcset="/shots/palette-light-phone.webp 2x" width="560" height="261"><img src="/shots/palette-light-1x.webp" srcset="/shots/palette-light-1x.webp 1x, /shots/palette-light.webp 2x" width="616" height="317" loading="lazy" decoding="async" alt="The command palette over the tiles, listing sessions and actions with their shortcuts."></picture>
+      </figure>
+    </div>
+
+    <div class="feat">
+      <div class="copy">
+        <h3>See the limit before you hit it.</h3>
+        <p>Your plan's 5-hour and weekly limits sit in the top bar, with when they reset. Open them for what each session has used, and the last 14 days by day and by project.</p>
+        <p>It's all read from files Claude Code already writes. No API calls, and the costs are marked as estimates.</p>
+      </div>
+      <figure class="panel" style="margin:0">
+        <div class="th"><span class="sh">●</span><span class="nm">Usage</span><kbd data-mac="⇧⌘Y" data-win="Ctrl+Shift+Y">⇧⌘Y</kbd></div>
+        <picture class="only-dark"><img src="/shots/usage-dark-1x.webp" srcset="/shots/usage-dark-1x.webp 1x, /shots/usage-dark.webp 2x" width="400" height="678" loading="lazy" decoding="async" alt="The usage panel with plan limits and per-session token counts."></picture>
+        <picture class="only-light"><img src="/shots/usage-light-1x.webp" srcset="/shots/usage-light-1x.webp 1x, /shots/usage-light.webp 2x" width="400" height="678" loading="lazy" decoding="async" alt="The usage panel with plan limits and per-session token counts."></picture>
+      </figure>
+    </div>
+  </section>
+
+  <section class="sec" id="more" style="padding-top:0">
+    <h2>And the rest.</h2>
+    <div class="man">
+      <div class="th"><span class="sh">○</span><span class="nm">everything else</span></div>
+      <dl>
+        <dt>Workspaces</dt><dd>Group sessions by project and switch between them. Background ones keep running, and a hidden workspace shows a dot when something in it needs you. With one workspace you never see any of this.</dd>
+        <dt>Overseer</dt><dd>A small Claude in a side panel that can see every session. Ask "anything waiting on me?" It types into a session only when you tell it to.</dd>
+        <dt>Time budgets</dt><dd>Give a session 30 minutes. Claude gets a note to plan for it, a nudge at 80% and a "finish now" at the end. Nothing gets killed.</dd>
+        <dt>Fresh start</dt><dd>When the context fills up, Claude writes a handover, the context is cleared, and the session carries on from the handover.</dd>
+        <dt>Git peek</dt><dd>The branch on each tile, a dot for uncommitted changes, and a read-only look at what changed. If two sessions edit the same file, both tiles say so.</dd>
+        <dt>Clean view</dt><dd>Flip a tile to a tidy chat, tool calls folded into one line. Same session underneath.</dd>
+        <dt>Subagents</dt><dd>Listed under their tile with their job, run time and tokens.</dd>
+        <dt>History</dt><dd>Search a folder's past conversations and resume one, or branch a session into a second tile.</dd>
+        <dt>Terminals</dt><dd>A plain shell tile. Run <code>claude</code> in it and it becomes a full session.</dd>
+        <dt>Looks</dt><dd>Light, dark or system, high contrast, reduced motion and a compact density.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="sec" id="tokens">
+    <div class="two">
+      <div>
+        <h2>Your tokens stay yours.</h2>
+        <p class="big">Watching is free. A few things do cost tokens, and you start each of them yourself.</p>
+        <ul class="facts">
+          <li><b>No account, no telemetry, no server.</b> The only request it makes on its own is the update check to GitHub.</li>
+          <li><b>Your settings stay put.</b> Each session gets its hooks from its own settings file; your global Claude Code settings aren't touched.</li>
+          <li><b>Local only.</b> It talks to sessions over <code>127.0.0.1</code> with a new random key every launch.</li>
+        </ul>
+      </div>
+      <div class="ledger">
+        <table>
+          <thead><tr><th scope="col">What</th><th scope="col" style="text-align:right">Tokens</th></tr></thead>
+          <tbody>
+            <tr class="zero"><td>Watching sessions, status, notifications</td><td>0</td></tr>
+            <tr class="zero"><td>Usage, git peek, history</td><td>0</td></tr>
+            <tr><td>A mode or add-on</td><td>once, and after a compaction</td></tr>
+            <tr><td>A guard blocking an edit</td><td>one line</td></tr>
+            <tr><td>A time budget</td><td>a few short notes</td></tr>
+            <tr><td>Fresh start</td><td>one handover</td></tr>
+            <tr><td>Branching a session</td><td>one re-read</td></tr>
+            <tr><td>The overseer</td><td>when you ask it</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="download" tabindex="-1">
+    <h2>Download</h2>
+    <p class="big" style="max-width:52ch">The builds aren't signed by Apple or Microsoft yet, so the first launch takes one extra step. It's right under each download.</p>
+    <div class="dl">
+      <div class="os" id="os-mac">
+        <div class="th"><span class="sh">●</span><span class="nm">Mac</span><span class="br">.dmg</span></div>
+        <div class="in">
+          <div class="btns">
+            <a class="btn main" href="{{dl.macArm}}"><span>Apple silicon</span></a>
+            <a class="btn" href="{{dl.macIntel}}"><span>Intel</span></a>
+          </div>
+          <ol>
+            <li>Open the <code>.dmg</code> and drag {{name}} into Applications.</li>
+            <li>In Terminal, run this once:
+              <div class="cmd"><code>xattr -cr "/Applications/{{name}}.app"</code><button type="button" data-copy>Copy</button></div>
+              Or right-click the app, choose Open, then Open again.</li>
+            <li>Open it and allow notifications.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="os" id="os-win">
+        <div class="th"><span class="sh">●</span><span class="nm">Windows</span><span class="br">.exe</span></div>
+        <div class="in">
+          <div class="btns">
+            <a class="btn main" href="{{dl.win}}"><span>Windows x64</span></a>
+            <a class="btn" href="{{dl.winArm}}"><span>Windows on ARM</span></a>
+          </div>
+          <ol>
+            <li>Run the installer.</li>
+            <li>If SmartScreen doesn't recognise it, click <strong>More info</strong>, then <strong>Run anyway</strong>.</li>
+            <li>Check that <code>claude</code> works in PowerShell.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+    <p class="req">You need <a href="{{claudeCode}}">Claude Code</a> installed and logged in. <a href="/docs#install">Full install notes</a>, <a href="{{releases}}">all releases</a>, or build it yourself from <a href="{{github}}">the source</a>.</p>
+  </section>
+
+  <section class="sec faq" id="faq">
+    <div class="two">
+      <h2>Fair questions.</h2>
+      <div>
+        <details><summary>Is it really Claude Code in there?</summary><p>Yes. Every tile runs the <code>claude</code> you installed, with your login, settings, skills and MCP servers. Nothing is reimplemented.</p></details>
+        <details><summary>Does it cost anything?</summary><p>The app is free and MIT licensed. Claude Code usage comes out of your own plan, same as in a terminal.</p></details>
+        <details><summary>Why does my computer warn me about it?</summary><p>The builds aren't signed yet; signing costs money every year. The <a href="#download">install steps</a> show the one-time way past the warning, or you can build it from source.</p></details>
+        <details><summary>Does it work with Codex or other agents?</summary><p>No, it's made for Claude Code. Terminal tiles run anything, but only Claude Code sessions get status, modes and the rest.</p></details>
+        <details><summary>Linux?</summary><p>Not yet. Mac and Windows for now.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec end">
+    <h2>Go see which one needs you.</h2>
+    <div class="cta">
+      <a class="btn main" data-dl-auto href="#download" data-mac-arm="{{dl.macArm}}" data-win="{{dl.win}}" data-win-arm="{{dl.winArm}}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg><span>Download</span></a>
+      <a class="btn" href="/docs">Read the docs</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span>{{name}}, MIT licence</span>
+  <nav aria-label="Footer">
+    <a href="/docs">Docs</a>
+    <a href="{{github}}">GitHub</a>
+    <a href="{{releases}}">Releases</a>
+    <a href="{{github}}/issues">Report a problem</a>
+  </nav>
+  <p class="fine">Not made by or affiliated with Anthropic. Claude and Claude Code are trademarks of Anthropic.</p>
+</footer>
+
+<dialog class="pal" id="cmdk" aria-label="Command palette">
+  <input type="text" placeholder="Search" aria-label="Search commands" autocomplete="off" spellcheck="false" role="combobox" aria-controls="pal-rows" aria-expanded="true">
+  <div class="rows" id="pal-rows" role="listbox"></div>
+  <p class="none" hidden>Nothing matches.</p>
+</dialog>
+<template id="cmds">
+  <button type="button" data-act="answer" data-when="waiting" data-also="yes allow permission"><span class="g">◆</span>Answer the waiting session<kbd>1</kbd></button>
+  <a href="{{dl.macArm}}" data-also="download dmg m1 m2 m3 m4"><span class="g">↓</span>Download for Mac, Apple silicon</a>
+  <a href="{{dl.macIntel}}" data-also="download dmg x64"><span class="g">↓</span>Download for Mac, Intel</a>
+  <a href="{{dl.win}}" data-also="download exe installer"><span class="g">↓</span>Download for Windows x64</a>
+  <a href="{{dl.winArm}}" data-also="download exe installer snapdragon"><span class="g">↓</span>Download for Windows on ARM</a>
+  <a href="#download" data-also="unsigned warning xattr smartscreen"><span class="g">→</span>Install notes</a>
+  <a href="/docs" data-also="help guide"><span class="g">→</span>Docs</a>
+  <a href="/docs#palette" data-also="keys keyboard"><span class="g">→</span>Keyboard shortcuts</a>
+  <a href="{{github}}" data-also="source code repo"><span class="g">→</span>Source on GitHub</a>
+  <button type="button" data-act="theme" data-also="dark light mode"><span class="g">◐</span>Switch light and dark</button>
+  <a href="#top" data-also="home start"><span class="g">↑</span>Back to top</a>
+</template>
+</body>
+</html>

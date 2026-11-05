@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direction B: TUI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wdth,wght@75..112,300..800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0e0d;--tile:#0c0e0d;--line:#2c322e;--text:#d9e0d8;--muted:#86907f;--faint:#525a52;--amber:#ffb23f;--mono:'Martian Mono',ui-monospace,monospace;color-scheme:dark}
+@media (prefers-color-scheme:light){:root{--bg:#e9ebe6;--tile:#e9ebe6;--line:#b9beb4;--text:#111410;--muted:#4f564b;--faint:#7f867a;--amber:#a25c00;color-scheme:light}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:300 14px/1.7 var(--mono);font-stretch:85%}
+a{color:inherit}
+.frame{max-width:1320px;margin:0 auto;padding:16px}
+.top{display:flex;gap:2ch;border:1px solid var(--line);padding:6px 1.5ch;font-size:12px;color:var(--muted)}
+.top b{color:var(--text);font-weight:600;margin-right:auto}
+.top::before{content:'┤';color:var(--faint)}.top::after{content:'├';color:var(--faint)}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;border:1px solid var(--line);border-top:0}
+.left{padding:clamp(24px,4vw,56px);border-right:1px solid var(--line)}
+h1{font:800 clamp(40px,5.4vw,84px)/1 var(--mono);font-stretch:75%;letter-spacing:-.04em;margin:0 0 24px;text-transform:lowercase}
+h1 em{font-style:normal;color:var(--amber)}
+.lede{color:var(--muted);max-width:44ch}
+.lede b{color:var(--text);font-weight:500}
+.cmd{margin:28px 0 0;border:1px solid var(--line);padding:14px 16px}
+.cmd a.go{display:inline-block;background:var(--text);color:var(--bg);padding:12px 18px;text-decoration:none;font-weight:600}
+.cmd p{margin:10px 0 0;color:var(--faint);font-size:12px}.cmd p a{margin-right:2ch;color:var(--muted)}
+[data-wall]{padding:12px;display:flex;flex-direction:column;height:clamp(560px,80svh,760px)}
+.bar{font-size:12px;color:var(--muted);padding:0 0 8px;display:flex;gap:3ch}.bar [data-count=needs]{color:var(--amber)}.bar [data-zero]{opacity:.4}
+.col{flex:1;display:flex;flex-direction:column;gap:12px;min-height:0}
+.tile{position:relative;flex:1 1 0;min-height:0;display:flex;flex-direction:column;border:1px solid var(--line);transition:flex-grow .42s cubic-bezier(.2,.7,.2,1)}
+.tile[data-state=needs]{flex-grow:2.6;border:1px double var(--amber);outline:1px solid var(--amber);outline-offset:3px}
+.th{position:absolute;top:-.85em;left:1ch;right:1ch;display:flex;gap:1ch;font-size:12px;line-height:1.6;white-space:nowrap}
+.th>*{background:var(--bg);padding:0 .5ch}.th .br{margin-left:auto;color:var(--faint)}.th .st,.th .md{color:var(--muted)}
+.tile[data-state=needs] .th .sh,.tile[data-state=needs] .th .st{color:var(--amber)}
+.tb{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;padding:14px 1.5ch 6px;overflow:hidden;color:var(--muted);font-size:12.5px;-webkit-mask-image:linear-gradient(transparent,#000 2em);mask-image:linear-gradient(transparent,#000 2em)}
+.l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.l.you{color:var(--text)}.l.tool i{font-style:normal;color:var(--text)}.l b{font-weight:300;color:var(--faint)}.l.ok{padding-left:2ch}
+.ask{padding:0 1.5ch 10px;font-size:12.5px}.ask .q{margin:4px 0 6px}.ask code{color:var(--amber);font:inherit}
+.ask button{display:block;width:100%;text-align:left;min-height:38px;background:none;border:0;border-top:1px dashed var(--line);color:var(--text);font:inherit;cursor:pointer}
+.ask button:hover,.ask button:focus-visible{color:var(--amber);outline:none}.ask button:hover::before{content:'❯ '}.ask .k{color:var(--amber);margin-right:1ch}
+.what{border:1px solid var(--line);border-top:0;padding:clamp(32px,6vw,80px) clamp(16px,4vw,56px);display:grid;grid-template-columns:22ch 1fr;gap:4ch}
+.what h2{font:700 13px/1.7 var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--faint);margin:0}
+.what pre{margin:0;font:inherit;white-space:pre-wrap;color:var(--muted)}.what pre b{color:var(--text);font-weight:500}.what pre .a{color:var(--amber)}
+@media (max-width:760px){.hero,.what{grid-template-columns:minmax(0,1fr)}.left{border-right:0;border-bottom:1px solid var(--line)}[data-wall]{height:560px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="top"><b>hangar-oss</b><a href="#">docs</a><a href="#">github</a><span>⌘K</span></div>
+  <section class="hero">
+    <div class="left">
+      <h1>three sessions.<br>one is <em>waiting.</em></h1>
+      <p class="lede">All your Claude Code sessions on one screen, each a real terminal. <b>The one waiting on you grows and turns amber.</b> The one you're typing in stays put.</p>
+      <div class="cmd"><a class="go" href="#">↓ download for windows</a>
+        <p><a href="#">mac-arm64</a><a href="#">mac-x64</a><a href="#">win-arm64</a><a href="#">source</a></p></div>
+    </div>
+    <div data-wall>
+      <div class="bar"><span data-count="needs">◆ <span class="n">0</span> needs you</span><span data-count="working">● <span class="n">0</span> working</span><span data-count="done">✓ <span class="n">0</span> done</span></div>
+      <div class="col"></div>
+    </div>
+  </section>
+  <section class="what">
+    <h2>what it is</h2>
+<pre><b>$ claude</b>, three times, in tiles.
+Same login, settings, skills and slash commands.
+Hooks say what each session is doing. Watching costs 0 tokens.
+
+○ idle      nothing to do
+● working   leave it
+<span class="a">◆ needs you</span>  a question or a permission menu
+✓ done      stays until you've looked</pre>
+  </section>
+</div>
+<script src="../src/wall.js"></script>
+</body>
+</html>
