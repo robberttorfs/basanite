@@ -2,15 +2,24 @@ name: Tests
 
 on:
   push:
+    branches: [main]
   pull_request:
+
+# A newer push cancels the older run instead of queueing behind it.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # macOS runners aren't available while the repo is private; add
+        # macos-latest back when it goes public (free for public repos).
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

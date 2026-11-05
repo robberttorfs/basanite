@@ -8,3 +8,4 @@
 - Real OS key presses for ⌘K / Ctrl+Shift+K and the workspace keys were never tested (harness can't); test with a real keypress method.
 - Worktree creation and real overlap events not live-tested.
 - x-history.png contains the owner's real prompts: never use it on the site or in the README.
+- Launch: add macos-latest back to .github/workflows/test.yml when the repo goes public.
