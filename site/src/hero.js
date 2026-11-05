@@ -16,8 +16,8 @@
 
     const setGrow = (name, on) => {
       const t = tiles[name], col = t.parentElement;
-      t.style.flexGrow = on ? '2.6' : '';
-      col.style.flexGrow = on ? '1.9' : '';
+      t.style.flexGrow = on ? '2.2' : '';
+      col.style.flexGrow = on ? '1.6' : '';
     };
     function ask() {
       const pool = askers.filter((n) => n !== last);

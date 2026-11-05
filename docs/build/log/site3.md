@@ -3,3 +3,7 @@
 - 23:35 colours.html (6 schemes), RESEARCH-v3, DESIGN.md written; picked Runway
 - 23:39 hero + "real thing" section built (index.html, style.css, hero.js); docs.html on docs-v2.css for now; shots in .devdata/site3/shots (1440/700/390, dark+light, headless Edge)
 - Left over for chunk 2: sections 3-6 (workspaces+overview, ⌘K+modes, tokens/privacy, download+install+FAQ+footer), docs restyle onto Runway tokens, a 2x recapture of the wall shot (current max is 1400 px wide), 200% zoom pass
+- 23:40 chunk 2 start
+- 23:45 all landing sections + docs on Runway built; tight palette/modes crops, 2x wall + phone tile crop
+- chunk 2 done: sections (real thing, overview, ⌘K, modes, promises, download + first launch, FAQ, footer), page ⌘K palette, docs on Runway (docs.css), 2x wall, tight palette/modes crops, phone pans at real size under 760 px, fold fits at 1280x720 and 1366x768; shots in .devdata/site3/shots/c2 (720 px = 200% zoom of 1440)
+- Left over: no real-device iPhone check; the overview shot is not dimmed (it reads fine); wall shot is still the old 4-tile capture

@@ -52,6 +52,11 @@ Rules: amber appears only where something needs you (the waiting tile, the waiti
 - The wall stops when it's off screen or the tab is hidden.
 - Reduced motion: one still frame with one tile waiting, no transitions; the caret doesn't blink.
 
+## Phones and small screens
+
+- Under 760 px every screenshot swaps for a crop shown at its real size (one tile, the overview preview, the palette), in a frame that pans sideways on its own. Nothing is shrunk until it can't be read, and the page itself never scrolls sideways.
+- The hero's headline and wall scale with the window height too, so the download button and the other builds stay above the fold at 1280x720 and 1366x768.
+
 ## Files
 
-`src/index.html`, `src/style.css`, `src/hero.js` (the wall), `src/site.js` (download picking, theme). `src/docs.html` still uses v2's styles (`src/docs-v2.css`) until chunk 2 restyles it. Name and links only in `config.mjs`.
+`src/index.html`, `src/style.css` (tokens, nav, landing, footer, palette), `src/docs.html` + `src/docs.css` (the reading layout), `src/hero.js` (the wall and the screenshot spotlight), `src/palette.js` (the page's own ⌘K), `src/site.js` (download picking, theme, copy). Name and links only in `config.mjs`. Screenshot crops: the 2x wall and the phone tile come from `.devdata/site/shots` (made by `tools/site-shots.sh`); the palette and modes crops are the tight versions (`*-tight*.webp`).

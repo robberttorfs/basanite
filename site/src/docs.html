@@ -6,7 +6,7 @@
 <title>Docs: {{name}}</title>
 <meta name="description" content="How to install and use {{name}}: sessions, workspaces, the overview, modes, the overseer, time budgets, usage and privacy.">
 <meta name="color-scheme" content="dark light">
-<meta name="theme-color" content="#0b0b0a">
+<meta name="theme-color" content="#0a1317">
 <meta property="og:title" content="{{name}}">
 <meta property="og:description" content="All your Claude Code sessions on one screen. The one waiting on you grows and turns amber. Free, for Mac and Windows.">
 <meta property="og:image" content="/shots/wall-dark-1400.webp">
@@ -15,20 +15,22 @@
 <script>try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="/docs-v2.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/docs.css">
 <script src="/palette.js" defer></script>
 <script src="/site.js" defer></script>
 </head>
 <body id="top" class="docs-page">
 <a class="skip" href="#main">Skip to content</a>
 <header class="nav">
-  <a class="logo" href="/"><img src="/icon-64.png" alt="" width="22" height="22"><span>{{name}}</span></a>
-  <a class="link" href="/docs" aria-current="page">Docs</a>
-  <a class="link" href="{{github}}">GitHub</a>
-  <a class="link" href="/#download">Download</a>
-  <button class="ib" type="button" data-palette aria-label="Command palette" title="Command palette"><span class="key"><span data-mod>⌘</span> K</span></button>
-  <button class="ib" type="button" data-theme-btn aria-label="Theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg></button>
+  <a class="logo" href="/"><img src="/icon-64.png" alt="" width="24" height="24"><span>{{name}}</span></a>
+  <nav class="links" aria-label="Site">
+    <a href="/docs" aria-current="page">Docs</a>
+    <a href="{{github}}">GitHub</a>
+    <button class="ib key" type="button" data-palette aria-label="Command palette" title="Command palette"><kbd><span data-mod>⌘</span> K</kbd></button>
+    <button class="ib" type="button" data-theme-btn aria-label="Theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg></button>
+  </nav>
 </header>
 
 <div class="docs">
@@ -200,15 +202,15 @@
   </main>
 </div>
 
-<footer>
-  <span>{{name}}, MIT licence</span>
+<footer class="foot">
+  <div class="fl"><img src="/icon-64.png" alt="" width="20" height="20"><span>{{name}}</span></div>
   <nav aria-label="Footer">
     <a href="/">Home</a>
     <a href="{{github}}">GitHub</a>
     <a href="{{releases}}">Releases</a>
     <a href="{{github}}/issues">Report a problem</a>
   </nav>
-  <p class="fine">Not made by or affiliated with Anthropic. Claude and Claude Code are trademarks of Anthropic.</p>
+  <p class="fine">MIT licence; the name and logo aren't covered by it. Not made by or affiliated with Anthropic. Claude and Claude Code are trademarks of Anthropic.</p>
 </footer>
 
 <dialog class="pal" id="cmdk" aria-label="Command palette">
@@ -230,7 +232,7 @@
 </template>
 <script>
   // Contents start folded on narrow screens.
-  if (matchMedia("(max-width: 860px)").matches) document.getElementById("toc").open = false;
+  if (matchMedia("(max-width: 900px)").matches) document.getElementById("toc").open = false;
 </script>
 </body>
 </html>

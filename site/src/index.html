@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
 <link rel="stylesheet" href="/style.css">
 <script src="/hero.js" defer></script>
+<script src="/palette.js" defer></script>
 <script src="/site.js" defer></script>
 </head>
 <body>
@@ -27,6 +28,7 @@
   <nav class="links" aria-label="Site">
     <a href="/docs">Docs</a>
     <a href="{{github}}">GitHub</a>
+    <button class="ib key" type="button" data-palette aria-label="Command palette" title="Command palette"><kbd><span data-mod>⌘</span> K</kbd></button>
     <button class="ib" type="button" data-theme-btn aria-label="Theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg></button>
   </nav>
 </header>
@@ -38,14 +40,14 @@
       <div class="side">
       <p class="lede">When one is waiting on you, it grows and lights up. The one you're typing in stays put.</p>
       <div class="cta">
-        <a class="btn" data-dl-auto href="#builds" data-mac-arm="{{dl.macArm}}" data-win="{{dl.win}}" data-win-arm="{{dl.winArm}}">
+        <a class="btn" data-dl-auto href="#download" data-mac-arm="{{dl.macArm}}" data-win="{{dl.win}}" data-win-arm="{{dl.winArm}}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg><span>Download</span></a>
         <p class="meta">Free and open source. Needs <a href="{{claudeCode}}">Claude Code</a>.</p>
       </div>
       <p class="builds" id="builds"><span class="lbl">Other builds</span>
-        <a href="{{dl.macArm}}" data-os="mac-arm">Mac, Apple silicon</a>
+        <a href="{{dl.macArm}}">Mac, Apple silicon</a>
         <a href="{{dl.macIntel}}">Mac, Intel</a>
-        <a href="{{dl.win}}" data-os="win">Windows</a>
+        <a href="{{dl.win}}">Windows</a>
         <a href="{{dl.winArm}}">Windows on ARM</a>
         <a href="{{github}}">Source</a>
       </p>
@@ -68,17 +70,131 @@
     </div>
   </section>
 
-  <section class="real" aria-labelledby="real-h">
+  <section class="feat" aria-labelledby="real-h">
     <div class="head">
       <h2 id="real-h">The real <code>claude</code>, in&nbsp;real&nbsp;terminals.</h2>
-      <p>Each tile runs the same Claude Code you use now, with your own login, settings, skills and slash commands. Nothing is rebuilt, and it never spends tokens on its own.</p>
+      <p>Each tile runs the Claude Code you already use, with your own login, settings, skills and slash commands.</p>
     </div>
-    <figure class="shot" data-spot>
-      <img class="d" src="/shots/wall-dark-1400.webp" srcset="/shots/wall-dark-640.webp 640w, /shots/wall-dark-1100.webp 1100w, /shots/wall-dark-1400.webp 1400w" sizes="(min-width: 1240px) 1160px, calc(100vw - 32px)" width="1400" height="762" alt="The app with four sessions. The web-app tile has an amber edge and says Needs you; the others are working, done and idle." loading="lazy" decoding="async">
-      <img class="l" src="/shots/wall-light-1400.webp" srcset="/shots/wall-light-640.webp 640w, /shots/wall-light-1100.webp 1100w, /shots/wall-light-1400.webp 1400w" sizes="(min-width: 1240px) 1160px, calc(100vw - 32px)" width="1400" height="762" alt="The app with four sessions. The web-app tile has an amber edge and says Needs you; the others are working, done and idle." loading="lazy" decoding="async">
+    <figure class="shot spot big-only" data-spot>
+      <img class="d" src="/shots/wall-dark-1400.webp" srcset="/shots/wall-dark-1400.webp 1400w, /shots/wall-dark-2558.webp 2558w" sizes="(min-width: 1240px) 1176px, calc(100vw - 64px)" width="1400" height="762" alt="The app with four sessions. The web-app tile has an amber edge and says Needs you; the others are working, done and idle." loading="lazy" decoding="async">
+      <img class="l" src="/shots/wall-light-1400.webp" srcset="/shots/wall-light-1400.webp 1400w, /shots/wall-light-2558.webp 2558w" sizes="(min-width: 1240px) 1176px, calc(100vw - 64px)" width="1400" height="762" alt="The app with four sessions. The web-app tile has an amber edge and says Needs you; the others are working, done and idle." loading="lazy" decoding="async">
       <div class="lit" aria-hidden="true"></div>
     </figure>
+    <figure class="shot pan" tabindex="0" aria-label="Screenshot, scrolls sideways">
+      <img class="d" src="/shots/wall-tile-dark.webp" width="637" height="325" alt="One session tile: Claude Code's own welcome screen, with an amber edge and Needs you in its header." loading="lazy" decoding="async">
+      <img class="l" src="/shots/wall-tile-light.webp" width="637" height="325" alt="One session tile: Claude Code's own welcome screen, with an amber edge and Needs you in its header." loading="lazy" decoding="async">
+    </figure>
+  </section>
+
+  <section class="feat" aria-labelledby="ov-h">
+    <div class="head">
+      <h2 id="ov-h">Answer from one&nbsp;list.</h2>
+      <p>The overview puts every session that needs you first, across all your workspaces. Press 1, 2 or 3 to answer a permission menu without opening the tile.</p>
+    </div>
+    <figure class="shot fit big-only">
+      <img class="d" src="/shots/overview-dark-1x.webp" srcset="/shots/overview-dark-1x.webp 940w, /shots/overview-dark.webp 1880w" sizes="(min-width: 1004px) 940px, calc(100vw - 64px)" width="940" height="500" alt="The overview: web-app under Needs you, two done sessions, one idle, and web-app's preview showing an edit permission menu with options 1, 2 and 3." loading="lazy" decoding="async">
+      <img class="l" src="/shots/overview-light-1x.webp" srcset="/shots/overview-light-1x.webp 940w, /shots/overview-light.webp 1880w" sizes="(min-width: 1004px) 940px, calc(100vw - 64px)" width="940" height="500" alt="The overview: web-app under Needs you, two done sessions, one idle, and web-app's preview showing an edit permission menu with options 1, 2 and 3." loading="lazy" decoding="async">
+    </figure>
+    <figure class="shot pan" tabindex="0" aria-label="Screenshot, scrolls sideways">
+      <img class="d" src="/shots/overview-dark-phone.webp" width="545" height="460" alt="web-app's preview in the overview, with an edit permission menu and buttons 1, 2 and 3." loading="lazy" decoding="async">
+      <img class="l" src="/shots/overview-light-phone.webp" width="545" height="460" alt="web-app's preview in the overview, with an edit permission menu and buttons 1, 2 and 3." loading="lazy" decoding="async">
+    </figure>
+  </section>
+
+  <section class="feat duo" aria-labelledby="k-h">
+    <div class="head">
+      <h2 id="k-h">One key for everything.</h2>
+      <p><kbd data-mac="⌘K" data-win="Ctrl+Shift+K">⌘K</kbd> reaches every session, workspace, mode and action. Menus, shortcuts and the palette come from one list, so they always match.</p>
+    </div>
+    <figure class="shot fit big-only">
+      <img class="d" src="/shots/palette-dark-tight-1x.webp" srcset="/shots/palette-dark-tight-1x.webp 560w, /shots/palette-dark-tight.webp 1120w" sizes="560px" width="560" height="261" alt="The command palette filtered to session: New session, Close session, Copy session ID, Reopen closed session, Next session that needs you, Overview, each with its shortcut." loading="lazy" decoding="async">
+      <img class="l" src="/shots/palette-light-tight-1x.webp" srcset="/shots/palette-light-tight-1x.webp 560w, /shots/palette-light-tight.webp 1120w" sizes="560px" width="560" height="261" alt="The command palette filtered to session: New session, Close session, Copy session ID, Reopen closed session, Next session that needs you, Overview, each with its shortcut." loading="lazy" decoding="async">
+    </figure>
+    <figure class="shot pan" tabindex="0" aria-label="Screenshot, scrolls sideways">
+      <img class="d" src="/shots/palette-dark-tight-1x.webp" srcset="/shots/palette-dark-tight-1x.webp 1x, /shots/palette-dark-tight.webp 2x" width="560" height="261" alt="The command palette filtered to session, each row with its shortcut." loading="lazy" decoding="async">
+      <img class="l" src="/shots/palette-light-tight-1x.webp" srcset="/shots/palette-light-tight-1x.webp 1x, /shots/palette-light-tight.webp 2x" width="560" height="261" alt="The command palette filtered to session, each row with its shortcut." loading="lazy" decoding="async">
+    </figure>
+  </section>
+
+  <section class="feat duo flip" aria-labelledby="m-h">
+    <div class="head">
+      <h2 id="m-h">Modes with real guards.</h2>
+      <p>Put a session in Plan, Build, Review, Careful and more. Review and Plan really block file edits; Careful blocks risky commands like push and deploy.</p>
+    </div>
+    <figure class="shot fit narrow">
+      <img class="d" src="/shots/modes-dark-tight-1x.webp" srcset="/shots/modes-dark-tight-1x.webp 320w, /shots/modes-dark-tight.webp 640w" sizes="320px" width="320" height="465" alt="The mode menu: Notes, Plan, Build (checked), Overnight, Review, Careful and Until done, each with token-cost dots, then the add-ons Verify at end, Tidy commits and Quiet." loading="lazy" decoding="async">
+      <img class="l" src="/shots/modes-light-tight-1x.webp" srcset="/shots/modes-light-tight-1x.webp 320w, /shots/modes-light-tight.webp 640w" sizes="320px" width="320" height="465" alt="The mode menu: Notes, Plan, Build (checked), Overnight, Review, Careful and Until done, each with token-cost dots, then the add-ons Verify at end, Tidy commits and Quiet." loading="lazy" decoding="async">
+    </figure>
+  </section>
+
+  <section class="promises" aria-label="Tokens and privacy">
+    <div class="promise"><h2>No extra tokens.</h2><p>Hooks reply with nothing unless you've asked for something. A mode is sent once, not with every message.</p></div>
+    <div class="promise"><h2>No telemetry.</h2><p>No accounts and no server. The only thing it fetches is the update check from GitHub.</p></div>
+    <div class="promise"><h2>Your settings stay yours.</h2><p>Sessions are ordinary <code>claude</code> processes, and your global Claude Code settings are never touched.</p></div>
+  </section>
+
+  <section class="download" id="download" aria-labelledby="dl-h">
+    <div class="head">
+      <h2 id="dl-h">Download</h2>
+      <p>Free and MIT licensed. You need <a href="{{claudeCode}}">Claude Code</a> installed and logged in; check that <code>claude</code> works in a normal terminal first.</p>
+    </div>
+    <ul class="files">
+      <li id="os-mac"><a href="{{dl.macArm}}"><span class="os">Mac, Apple silicon</span><code>{{file.macArm}}</code></a></li>
+      <li><a href="{{dl.macIntel}}"><span class="os">Mac, Intel</span><code>{{file.macIntel}}</code></a></li>
+      <li id="os-win"><a href="{{dl.win}}"><span class="os">Windows</span><code>{{file.win}}</code></a></li>
+      <li><a href="{{dl.winArm}}"><span class="os">Windows on ARM</span><code>{{file.winArm}}</code></a></li>
+    </ul>
+    <div class="first">
+      <div>
+        <h3>First launch on Mac</h3>
+        <p>The app isn't notarised yet. Drag it to Applications, then run this once in Terminal, or right-click the app, choose Open, then Open again.</p>
+        <div class="cmd"><code>xattr -cr "/Applications/{{name}}.app"</code><button type="button" data-copy>Copy</button></div>
+      </div>
+      <div>
+        <h3>First launch on Windows</h3>
+        <p>SmartScreen may not recognise the installer yet: click <strong>More info</strong>, then <strong>Run anyway</strong>. Claude Code must work as <code>claude</code> in PowerShell.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="faq" aria-labelledby="faq-h">
+    <h2 id="faq-h">Questions</h2>
+    <div class="qs">
+      <details><summary>Is it really Claude Code?</summary><p>Yes. Every tile is the real <code>claude</code> command in a real terminal. The app reads Claude Code's hooks to know what each session is doing and reimplements nothing.</p></details>
+      <details><summary>Does it cost tokens?</summary><p>Not on its own. A mode or add-on is sent once when it starts (and again after a compaction), a time budget adds a few one-line notes, and the overseer only uses tokens when you ask it something.</p></details>
+      <details><summary>Why does my computer warn me about it?</summary><p>The builds aren't signed or notarised yet. The first-launch steps above get you past the warning once.</p></details>
+      <details><summary>I work on one project. Is it for me?</summary><p>Yes. With one workspace you never see workspaces at all, just your sessions as tiles.</p></details>
+      <details><summary>How does it update?</summary><p>On Windows, updates download quietly and install when you choose Restart to update. On Mac the app tells you when a new version is out.</p></details>
+      <details><summary>Is it made by Anthropic?</summary><p>No. It's an independent open-source project, not affiliated with Anthropic.</p></details>
+    </div>
   </section>
 </main>
+
+<footer class="foot">
+  <div class="fl"><img src="/icon-64.png" alt="" width="20" height="20"><span>{{name}}</span></div>
+  <nav aria-label="Footer">
+    <a href="/docs">Docs</a>
+    <a href="{{github}}">GitHub</a>
+    <a href="{{releases}}">Releases</a>
+    <a href="{{github}}/issues">Report a problem</a>
+  </nav>
+  <p class="fine">MIT licence; the name and logo aren't covered by it. Not made by or affiliated with Anthropic. Claude and Claude Code are trademarks of Anthropic.</p>
+</footer>
+
+<template id="cmds">
+  <a href="{{dl.macArm}}" data-also="download dmg m1 m2 m3 m4"><span class="g">↓</span>Download for Mac, Apple silicon</a>
+  <a href="{{dl.macIntel}}" data-also="download dmg x64"><span class="g">↓</span>Download for Mac, Intel</a>
+  <a href="{{dl.win}}" data-also="download exe installer"><span class="g">↓</span>Download for Windows</a>
+  <a href="{{dl.winArm}}" data-also="download exe installer snapdragon"><span class="g">↓</span>Download for Windows on ARM</a>
+  <a href="#download" data-also="unsigned warning xattr smartscreen first launch install"><span class="g">→</span>First launch steps</a>
+  <a href="/docs" data-also="guide help manual"><span class="g">→</span>Docs</a>
+  <a href="{{github}}" data-also="source code repo"><span class="g">→</span>Source on GitHub</a>
+  <button type="button" data-act="theme" data-also="dark light mode"><span class="g">◐</span>Switch light and dark</button>
+</template>
+<dialog class="pal" id="cmdk" aria-label="Command palette">
+  <input type="text" placeholder="Search" aria-label="Search commands" autocomplete="off" spellcheck="false" role="combobox" aria-controls="pal-rows" aria-expanded="true">
+  <div class="rows" id="pal-rows" role="listbox"></div>
+  <p class="none" hidden>Nothing matches.</p>
+</dialog>
 </body>
 </html>
