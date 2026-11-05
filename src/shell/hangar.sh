@@ -11,7 +11,7 @@ claude() {
   if [ -n "$HANGAR_SETTINGS" ] && __hangar_interactive "$@"; then
     command claude --settings "$HANGAR_SETTINGS" "$@"
     __h_rc=$?
-    curl -s -m 2 -X POST "$HANGAR_DETACH_URL" >/dev/null 2>&1
+    curl -s -m 2 -X POST "$(cat "$HANGAR_DETACH_FILE" 2>/dev/null)" >/dev/null 2>&1
     return $__h_rc
   fi
   command claude "$@"

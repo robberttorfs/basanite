@@ -205,8 +205,11 @@ function launchShell(s) {
   try {
     // The tile refits right after start; without this zsh marks the redrawn prompt with a stray %.
     const settingsFile = writeHookSettings(s.id, server, ctlCommand);
-    const detachUrl = `http://127.0.0.1:${server.port}/api/${server.token}/detach?tile=${s.id}`;
-    p = spawnShell(s.cwd, cleanEnv({ HANGAR_TILE: s.id, PROMPT_EOL_MARK: '', HANGAR_SETTINGS: settingsFile, HANGAR_DETACH_URL: detachUrl }), size.cols, size.rows);
+    // The detach URL holds the server token, so it goes in a file in the tile's data
+    // folder (like the hook settings), not in the environment every program sees.
+    const detachFile = path.join(path.dirname(settingsFile), 'detach.url');
+    fs.writeFileSync(detachFile, `http://127.0.0.1:${server.port}/api/${server.token}/detach?tile=${s.id}`);
+    p = spawnShell(s.cwd, cleanEnv({ HANGAR_TILE: s.id, PROMPT_EOL_MARK: '', HANGAR_SETTINGS: settingsFile, HANGAR_DETACH_FILE: detachFile }), size.cols, size.rows);
   } catch (e) {
     send('tile:data', { id: s.id, data: `\r\n\x1b[31mCould not start a shell: ${e.message}\x1b[0m\r\n` });
     s.setStatus('exited');

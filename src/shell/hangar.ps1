@@ -11,5 +11,5 @@ function global:claude {
   if (-not $real) { Write-Host 'claude was not found on your PATH.' -ForegroundColor Yellow; return }
   if (-not $env:HANGAR_SETTINGS -or -not (__HangarInteractive $args)) { & $real.Source @args; return }
   try { & $real.Source --settings $env:HANGAR_SETTINGS @args }
-  finally { try { Invoke-RestMethod -Method Post -Uri $env:HANGAR_DETACH_URL -TimeoutSec 2 | Out-Null } catch {} }
+  finally { try { Invoke-RestMethod -Method Post -Uri (Get-Content -Raw $env:HANGAR_DETACH_FILE).Trim() -TimeoutSec 2 | Out-Null } catch {} }
 }
