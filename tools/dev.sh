@@ -23,7 +23,7 @@ stop() { if [ -f "$json" ]; then taskkill //F //T //PID "$(pid)" >/dev/null 2>&1
 case "$cmd" in
   start)
     stop; mkdir -p "$dir"
-    (cd "$root" && HANGAR_DEV=1 HANGAR_DEV_OFFSCREEN=1 HANGAR_DATA_DIR="$dir" HANGAR_DEV_CLAUDE_ARGS="--model haiku" \
+    (cd "$root" && HANGAR_DEV=1 HANGAR_DEV_OFFSCREEN=1 HANGAR_DATA_DIR="$dir" HANGAR_DEV_CLAUDE_ARGS="${DEV_CLAUDE_ARGS:---model haiku}" \
       npx electron . --mute-audio ${DEV_ELECTRON_ARGS:-} > "$dir/run.log" 2>&1 &)
     for i in $(seq 1 40); do [ -f "$json" ] && break; sleep 1; done
     [ -f "$json" ] || { echo "did not start, see $dir/run.log"; exit 1; }

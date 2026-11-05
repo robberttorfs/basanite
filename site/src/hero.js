@@ -45,7 +45,7 @@
     }
     wall.addEventListener('click', (e) => {
       const t = e.target.closest('.tile.hot');
-      if (t) { answer(); schedule(2600); }
+      if (t) { answer(); if (still) ask(); else schedule(2600); }  // reduced motion: the next one asks at once
     });
 
     // start with one already waiting so the idea is there on the first frame

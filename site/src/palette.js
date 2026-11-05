@@ -1,6 +1,7 @@
 // A small ⌘K palette for the page, like the app's. Rows come from <template id="cmds">:
 // links go where they point, buttons with data-act run an action here.
-// Opens with ⌘K / Ctrl+K, or any [data-palette] button (for touch).
+// Opens with ⌘K / Ctrl+K (and Ctrl+Shift+K, the app's own key on Windows), or any
+// [data-palette] button. The download row for this computer (data-os) comes first.
 (function () {
   'use strict';
   const tpl = document.getElementById('cmds');
@@ -8,7 +9,8 @@
   if (!tpl || !dlg) return;
   const input = dlg.querySelector('input');
   const list = dlg.querySelector('.rows');
-  const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  const os = document.documentElement.dataset.os || '';
+  const isMac = os === 'mac' || (!os && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent));
   for (const k of document.querySelectorAll('[data-mod]')) k.textContent = isMac ? '⌘' : 'Ctrl';
   if (!isMac) for (const k of document.querySelectorAll('kbd[data-win]')) k.textContent = k.dataset.win;
 
@@ -19,6 +21,7 @@
     r.tabIndex = -1;
     return r;
   });
+  if (os) rows.sort((a, b) => (b.dataset.os === os) - (a.dataset.os === os));
   rows.forEach((r) => list.appendChild(r));
   let sel = 0;
   const shown = () => rows.filter((r) => !r.hidden);
@@ -33,24 +36,24 @@
     const q = input.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
     for (const r of rows) {
       const hay = (r.textContent + ' ' + (r.dataset.also || '')).toLowerCase();
-      r.hidden = (r.dataset.when === 'waiting' && !wallWaiting()) || !q.every((w) => hay.includes(w));
+      r.hidden = !q.every((w) => hay.includes(w));
     }
     sel = 0; mark();
   }
-  const wall = () => document.querySelector('[data-wall]');
-  const wallWaiting = () => { const w = wall(); return !!(w && w.waiting && w.waiting()); };
 
-  function run(r) {
-    close();
-    const act = r.dataset.act;
-    if (act === 'answer') { const w = wall(); if (w && w.answerFirst) { w.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); w.answerFirst(1); } }
-    else if (act === 'theme') document.dispatchEvent(new CustomEvent('site:theme'));
-    else if (r.href) {
-      if (r.hash && r.pathname === location.pathname) { const t = document.querySelector(r.hash); if (t) { t.scrollIntoView(); t.focus?.({ preventScroll: true }); } history.replaceState(null, '', r.hash); }
-      else location.href = r.href;
-    }
-  }
   let back = null;
+  function run(r) {
+    const act = r.dataset.act;
+    if (act === 'theme') { close(); document.dispatchEvent(new CustomEvent('site:theme')); return; }
+    if (!r.href) return close();
+    if (r.hash && r.pathname === location.pathname) {
+      const t = document.querySelector(r.hash);
+      if (t) { if (!t.hasAttribute('tabindex')) t.tabIndex = -1; back = t; }
+      close();
+      if (t) t.scrollIntoView();
+      history.replaceState(null, '', r.hash);
+    } else { close(); location.href = r.href; }
+  }
   function open() {
     if (dlg.open) return;
     back = document.activeElement;
@@ -71,7 +74,7 @@
   });
   dlg.addEventListener('click', (e) => { if (e.target === dlg) close(); });
   document.addEventListener('keydown', (e) => {
-    if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'k') { e.preventDefault(); dlg.open ? close() : open(); }
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 'k') { e.preventDefault(); dlg.open ? close() : open(); }
   });
   for (const b of document.querySelectorAll('[data-palette]')) b.addEventListener('click', open);
 })();

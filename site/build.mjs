@@ -17,6 +17,7 @@ const vars = {
   github,
   releases: `${github}/releases`,
   claudeCode: config.claudeCode,
+  siteUrl: config.siteUrl.replace(/\/$/, ''),
   year: String(new Date().getFullYear()),
 };
 for (const [k, file] of Object.entries(config.artifacts)) {

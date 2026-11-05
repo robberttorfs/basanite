@@ -43,3 +43,13 @@ html { scroll-padding-top: 16px; }
 @media (max-width: 420px) {
   .toc ul { columns: 1; }
 }
+/* phones: the shortcut table stacks, each key labelled */
+@media (max-width: 600px) {
+  .doc .table { overflow: visible; }
+  .doc table, .doc tbody, .doc tr, .doc td { display: block; }
+  .doc thead { display: none; }
+  .doc tr { padding: 10px 14px; border-top: 1px solid var(--line); }
+  .doc tbody tr:first-child { border-top: 0; }
+  .doc td { border: 0; padding: 3px 0; white-space: normal; }
+  .doc td[data-k]::before { content: attr(data-k); display: inline-block; min-width: 76px; color: var(--muted); font-size: 13px; }
+}

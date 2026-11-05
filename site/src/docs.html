@@ -9,10 +9,14 @@
 <meta name="theme-color" content="#0a1317">
 <meta property="og:title" content="{{name}}">
 <meta property="og:description" content="All your Claude Code sessions on one screen. The one waiting on you grows and turns amber. Free, for Mac and Windows.">
-<meta property="og:image" content="/shots/wall-dark-1400.webp">
+<meta property="og:image" content="{{siteUrl}}/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/favicon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="/icon-180.png">
-<script>try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
+<script>try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}
+(function(){var n=navigator,d=n.userAgentData,p=(d&&d.platform)||n.platform||'',m=/Android|iPhone|iPad|iPod/i.test(n.userAgent)||(d&&d.mobile)||(/Mac/i.test(p)&&n.maxTouchPoints>1);var o=/[?&]os=(mac|win|none)/.exec(location.search);document.documentElement.dataset.os=o?(o[1]=='none'?'':o[1]):m?'':/Mac/i.test(p)?'mac':/Win/i.test(p)?'win':''})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
@@ -28,7 +32,7 @@
   <nav class="links" aria-label="Site">
     <a href="/docs" aria-current="page">Docs</a>
     <a href="{{github}}">GitHub</a>
-    <button class="ib key" type="button" data-palette aria-label="Command palette" title="Command palette"><kbd><span data-mod>⌘</span> K</kbd></button>
+    <button class="ib key" type="button" data-palette aria-label="Command palette" title="Command palette"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="M7.5 10l2.5 2-2.5 2M12 14h4"/></svg></button>
     <button class="ib" type="button" data-theme-btn aria-label="Theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg></button>
   </nav>
 </header>
@@ -121,28 +125,28 @@
       <table>
         <thead><tr><th>Action</th><th>Mac</th><th>Windows</th></tr></thead>
         <tbody>
-          <tr><td>Command palette</td><td><kbd>⌘K</kbd></td><td><kbd>Ctrl+Shift+K</kbd></td></tr>
-          <tr><td>New session</td><td><kbd>⌘N</kbd></td><td><kbd>Ctrl+Shift+N</kbd></td></tr>
-          <tr><td>New terminal</td><td><kbd>⌥⌘N</kbd></td><td><kbd>Ctrl+Alt+N</kbd></td></tr>
-          <tr><td>Overview</td><td><kbd>⇧⌘A</kbd></td><td><kbd>Ctrl+Shift+A</kbd></td></tr>
-          <tr><td>Next session that needs you</td><td><kbd>⇧⌘U</kbd></td><td><kbd>Ctrl+Shift+U</kbd></td></tr>
-          <tr><td>Jump to session 1 to 9</td><td><kbd>⌘1</kbd> … <kbd>⌘9</kbd></td><td><kbd>Ctrl+1</kbd> … <kbd>Ctrl+9</kbd></td></tr>
-          <tr><td>Workspace 1 to 9</td><td><kbd>⌥⌘1</kbd> … <kbd>⌥⌘9</kbd></td><td><kbd>Ctrl+Shift+1</kbd> … <kbd>9</kbd></td></tr>
-          <tr><td>Next / previous workspace</td><td><kbd>⌃⌘→</kbd> / <kbd>⌃⌘←</kbd></td><td><kbd>Ctrl+Shift+PageDown</kbd> / <kbd>PageUp</kbd></td></tr>
-          <tr><td>Mode</td><td><kbd>⇧⌘M</kbd></td><td><kbd>Ctrl+Shift+M</kbd></td></tr>
-          <tr><td>Time budget</td><td><kbd>⌘T</kbd></td><td><kbd>Ctrl+Shift+T</kbd></td></tr>
-          <tr><td>Pin focused session</td><td><kbd>⇧⌘P</kbd></td><td><kbd>Ctrl+Shift+P</kbd></td></tr>
-          <tr><td>Rename and colour</td><td><kbd>⇧⌘R</kbd></td><td><kbd>Ctrl+Shift+R</kbd></td></tr>
-          <tr><td>Reopen closed session</td><td><kbd>⇧⌘T</kbd></td><td><kbd>Ctrl+Alt+T</kbd></td></tr>
-          <tr><td>Clean view</td><td><kbd>⇧⌘L</kbd></td><td><kbd>Ctrl+Shift+L</kbd></td></tr>
-          <tr><td>Zoom focused session</td><td><kbd>⇧⌘↩</kbd></td><td><kbd>Ctrl+Shift+Enter</kbd></td></tr>
-          <tr><td>Usage</td><td><kbd>⇧⌘Y</kbd></td><td><kbd>Ctrl+Shift+Y</kbd></td></tr>
-          <tr><td>Overseer</td><td><kbd>⇧⌘O</kbd></td><td><kbd>Ctrl+Shift+O</kbd></td></tr>
-          <tr><td>Bigger / smaller text</td><td><kbd>⌘=</kbd> / <kbd>⌘-</kbd></td><td><kbd>Ctrl+=</kbd> / <kbd>Ctrl+-</kbd></td></tr>
+          <tr><td>Command palette</td><td data-k="Mac"><kbd>⌘K</kbd></td><td data-k="Windows"><kbd>Ctrl+Shift+K</kbd></td></tr>
+          <tr><td>New session</td><td data-k="Mac"><kbd>⌘N</kbd></td><td data-k="Windows"><kbd>Ctrl+Shift+N</kbd></td></tr>
+          <tr><td>New terminal</td><td data-k="Mac"><kbd>⌥⌘N</kbd></td><td data-k="Windows"><kbd>Ctrl+Alt+N</kbd></td></tr>
+          <tr><td>Overview</td><td data-k="Mac"><kbd>⇧⌘A</kbd></td><td data-k="Windows"><kbd>Ctrl+Shift+A</kbd></td></tr>
+          <tr><td>Next session that needs you</td><td data-k="Mac"><kbd>⇧⌘U</kbd></td><td data-k="Windows"><kbd>Ctrl+Shift+U</kbd></td></tr>
+          <tr><td>Jump to session 1 to 9</td><td data-k="Mac"><kbd>⌘1</kbd> … <kbd>⌘9</kbd></td><td data-k="Windows"><kbd>Ctrl+1</kbd> … <kbd>Ctrl+9</kbd></td></tr>
+          <tr><td>Workspace 1 to 9</td><td data-k="Mac"><kbd>⌥⌘1</kbd> … <kbd>⌥⌘9</kbd></td><td data-k="Windows"><kbd>Ctrl+Shift+1</kbd> … <kbd>9</kbd></td></tr>
+          <tr><td>Next / previous workspace</td><td data-k="Mac"><kbd>⌃⌘→</kbd> / <kbd>⌃⌘←</kbd></td><td data-k="Windows"><kbd>Ctrl+Shift+PageDown</kbd> / <kbd>PageUp</kbd></td></tr>
+          <tr><td>Mode</td><td data-k="Mac"><kbd>⇧⌘M</kbd></td><td data-k="Windows"><kbd>Ctrl+Shift+M</kbd></td></tr>
+          <tr><td>Time budget</td><td data-k="Mac"><kbd>⌘T</kbd></td><td data-k="Windows"><kbd>Ctrl+Shift+T</kbd></td></tr>
+          <tr><td>Pin focused session</td><td data-k="Mac"><kbd>⇧⌘P</kbd></td><td data-k="Windows"><kbd>Ctrl+Shift+P</kbd></td></tr>
+          <tr><td>Rename and colour</td><td data-k="Mac"><kbd>⇧⌘R</kbd></td><td data-k="Windows"><kbd>Ctrl+Shift+R</kbd></td></tr>
+          <tr><td>Reopen closed session</td><td data-k="Mac"><kbd>⇧⌘T</kbd></td><td data-k="Windows"><kbd>Ctrl+Alt+T</kbd></td></tr>
+          <tr><td>Clean view</td><td data-k="Mac"><kbd>⇧⌘L</kbd></td><td data-k="Windows"><kbd>Ctrl+Shift+L</kbd></td></tr>
+          <tr><td>Zoom focused session</td><td data-k="Mac"><kbd>⇧⌘↩</kbd></td><td data-k="Windows"><kbd>Ctrl+Shift+Enter</kbd></td></tr>
+          <tr><td>Usage</td><td data-k="Mac"><kbd>⇧⌘Y</kbd></td><td data-k="Windows"><kbd>Ctrl+Shift+Y</kbd></td></tr>
+          <tr><td>Overseer</td><td data-k="Mac"><kbd>⇧⌘O</kbd></td><td data-k="Windows"><kbd>Ctrl+Shift+O</kbd></td></tr>
+          <tr><td>Bigger / smaller text</td><td data-k="Mac"><kbd>⌘=</kbd> / <kbd>⌘-</kbd></td><td data-k="Windows"><kbd>Ctrl+=</kbd> / <kbd>Ctrl+-</kbd></td></tr>
         </tbody>
       </table>
     </div>
-    <p>The full list is in the app under Keyboard shortcuts in the palette.</p>
+    <p>Every shortcut is listed under <strong>Help → Keyboard shortcuts</strong>, or type <code>?</code> in the palette.</p>
 
     <h2 id="modes">Modes and add-ons</h2>
     <p>A mode is a saved set of instructions for how a session should work. Click the mode chip on a tile (<kbd>⇧⌘M</kbd>) and pick one. The chip is outlined until your next message carries the mode to Claude, then filled.</p>
@@ -159,7 +163,7 @@
     <h2 id="overseer">Overseer</h2>
     <p>Click <strong>Overseer</strong> (<kbd>⇧⌘O</kbd>) for a side panel with its own small Claude that can see all your sessions. Ask in plain words: "anything waiting on me?" or "tell the website session to use teal".</p>
     <p>It only types into a session when you ask it to, and it checks the screen first so a permission menu gets a number, not a sentence. <strong>New chat</strong> starts it fresh.</p>
-    <p>It runs Sonnet with one tool and no MCP servers, plugins or skills, so a question starts from about 6k tokens of context. It reads a one-line summary of each session first and only opens a session's messages when your question needs them. When you aren't asking it anything, it uses nothing.</p>
+    <p>It runs Sonnet by default (Haiku or Opus in settings) with one tool and no MCP servers, plugins or skills, so a question starts from about 6k tokens of context. It reads a one-line summary of each session first and only opens a session's messages when your question needs them. When you aren't asking it anything, it uses nothing.</p>
 
     <h2 id="budgets">Time budgets</h2>
     <p>Click the clock on a tile (<kbd>⌘T</kbd>), pick 10 to 90 minutes or type your own. If Claude is already working the budget starts now, otherwise with your next prompt.</p>
@@ -219,9 +223,9 @@
   <p class="none" hidden>Nothing matches.</p>
 </dialog>
 <template id="cmds">
-    <a href="{{dl.macArm}}" data-also="download dmg m1 m2 m3 m4"><span class="g">↓</span>Download for Mac, Apple silicon</a>
+  <a href="{{dl.macArm}}" data-os="mac" data-also="download dmg m1 m2 m3 m4"><span class="g">↓</span>Download for Mac, Apple silicon</a>
   <a href="{{dl.macIntel}}" data-also="download dmg x64"><span class="g">↓</span>Download for Mac, Intel</a>
-  <a href="{{dl.win}}" data-also="download exe installer"><span class="g">↓</span>Download for Windows x64</a>
+  <a href="{{dl.win}}" data-os="win" data-also="download exe installer x64"><span class="g">↓</span>Download for Windows</a>
   <a href="{{dl.winArm}}" data-also="download exe installer snapdragon"><span class="g">↓</span>Download for Windows on ARM</a>
   <a href="/#download" data-also="unsigned warning xattr smartscreen"><span class="g">→</span>Install notes</a>
   <a href="/" data-also="home landing"><span class="g">→</span>Home</a>

@@ -8,7 +8,7 @@ Owner on v2: "too messy, too much going on, especially showcasing those Claude s
 
 The headline names the product in plain words: **Every Claude Code session on one calm screen.** Next to it (under it on phones) sits a quiet wall of six tiles. Each tile carries one word, its folder name, and a small shape for its state. No terminal text, no tool calls, no menus.
 
-Every few seconds one tile starts waiting on you: it grows, its edge turns amber, it says "needs you", and the rest of the wall dims a little. Then it's answered, settles back, and later another one asks. One tile has a blinking caret: that's the one you're typing in, and it never moves or resizes, however the others shift. Hover or tap the waiting tile and it settles straight away.
+Every few seconds one tile starts waiting on you: it grows, its edge turns amber, it says "needs you", and the rest of the wall dims a little. Then it's answered, settles back, and later another one asks. One tile has a blinking caret: that's the one you're typing in, and it never moves or resizes, however the others shift. Click or tap the waiting tile and it settles straight away.
 
 That's the whole app in about three seconds: many sessions, calm, the one that needs you comes forward, yours stays put.
 

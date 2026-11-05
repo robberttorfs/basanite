@@ -7,3 +7,8 @@
 - 23:45 all landing sections + docs on Runway built; tight palette/modes crops, 2x wall + phone tile crop
 - chunk 2 done: sections (real thing, overview, ⌘K, modes, promises, download + first launch, FAQ, footer), page ⌘K palette, docs on Runway (docs.css), 2x wall, tight palette/modes crops, phone pans at real size under 760 px, fold fits at 1280x720 and 1366x768; shots in .devdata/site3/shots/c2 (720 px = 200% zoom of 1440)
 - Left over: no real-device iPhone check; the overview shot is not dimmed (it reads fine); wall shot is still the old 4-tile capture
+- 23:59 chunk 3 start (review fixes)
+- 00:04 review fixes in: OS head detection + ?os= override, Mac Intel beside button, first-launch note on click, palette cleanup, docs table stacks, og.png + siteUrl, check-links.mjs, landscape, copy edits; retaking app shots (first try hit Claude's folder-trust menu: option 1 is No, exit)
+- chunk 3 done (review fixes). P1 1: every GitHub/release link comes from config.mjs; `node site/check-links.mjs` checks them once the repo is public. P1 2: Windows names verified by the lead (x64 and arm64 setups exist), no change.
+- Main shot retaken from real Haiku sessions in E:\demo (3 short prompts reached Claude; two earlier tries stalled on the folder-trust menu, where option 1 is "No, exit"). E:\demo could not be deleted (blocked by a safety check): the owner should remove it by hand.
+- Left over: the overview shot still uses the sample preview (date picker edit), so it doesn't match the wall's npm test prompt; "Your settings stay yours." kept (owner's call).

@@ -13,6 +13,8 @@ export default {
     win: 'Hangar-windows-x64-setup.exe',
     winArm: 'Hangar-windows-arm64-setup.exe',
   },
+  // Where the site itself lives (absolute URLs for link previews). Placeholder until deploy.
+  siteUrl: 'https://hangar-oss.vercel.app',
   // Where people install Claude Code from.
   claudeCode: 'https://code.claude.com',
 };

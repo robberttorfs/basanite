@@ -14,19 +14,24 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 NAME=site
 dev() { bash "$root/tools/dev.sh" "$@"; }
 out="$root/site/public/shots"; raw="$root/.devdata/$NAME/shots"
-demo="$root/.devdata/site-demo"
+# Neutral demo folders (their path shows in each tile's Claude Code banner). Removed at the end.
+demo="${SITE_DEMO:-/e/demo}"
 if [ "${1:-}" != "--images" ]; then
 dev stop "$NAME" >/dev/null 2>&1 || true
 rm -rf "$root/.devdata/$NAME"   # a clean copy each run: no resumed tiles from last time
 mkdir -p "$out" "$raw"
 
-# Harmless demo folders with a file or two, so the tiles have real names.
+# Tiny demo repos, so the tiles have real names and a little real work to show.
 for d in api-server web-app scraper notes; do
   mkdir -p "$demo/$d"
-  [ -f "$demo/$d/README.md" ] || printf '# %s\n\nDemo folder for website screenshots.\n' "$d" > "$demo/$d/README.md"
+  [ -f "$demo/$d/README.md" ] || printf '# %s\n' "$d" > "$demo/$d/README.md"
 done
+[ -f "$demo/web-app/server.js" ] || printf "const http = require('http');\n\nhttp.createServer((req, res) => {\n  res.end('ok');\n}).listen(3000);\n" > "$demo/web-app/server.js"
+[ -f "$demo/api-server/routes.js" ] || printf "module.exports = { users: '/users', posts: '/posts' };\n" > "$demo/api-server/routes.js"
+for d in api-server web-app scraper notes; do (cd "$demo/$d" && [ -d .git ] || { git init -q && git add -A && git -c user.name=demo -c user.email=demo@example.com commit -qm init; }); done
 
-DEV_ELECTRON_ARGS=--force-device-scale-factor=2 dev start "$NAME"
+# Default permission mode, so an edit asks first (the owner's own settings may auto-accept).
+DEV_CLAUDE_ARGS="--model haiku --permission-mode default" DEV_ELECTRON_ARGS=--force-device-scale-factor=2 dev start "$NAME"
 json="$root/.devdata/$NAME/server.json"
 port=$(sed 's/.*"port":\([0-9]*\).*/\1/' "$json"); token=$(sed 's/.*"token":"\([a-f0-9]*\)".*/\1/' "$json")
 js() { dev js "$NAME" "$1"; }
@@ -49,19 +54,28 @@ set -- $ids
 [ $# -ge 4 ] || { echo "expected 4 tiles, got: $ids"; dev stop "$NAME"; exit 1; }
 A=$1; B=$2; C=$3; D=$4
 
-# Modes (sent with the next message only, so nothing reaches Claude here).
-js "window.hangar.setMode('$A','build'); window.hangar.setMode('$B','review'); window.hangar.setMode('$D','notes'); 'ok'" >/dev/null
+# Modes (sent with the next message). web-app stays in Build so its edit asks for permission.
+js "window.hangar.setMode('$A','review'); window.hangar.setMode('$B','build'); window.hangar.setMode('$D','notes'); 'ok'" >/dev/null
 
-state() {  # working | needs | done | idle
-  case "$2" in
-    working) hook "$1" '{"hook_event_name":"UserPromptSubmit","prompt":"<site-shot>"}';;
-    needs)   hook "$1" '{"hook_event_name":"UserPromptSubmit","prompt":"<site-shot>"}'
-             hook "$1" '{"hook_event_name":"Notification","notification_type":"permission_prompt","message":"Claude needs your permission"}';;
-    done)    hook "$1" '{"hook_event_name":"UserPromptSubmit","prompt":"<site-shot>"}'
-             hook "$1" '{"hook_event_name":"Stop"}';;
-  esac
-}
-state "$A" working; state "$B" needs; state "$C" done
+# Three short real prompts (Haiku): two answers, and one command that waits on a permission menu.
+statusof() { dev api "$NAME" list | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const t=JSON.parse(s).tiles.find(t=>t.id===process.argv[1]);console.log(t?t.status:"")})' "$1"; }
+send() { curl -s -m 10 -X POST -H 'Content-Type: application/json' -d "{\"tile\":\"$1\",\"text\":\"$2\"}" "http://127.0.0.1:$port/api/$token/send" >/dev/null; }
+# New folders open on Claude Code's folder-trust question; option 2 is "Yes, I trust this folder".
+screenof() { dev api "$NAME" screen "tile=$1&lines=40"; }
+for t in "$A" "$B" "$C" "$D"; do
+  for i in $(seq 1 15); do screenof "$t" | grep -q "trust this folder\|Try \"" && break; sleep 2; done
+  # Arrow down to "Yes, I trust this folder", then Enter (send adds the Enter).
+  for i in 1 2 3; do screenof "$t" | grep -q "trust this folder" || break; send "$t" "\u001b[B"; sleep 4; done
+done
+sleep 12
+send "$A" "what routes are in routes.js? one line"
+send "$C" "say hi in three words"
+send "$B" "run npm test"
+for i in $(seq 1 60); do
+  [ "$(statusof "$B")" = needs_input ] && [ "$(statusof "$A")" != working ] && [ "$(statusof "$C")" != working ] && break
+  sleep 2
+done
+echo "states: A=$(statusof "$A") B=$(statusof "$B") C=$(statusof "$C") D=$(statusof "$D")"
 
 # Sample numbers for the meters (no reply has been sent, so Claude Code has none yet).
 # Posted the way the statusline command posts them; made up, but drawn by the real UI.
@@ -75,7 +89,6 @@ sleep 2
 capture() {  # $1 = dark | light
   local t=$1
   js "document.activeElement && document.activeElement.blur(); 'ok'" >/dev/null
-  state "$A" working; sleep 1   # a quiet tile can drop back to idle; show it working
   shot "wall-$t"
   run view.overview
   # Lay the overview out at a smaller size so the crop stays readable on the page.
