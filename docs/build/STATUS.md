@@ -32,6 +32,5 @@ Everything in PLAN.md rounds 1 to 5 is built, reviewed (code and UX), and fixed.
 ## Known rough edges
 - Real OS key presses (⌘K, workspace keys, Folder flyout arrows) were never tested by automation; try them by hand.
 - Creating a worktree and real same-file overlap events were only unit-tested.
-- Clicking a new (untracked) file in the changes peek shows no content.
 - History doesn't find conversations for very long folder paths.
 - Snoozes don't survive a restart (on purpose).

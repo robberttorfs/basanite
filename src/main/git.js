@@ -2,6 +2,7 @@
 // Results are shared per repo root, so ten sessions in one repo cost one call.
 const { execFile } = require('child_process');
 const path = require('path');
+const fsp = require('fs/promises');
 
 const MAX_AGE_MS = 60 * 1000;      // routine refresh, at most this often per repo
 const MIN_GAP_MS = 2000;           // forced refreshes still wait this long
@@ -40,6 +41,37 @@ function parseStatus(text) {
     }
   }
   return { branch, files };
+}
+
+/**
+ * `git diff` leaves out untracked files, so the changes peek had nothing to show
+ * for them. Build a "new file" section for each: its contents as added lines,
+ * capped per file and in total; binary or unreadable files are named as such.
+ */
+async function untrackedDiff(root, files, budget) {
+  const PER_FILE = 64 * 1024;
+  let out = '';
+  for (const f of files.filter((x) => x.status === '??').slice(0, 50)) {
+    if (out.length >= budget) break;
+    let body;
+    try {
+      const fh = await fsp.open(path.join(root, f.path), 'r');
+      try {
+        const buf = Buffer.alloc(PER_FILE);
+        const { bytesRead } = await fh.read(buf, 0, PER_FILE, 0);
+        const size = (await fh.stat()).size;
+        const chunk = buf.subarray(0, bytesRead);
+        if (chunk.includes(0)) body = ['@@ new file @@', ' Binary file'];
+        else {
+          const lines = chunk.toString('utf8').replace(/\r\n/g, '\n').replace(/\n$/, '').split('\n');
+          body = [`@@ -0,0 +1,${lines.length} @@`, ...lines.map((l) => '+' + l)];
+          if (size > PER_FILE) body.push(' (file continues)');
+        }
+      } finally { await fh.close(); }
+    } catch { body = ['@@ new file @@', ' Could not read this file']; }
+    out += [`diff --git a/${f.path} b/${f.path}`, 'new file', ...body].join('\n') + '\n';
+  }
+  return out;
 }
 
 /** Where a new worktree goes: beside the repo, never inside it: <parent>/.<repo>-worktrees/<name>. */
@@ -120,6 +152,7 @@ class GitInfo {
     let diff = await this.run(['diff', 'HEAD', '--no-color', '--no-ext-diff'], root, { timeout: 8000, maxBuffer: Math.max(diffCap * 4, 1024 * 1024) });
     if (diff == null) diff = await this.run(['diff', '--no-color', '--no-ext-diff'], root, { timeout: 8000, maxBuffer: Math.max(diffCap * 4, 1024 * 1024) });
     diff = diff || '';
+    if (diff.length < diffCap) diff += await untrackedDiff(root, st.files, diffCap - diff.length);
     const truncated = diff.length > diffCap;
     if (truncated) diff = diff.slice(0, diffCap);
     return { git: true, root, branch: st.branch, files: st.files.slice(0, 500), fileCount: st.files.length, diff, truncated };

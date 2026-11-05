@@ -139,6 +139,11 @@ test('GitInfo: non-git folder is null; real repo gives branch, dirty, changes an
     assert.equal(c.git, true);
     assert.deepEqual(c.files.map((f) => [f.path, f.status]).sort(), [['a.txt', 'M'], ['b.txt', '??']]);
     assert.match(c.diff, /\+two/);
+    // Untracked files get a section too, so clicking them in the peek shows their contents.
+    assert.match(c.diff, /diff --git a\/b\.txt b\/b\.txt\nnew file\n@@ -0,0 \+1,1 @@\n\+new\n/);
+    fs.writeFileSync(path.join(repo, 'bin.dat'), Buffer.from([1, 0, 2]));
+    assert.match((await g2.changes(repo)).diff, /a\/bin\.dat[\s\S]*Binary file/);
+    fs.unlinkSync(path.join(repo, 'bin.dat'));
     const small = await g2.changes(repo, { diffCap: 10 });
     assert.equal(small.truncated, true);
     assert.equal(small.diff.length, 10);
