@@ -11,7 +11,7 @@
   function nextWaiting(allTiles, order, active, focusedId) {
     const i0 = Math.max(0, order.indexOf(active));
     const rot = [...order.slice(i0), ...order.slice(0, i0)];
-    const waiting = rot.flatMap((w) => allTiles.filter((t) => t.ws === w && (t.status === 'needs_input' || t.status === 'error')));
+    const waiting = rot.flatMap((w) => allTiles.filter((t) => t.ws === w && !t.snoozed && (t.status === 'needs_input' || t.status === 'error')));
     if (!waiting.length) return null;
     const i = waiting.findIndex((t) => t.id === focusedId);
     return waiting[(i + 1) % waiting.length].id;
@@ -32,7 +32,7 @@
 
   const MAX_PILLS = 6;
   const NOTIFY_LABEL = { all: 'All', needs: 'Needs you', none: 'None' };
-  const wsKey = (i) => (i < 9 ? (isMac ? `⌥⌘${i + 1}` : `Ctrl+Alt+${i + 1}`) : '');
+  const wsKey = (i) => (i < 9 ? (isMac ? `⌥⌘${i + 1}` : `Ctrl+Shift+${i + 1}`) : '');
   let raw = null;        // last state from main, before filtering
   let shown = null;      // workspace currently drawn
   let pendingFocus = null;
@@ -127,7 +127,7 @@
     const open = openList();
     const away = all.filter((w) => w.putAway);
     if (all.length < 2) { if (!bar.hidden) { bar.hidden = true; bar.innerHTML = ''; drawnKey = ''; } return; }
-    const waiting = new Set((state.allTiles || []).filter((t) => t.status === 'needs_input' && t.ws !== state.activeWs).map((t) => t.ws));
+    const waiting = new Set((state.allTiles || []).filter((t) => t.status === 'needs_input' && !t.snoozed && t.ws !== state.activeWs).map((t) => t.ws));
     const plan = pillPlan(open.map((w) => w.id), state.activeWs, MAX_PILLS);
     const key = JSON.stringify([open.map((w) => [w.id, w.name, w.color]), away.map((w) => w.id), state.activeWs, [...waiting], isMac]);
     if (key === drawnKey) return;
@@ -344,7 +344,7 @@
       { id: 'workspace.putaway', label: 'Put away workspace', group: 'Workspaces', menu: { ...W, section: 'this' }, when: () => openList().length > 1, run: () => putAway(state.activeWs) },
       { id: 'workspace.close', label: 'Close workspace', group: 'Workspaces', menu: { ...W, section: 'this' }, when: () => openList().length > 1, run: () => closeWs(state.activeWs) },
     ]);
-    // One row per workspace. Open ones switch, the first nine with ⌥⌘1-9 (Windows Ctrl+Alt+1-9)
+    // One row per workspace. Open ones switch, the first nine with ⌥⌘1-9 (Windows Ctrl+Shift+1-9)
     // by their place in the pill row; put away ones reopen.
     C.provide('workspaces', () => {
       const open = openList();
@@ -353,7 +353,7 @@
         const i = open.indexOf(w);
         return {
           id: `workspace.go.${w.id}`, label: `Switch to ${w.name}`, group: 'Workspaces', menu: { ...W, section: 'list', label: w.name },
-          shortcut: i < 9 ? { mac: `Alt+Command+${i + 1}`, win: `Control+Alt+${i + 1}` } : undefined,
+          shortcut: i < 9 ? { mac: `Alt+Command+${i + 1}`, win: `Control+Shift+${i + 1}` } : undefined,
           when: () => w.id !== state.activeWs, run: () => switchTo(w.id),
         };
       });

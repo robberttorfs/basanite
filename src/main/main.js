@@ -12,6 +12,7 @@ const { readLog } = require('./log');
 const modes = require('./modes');
 const { ChatFeed, findTranscript } = require('./chat');
 const { migrate: loadWorkspaces } = require('./workspaces');
+const attention = require('../shared/attention');
 const lifecycle = require('./lifecycle');
 const updaterMod = require('./updater');
 const dataIpc = require('./data-ipc');
@@ -39,7 +40,7 @@ let claudeSessions = new Map();
 const notified = new Map();   // dedupe keys -> time
 
 const DEFAULT_SETTINGS = {
-  notify: { needsInput: true, done: true, contextPct: 80, usagePct: 80 },
+  notify: { needsInput: true, done: true, contextPct: 80, usagePct: 80, sound: false },
   overseerModel: 'sonnet',
   permissionMode: 'default',
   fontSize: 13,
@@ -400,16 +401,27 @@ function isHangarInternal(dir) {
 // ---------- notifications ----------
 
 function notify(key, title, body, tileId) {
-  // Each workspace can ask for all notifications, only "needs you", or none.
-  const ws = tileId && find(tileId)?.ws;
-  if (ws && !workspaces.allows(ws, key.startsWith('input:') ? 'needs' : 'other')) return;
+  // Per session: respect the workspace's level (all / needs you / none) and a snooze, and stay quiet
+  // when the session is on screen in a focused window. The title is the session's name
+  // (and its workspace when there are 2 or more); what happened goes first in the body.
+  const s = tileId && find(tileId);
+  if (s) {
+    const w = workspaces.get(s.ws);
+    const onScreen = !!win && win.isFocused() && !win.isMinimized() && s.ws === workspaces.active;
+    if (!attention.mayNotify({ kind: key.startsWith('input:') ? 'needs' : 'other', level: w?.notify, snoozed: attention.isSnoozed(s.snooze, s.status), onScreen })) return;
+    if (title.startsWith(s.name)) {
+      const what = title.slice(s.name.length).replace(/^[:\s]+/, '');
+      body = what ? `${what[0].toUpperCase()}${what.slice(1)}${body ? `\n${body}` : ''}` : body;
+      title = workspaces.open().length > 1 && w ? `${s.name} in ${w.name}` : s.name;
+    }
+  }
   const last = notified.get(key) || 0;
   if (Date.now() - last < 30000) return;
   notified.set(key, Date.now());
   // Off-screen test copies log notifications instead of showing them.
   if (process.env.HANGAR_DEV_OFFSCREEN) { console.log(`[notify] ${title}: ${body}`); return; }
   if (!Notification.isSupported()) return;
-  const n = new Notification({ title, body, silent: false });
+  const n = new Notification({ title, body, silent: !settings.notify.sound });
   n.on('click', () => {
     if (!win) return;
     if (win.isMinimized()) win.restore();
@@ -427,6 +439,7 @@ function onSessionChange(s, ev) {
   stepHandover(s, ev);
   if (ev.type === 'status') {
     const { prev, next } = ev;
+    s.snooze = attention.afterStatus(s.snooze, next);  // any new status ends a snooze
     if (next === 'needs_input' && settings.notify.needsInput && !userIsLookingAt(s)) {
       notify(`input:${s.id}`, `${s.name} needs you`, s.lastPrompt ? `Waiting on you while working on: ${s.lastPrompt.slice(0, 80)}` : 'Waiting for your answer', s.id);
     }
@@ -486,7 +499,8 @@ function send(channel, payload) {
 }
 
 function state() {
-  const tiles = sessions.map((s) => ({ ...s.snapshot(), ws: s.ws }));
+  const now = Date.now();
+  const tiles = sessions.map((s) => ({ ...s.snapshot(), ws: s.ws, snoozed: attention.isSnoozed(s.snooze, s.status, now) }));
   return { tiles, workspaces: workspaces.summary(), activeWs: workspaces.active, rateLimits, focusedTile, overseerRunning: !!overseer, settings, platform: process.platform, modes: modes.list({ includeHidden: true }) };
 }
 
@@ -952,6 +966,18 @@ function wireIpc() {
     if (s && s.status === 'done') s.setStatus('idle');
   });
   ipcMain.on('tile:dialog', (_e, { id, open }) => find(id)?.onDialog(open));
+  // Snooze: 'time' (30 min), 'change' (until the status changes) or 'off'.
+  ipcMain.on('tile:snooze', (_e, { id, how }) => {
+    const s = find(id);
+    if (!s) return;
+    s.snooze = attention.snooze(s.status, how);
+    broadcast();
+  });
+  // Looked at in the overview: a finished turn quietly becomes Idle.
+  ipcMain.on('tile:seen', (_e, id) => {
+    const s = find(id);
+    if (s && attention.seen(s.status) !== s.status) s.setStatus(attention.seen(s.status));
+  });
   ipcMain.on('screen:reply', (_e, { req, text }) => {
     const r = screenRequests.get(req);
     if (r) { screenRequests.delete(req); r(text); }

@@ -475,3 +475,42 @@ body.polish #ov-term { margin: 4px 6px 0 14px; }
 .sk-row span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sk-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 28px; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; }
 @media (prefers-reduced-motion: reduce) { .pop.palette { animation: none; } }
+
+/* Top-bar counts open the overview */
+.summary button.s { cursor: pointer; }
+.summary button.s:not(.needs):hover { background: var(--panel); color: var(--text); }
+
+/* Snoozed: a tiny moon instead of the glow */
+.tile.snoozed.st-needs_input { border-color: var(--line); box-shadow: none; }
+.moon, .tile.snoozed .head .dot::before { background: transparent !important; animation: none !important; border: 0 !important; border-radius: 50% !important; transform: none !important; box-shadow: inset -2.5px -1px 0 0 var(--muted); content: "" !important; }
+.tile.snoozed .head .dot::before { width: 8px; height: 8px; }
+.tile.snoozed .head .dot { animation: none; }
+.tile.snoozed .state { color: var(--muted); }
+.moon { display: inline-block; width: 9px; height: 9px; margin: 0 2.5px; flex: none; }
+
+/* Overview: the attention list across every workspace */
+.overview { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; background: var(--bg); }
+.overview.in { animation: ws-in .1s linear; }
+.overview:focus { outline: none; }
+.ovw-head { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-bottom: 1px solid var(--line-soft); }
+.ovw-counts { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ovw-counts .ovw-n { margin-right: 10px; }
+.ovw-body { flex: 1; min-height: 0; display: flex; }
+.ovw-list { width: 42%; min-width: 340px; max-width: 560px; overflow-y: auto; padding: 8px; border-right: 1px solid var(--line-soft); }
+.ovw-sec { padding: 12px 10px 4px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+.ovw-row { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; border-radius: 7px; cursor: pointer; white-space: nowrap; font-size: 13px; }
+.ovw-row:hover { background: var(--panel); }
+.ovw-row.sel { background: var(--hover); }
+.ovw-name { overflow: hidden; text-overflow: ellipsis; flex: none; max-width: 45%; }
+.ovw-doing { color: var(--faint); font-size: 12px; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ovw-ws { color: var(--faint); font-size: 12px; margin-left: auto; overflow: hidden; text-overflow: ellipsis; flex: none; max-width: 30%; }
+.ovw-age { color: var(--faint); font-size: 12px; width: 52px; text-align: right; flex: none; font-variant-numeric: tabular-nums; }
+.ovw-preview { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 14px 20px; user-select: text; }
+.ovw-ph { display: flex; align-items: baseline; gap: 10px; padding-bottom: 10px; }
+.ovw-pn { font-weight: 600; }
+.ovw-ph .ovw-ws { margin-left: 0; max-width: none; }
+.ovw-feed { flex: 1; min-height: 0; overflow-y: auto; }
+.ovw-feed .msg { max-width: 760px; margin-left: 0; }
+.ovw-menu { margin: 10px 0 0; padding: 10px 12px; border: 1px solid rgba(245, 181, 69, .45); border-radius: 9px; background: var(--tile); font: 12px/1.5 "SF Mono", Menlo, Consolas, monospace; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 40%; overflow-y: auto; overflow-x: hidden; }
+.ovw-acts { display: flex; align-items: center; gap: 6px; padding-top: 12px; }
+.ovw-acts kbd { margin-left: 4px; border: 0; background: none; padding: 0; color: var(--muted); }

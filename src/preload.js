@@ -24,6 +24,8 @@ contextBridge.exposeInMainWorld('hangar', {
   wsClose: (id) => ipcRenderer.send('ws:close', id),
   wsUndoClose: (id) => ipcRenderer.send('ws:undo-close', id),
   tileToWs: (id, ws) => ipcRenderer.send('tile:to-ws', { id, ws }),
+  snooze: (id, how) => ipcRenderer.send('tile:snooze', { id, how }),
+  seen: (id) => ipcRenderer.send('tile:seen', id),
   setMode: (id, mode) => ipcRenderer.send('tile:mode', { id, mode }),
   setColor: (id, color) => ipcRenderer.send('tile:color', { id, color }),
   setLock: (id, lock) => ipcRenderer.send('tile:lock', { id, lock }),

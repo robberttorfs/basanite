@@ -398,6 +398,8 @@ function updateTile(tile, snap) {
     `${tile.chat?.on ? ' chat-on' : ''}${el.classList.contains('term-forced') ? ' term-forced' : ''}${zoomed === snap.id ? ' zoomed' : ''}${snap.ws && snap.ws !== state.activeWs ? ' ws-off' : ''}`;
   el.style.setProperty('--tc', snap.color || 'transparent');
   $('.name', el).textContent = snap.name;
+  el.classList.toggle('snoozed', !!snap.snoozed);  // a tiny moon instead of the glow
+  $('.dot', el).title = snap.snoozed ? 'Snoozed' : '';
   $('.name', el).title = `${snap.cwd}\nDouble-click to rename`;
 
   const since = Date.now() - snap.statusSince;
@@ -738,12 +740,13 @@ function render() {
 // ---------- top bar ----------
 
 function renderBar() {
-  const c = { working: 0, needs_input: 0, done: 0 };
-  for (const t of state.allTiles || state.tiles) if (t.status in c && t.kind !== 'shell') c[t.status]++;
+  // Every workspace counts; snoozed sessions do not count as needing you. A click opens the overview.
+  const c = HangarAttention.counts(state.allTiles || state.tiles);
+  const ovKey = `Overview (${HangarCommands.shortcutLabel('view.overview')})`;
   const parts = [];
-  if (c.needs_input) parts.push(`<button class="s needs" data-act="next" title="Jump to it (${SHIFT_MOD}U)"><span class="dot"></span>${c.needs_input} need${c.needs_input > 1 ? '' : 's'} you</button>`);
-  if (c.working) parts.push(`<span class="s working"><span class="dot"></span>${c.working} working</span>`);
-  if (c.done) parts.push(`<span class="s done"><span class="dot"></span>${c.done} done</span>`);
+  if (c.needs_input) parts.push(`<button class="s needs" data-act="next" title="${jumpOnly() ? `Jump to it (${SHIFT_MOD}U)` : ovKey}"><span class="dot"></span>${c.needs_input} need${c.needs_input > 1 ? '' : 's'} you</button>`);
+  if (c.working) parts.push(`<button class="s working" data-act="overview" title="${ovKey}"><span class="dot"></span>${c.working} working</button>`);
+  if (c.done) parts.push(`<button class="s done" data-act="overview" title="${ovKey}"><span class="dot"></span>${c.done} done</button>`);
   const sum = $('#summary');
   const html = parts.join('');
   if (sum.innerHTML !== html) sum.innerHTML = html;
@@ -761,7 +764,15 @@ function renderBar() {
   $('#ov-model').textContent = state.settings.overseerModel || '';
 }
 
-$('#summary').addEventListener('click', (e) => { if (e.target.closest('[data-act="next"]')) nextWaiting(); });
+// One workspace with a few sessions: "needs you" jumps straight there, as before. Otherwise the counts open the overview.
+const jumpOnly = () => (state.workspaces || []).length < 2 && (state.allTiles || state.tiles).length <= 4;
+$('#summary').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  if (b.dataset.act === 'next' && jumpOnly()) nextWaiting();
+  else window.HangarOverview?.open();
+});
+
 
 function nextWaiting() {
   if (window.HangarWs) return HangarWs.nextWaiting();  // hops workspaces when it has to
@@ -871,6 +882,7 @@ function openMore(id, anchorEl) {
     ...(shell ? [] : [{ label: 'Mode', kbd: HangarCommands.shortcutLabel('mode.choose'), run: () => openModePicker(id) }]),
     ...(shell || snap.status === 'exited' ? [] : [{ label: 'Fresh start', run: () => openFresh(id) }]),
     { label: snap.pinned ? 'Unpin' : 'Pin as main', kbd: HangarCommands.shortcutLabel('session.pin'), run: () => hangar.pin(id) },
+    ...(shell || snap.status === 'exited' ? [] : [{ label: snap.snoozed ? 'Glow again' : 'Snooze…', run: () => (snap.snoozed ? hangar.snooze(id, 'off') : window.HangarOverview?.snoozeMenu(id)) }]),
     ...(snap.lock ? [{ label: 'Let it size itself', run: () => setLock(id, null) }] : []),
     ...(snap.status === 'exited' ? [{ label: shell ? 'Reopen' : snap.sessionId ? 'Resume' : 'Restart', run: () => hangar.restart(id) }] : []),
     null,
@@ -1282,6 +1294,7 @@ function openSettings(anchorEl) {
   el.innerHTML = `<h3>Notifications</h3>
     <label class="opt">Session needs you<input type="checkbox" data-k="needsInput" ${s.notify.needsInput ? 'checked' : ''}></label>
     <label class="opt">Session finished a task<input type="checkbox" data-k="done" ${s.notify.done ? 'checked' : ''}></label>
+    <label class="opt">Sound<input type="checkbox" data-k="sound" ${s.notify.sound ? 'checked' : ''}></label>
     <label class="opt">Context fuller than (%)<input type="number" min="0" max="100" data-n="contextPct" value="${s.notify.contextPct || 0}"></label>
     <label class="opt">Plan usage above (%)<input type="number" min="0" max="100" data-n="usagePct" value="${s.notify.usagePct || 0}"></label>
     <p class="hint">0 turns a warning off.</p>
@@ -1469,7 +1482,8 @@ setInterval(() => {
   }
   for (const [id, t] of tiles) {
     const st = t.snap.status;
-    if (t.snap.kind === 'shell' || st === 'working' || st === 'starting' || st === 'exited') { dialogShown.delete(id); continue; }
+    // 'starting' is checked too: Claude Code's folder-trust prompt shows before it is ready, and needs you.
+    if (t.snap.kind === 'shell' || st === 'working' || st === 'exited') { dialogShown.delete(id); continue; }
     const open = DIALOG.test(screenText(t.term, 6));
     if (open !== (dialogShown.get(id) || false)) {
       dialogShown.set(id, open);
