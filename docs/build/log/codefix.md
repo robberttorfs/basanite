@@ -1,0 +1,12 @@
+- 21:10 codefix start: read RULES + REVIEW-CODE
+- 21:15 #10 guards: new shellparse.js tokenizer, guards read words/redirects; 13 reported false positives + ~150 cases in test/guards.test.js
+- 21:18 P1#1 single-instance exit, #5 startup save keeps tiles, #11 AUMID via brand.appId, #12 mac zip target + workflow, #13 update asks busy first, #16 forget on put away, #20 notified prune, #21 handover timer cleared, #26 minimize no Ctrl+M + workspace keys Ctrl+Shift+PgUp/PgDn, #28 mac menu label from brand
+- 21:21 P1#2 palette secondary off for Until done; #3 Until done never folder/workspace default; #4 /goal clear in Session.setMode/clearGoal (exit phrase, hangarctl, delete, switch), goalSet persisted
+- 21:22 #6 fork keeps mode+add-ons as applied, #7 fork needs a conversation, #8 history open focuses an open tile
+- 21:23 #9 git --no-optional-locks, #24 porcelain -z, #25 worktrees in <parent>/.<repo>-worktrees/<name> + New tooltip
+- 21:25 #15 editor: VISUAL, then code/cursor/zed (PATH, install dirs, mac .app via open -a), then EDITOR; quoted/space paths
+- 21:26 #14 usage chunked 2 MB reads in bytes + subagents, #22 history StringDecoder
+- 21:27 #17 dead modes provider, #18 onFocusIndex, #19 unused guard event dropped, #20 dialogShown pruned (only my app.js hunks staged)
+- 21:27 #29 detach URL moved from env into <tile dir>/detach.url (HANGAR_DETACH_FILE)
+- 21:31 live check (dev NAME codefix): second launch exits and leaves server.json alone; Minimize has no Ctrl+M; workspace keys Ctrl+Shift+PgUp/PgDn in menu; terminal tile env has no detach URL, detach file POST works; git chip reads -z status. Stopped.
+- Left over / skipped: #23 history slug for very long paths (Claude Code's hashed slug is not documented; needs a scan fallback); package.json "repository" still points at robberttorfs/hangar.git (owner must name the public repo; electron-builder needs it for app-update.yml); NSIS x64+arm64 in one run makes one combined installer, check the file name on the first tagged CI run; Window > Session 1-9 still plain Ctrl+digit (not a shell clash, left as is).
