@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog, Notification, Menu, shell, nativeTheme } = require('electron');
+const look = require('./look');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -11,6 +12,11 @@ const { readLog } = require('./log');
 const modes = require('./modes');
 const { ChatFeed, findTranscript } = require('./chat');
 const { migrate: loadWorkspaces } = require('./workspaces');
+const lifecycle = require('./lifecycle');
+const updaterMod = require('./updater');
+const dataIpc = require('./data-ipc');
+let data = null;
+let updater = null;
 
 const isWin = process.platform === 'win32';
 const isMac = process.platform === 'darwin';
@@ -155,6 +161,7 @@ function launch(s, mode, waited = false) {
   const settingsFile = writeHookSettings(s.id, server, ctlCommand);
   let args;
   if (mode === 'resume' && s.sessionId) args = ['--resume', s.sessionId];
+  else if (mode === 'fork' && s.forkOf) { args = ['--resume', s.forkOf, '--fork-session', '-n', s.name]; s.forkOf = null; }
   else if (mode === 'continue') args = ['--continue'];
   else { s.sessionId = crypto.randomUUID(); args = ['--session-id', s.sessionId, '-n', s.name]; }
   args.push('--settings', settingsFile, ...permissionArgs(settings.permissionMode));
@@ -169,7 +176,7 @@ function launch(s, mode, waited = false) {
     s.setStatus('exited');
     return;
   }
-  ptys.set(s.id, p);
+  ptys.set(s.id, lifecycle.track(p));
   s.setStatus('starting');
   p.onData((data) => send('tile:data', { id: s.id, data }));
   p.onExit(({ exitCode }) => {
@@ -197,7 +204,7 @@ function launchShell(s) {
     s.setStatus('exited');
     return;
   }
-  ptys.set(s.id, p);
+  ptys.set(s.id, lifecycle.track(p));
   s.setStatus('idle');
   p.onData((data) => send('tile:data', { id: s.id, data }));
   p.onExit(() => {
@@ -228,6 +235,7 @@ function addSession(opts, mode) {
     mode: opts.mode || null, modeApplied: !!opts.modeApplied, color: opts.color || null, lock: opts.lock || null,
     kind: opts.kind === 'shell' ? 'shell' : 'claude',
   });
+  s.forkOf = opts.forkOf || null;
   s.onChange = (ev) => onSessionChange(s, ev);
   const w = workspaces.get(opts.ws);
   s.ws = w && !w.putAway ? w.id : workspaces.active;  // new sessions land in the current workspace
@@ -335,10 +343,11 @@ function closeSession(id) {
   lastClosed = { ...s.persisted(), index: sessions.indexOf(s), ws: s.ws };
   const p = ptys.get(id);
   ptys.delete(id);
-  try { p?.kill(); } catch {}
+  lifecycle.killPty(p);
   sessions.splice(sessions.indexOf(s), 1);
   if (focusedTile === id) focusedTile = null;
   chats.delete(id);
+  data?.forget(id);
   saveWorkspace();
   broadcast();
 }
@@ -575,7 +584,7 @@ function startOverseer() {
     send('overseer:data', `\r\nCould not start the overseer: ${e.message}\r\n`);
     return;
   }
-  overseer = { pty: p, sessionId, transcript: null };
+  overseer = { pty: lifecycle.track(p), sessionId, transcript: null };
   // Ready once Claude Code has drawn its prompt and gone quiet for a moment.
   // Typing earlier can lose the Enter (seen on Windows).
   overseer.ready = new Promise((resolve) => {
@@ -639,9 +648,9 @@ function createWindow() {
   win = new BrowserWindow({
     width: saved.width || 1400, height: saved.height || 900, x: saved.x, y: saved.y,
     minWidth: 720, minHeight: 480,
-    backgroundColor: '#0e0f12',
+    backgroundColor: look.background(),
     titleBarStyle: isMac ? 'hiddenInset' : 'hidden',
-    titleBarOverlay: isWin ? { color: '#0e0f12', symbolColor: '#9aa0aa', height: 40 } : undefined,
+    titleBarOverlay: isWin ? look.overlay(40) : undefined,
     trafficLightPosition: { x: 14, y: 13 },
     show: false,
     webPreferences: { preload: path.join(__dirname, '..', 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: false },
@@ -680,7 +689,7 @@ function buildMenu() {
   const sub = (label, list) => (list.length ? [{ label, submenu: list }] : []);
   const template = [
     ...(isMac ? [{ label: 'Hangar', submenu: [
-      { role: 'about' }, { type: 'separator' },
+      { role: 'about' }, ...(updater?.menuItem() ? [updater.menuItem()] : []), { type: 'separator' },
       ...withSep(items('App')),
       { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' },
     ] }] : []),
@@ -707,6 +716,8 @@ function buildMenu() {
     ] },
     ...(items('Help').length ? [{ role: 'help', submenu: items('Help') }] : []),
   ];
+  // A quiet item appears only when an update is waiting.
+  if (!isMac && updater?.menuItem()) template.push(updater.menuItem());
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
@@ -751,7 +762,7 @@ function stopSessions(wsId) {
     if (s.sizeWait) { clearTimeout(s.sizeWait.timer); s.sizeWait = null; }
     const p = ptys.get(s.id);
     ptys.delete(s.id);
-    try { p?.kill(); } catch {}
+    lifecycle.killPty(p);
     sessions.splice(sessions.indexOf(s), 1);
     if (focusedTile === s.id) focusedTile = null;
     chats.delete(s.id);
@@ -979,7 +990,7 @@ function wireIpc() {
   ipcMain.on('overseer:input', (_e, d) => { const o = overseer; o?.ready.then(() => { if (overseer === o) o.pty.write(d); }); });
   ipcMain.on('overseer:resize', (_e, { cols, rows }) => { try { overseer?.pty.resize(cols, rows); } catch {} });
   ipcMain.on('overseer:restart', () => {
-    if (overseer) { const p = overseer.pty; overseer = null; try { p.kill(); } catch {} }
+    if (overseer) { const p = overseer.pty; overseer = null; lifecycle.killPty(p); }
     send('overseer:clear');
     startOverseer();
   });
@@ -994,6 +1005,7 @@ function wireIpc() {
   ipcMain.on('settings:set', (_e, patch) => {
     settings = { ...settings, ...patch, notify: { ...settings.notify, ...(patch.notify || {}) } };
     saveJSON(paths.settingsFile(), settings);
+    if ('theme' in patch) look.apply(settings);
     broadcast();
   });
 }
@@ -1106,15 +1118,20 @@ const serverHandlers = {
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
 
 app.whenReady().then(async () => {
-  nativeTheme.themeSource = 'dark';
+  look.init({ settings: () => settings, win: () => win, send });
   server = await startServer(serverHandlers);
   installHelpers();
   wireIpc();
+  ipcMain.on('update:action', () => updater?.act());
+  data = dataIpc.register({ ipcMain, sessions, find, addSession, uniqueName, send, broadcast, defaultWs: () => workspaces.active });
+  updater = updaterMod.init({ app, onChange: (st) => { buildMenu(); send('update:state', st); } });
   pruneImages();
   buildMenu();
   createWindow();
+  win.on('session-end', onSessionEnd);
   win.webContents.on('did-finish-load', applyZoom);
   win.webContents.setVisualZoomLevelLimits(1, 1).catch(() => {});
+  win.webContents.on('did-finish-load', () => { if (updater?.state.kind !== 'none') send('update:state', updater.state); });
   win.webContents.once('did-finish-load', () => {
     // Every open workspace's sessions come back; put away ones wait until reopened.
     for (const w of workspaces.open()) { const saved = w.tiles; w.tiles = []; resumeSessions(w.id, saved); }
@@ -1125,8 +1142,10 @@ app.whenReady().then(async () => {
 });
 
 let quitting = false;
+let ptysClosed = false;
 app.on('before-quit', (e) => {
-  if (quitting) return;
+  if (ptysClosed) return;
+  if (quitting) { e.preventDefault(); return; }
   const busy = sessions.filter((s) => s.status === 'working' || s.status === 'needs_input');
   if (busy.length && win) {
     const r = dialog.showMessageBoxSync(win, {
@@ -1138,9 +1157,24 @@ app.on('before-quit', (e) => {
   }
   quitting = true;
   saveWorkspace();
-  for (const p of ptys.values()) { try { p.kill(); } catch {} }
-  if (overseer) { try { overseer.pty.kill(); } catch {} }
   try { fs.unlinkSync(paths.serverFile()); } catch {}
+  // Kill each pty once and wait for its exit before the app goes, so the native
+  // ConPTY teardown never runs inside a dying process (the 5 Nov crash).
+  e.preventDefault();
+  const all = [...ptys.values()];
+  if (overseer) all.push(overseer.pty);
+  ptys.clear();
+  lifecycle.shutdownPtys(all).finally(() => { ptysClosed = true; app.quit(); });
 });
+
+// Windows logoff or shutdown: the system ends the process within seconds, so only
+// save. Closing ConPTY handles now would race the system's own teardown.
+function onSessionEnd() {
+  if (ptysClosed) return;
+  ptysClosed = true;
+  quitting = true;
+  saveWorkspace();
+  try { fs.unlinkSync(paths.serverFile()); } catch {}
+}
 
 app.on('window-all-closed', () => app.quit());
