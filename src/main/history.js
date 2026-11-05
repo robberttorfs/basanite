@@ -3,6 +3,7 @@
 // so every field is optional and unknown lines are skipped. Nothing is written.
 const fs = require('fs');
 const path = require('path');
+const { StringDecoder } = require('string_decoder');
 const paths = require('../shared/paths');
 
 /** Claude Code's folder name for a working directory: every non-alphanumeric becomes "-". */
@@ -46,11 +47,12 @@ async function summarize(file, st) {
     let pos = 0;
     let carry = '';
     let head = true;
+    const dec = new StringDecoder('utf8'); // keeps a character split across chunks whole
     while (pos < st.size) {
       const { bytesRead } = await fd.read(buf, 0, buf.length, pos);
       if (!bytesRead) break;
       pos += bytesRead;
-      const text = carry + buf.toString('utf8', 0, bytesRead);
+      const text = carry + dec.write(buf.subarray(0, bytesRead));
       const cut = text.lastIndexOf('\n');
       const body = cut < 0 ? text : text.slice(0, cut);
       carry = cut < 0 ? '' : text.slice(cut + 1);
@@ -135,11 +137,12 @@ async function search(cwd, query, opts) {
       const buf = Buffer.alloc(512 * 1024);
       let pos = 0;
       let carry = '';
+      const dec = new StringDecoder('utf8');
       outer: while (pos < st.size) {
         const { bytesRead } = await fd.read(buf, 0, buf.length, pos);
         if (!bytesRead) break;
         pos += bytesRead;
-        const text = carry + buf.toString('utf8', 0, bytesRead);
+        const text = carry + dec.write(buf.subarray(0, bytesRead));
         const cut = text.lastIndexOf('\n');
         carry = cut < 0 ? '' : text.slice(cut + 1);
         const body = cut < 0 ? text : text.slice(0, cut);

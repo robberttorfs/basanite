@@ -107,30 +107,14 @@ class Usage {
     let dirty = false;
     for (const proj of projects) {
       const dir = path.join(this.root, proj);
-      let names = [];
-      try { names = fs.readdirSync(dir).filter((f) => f.endsWith('.jsonl')); } catch { continue; }
-      for (const f of names) {
-        const file = path.join(dir, f);
+      for (const file of transcriptFiles(dir)) {
         let st;
         try { st = fs.statSync(file); } catch { continue; }
         let rec = this.files[file];
         if (!rec && st.mtimeMs < sinceMs) continue;
         if (!rec || st.size < rec.offset) rec = this.files[file] = { size: 0, offset: 0, project: proj, cwd: null, days: {}, lastId: null, last: null };
         if (st.size === rec.offset) continue;
-        const fd = await fs.promises.open(file, 'r');
-        try {
-          const len = st.size - rec.offset;
-          const buf = Buffer.alloc(len);
-          await fd.read(buf, 0, len, rec.offset);
-          let text = buf.toString('utf8');
-          // Only whole lines; a half-written last line waits for the next scan.
-          const end = text.lastIndexOf('\n');
-          if (end < 0) continue;
-          rec.offset += Buffer.byteLength(text.slice(0, end + 1));
-          ingest(rec, text.slice(0, end).split('\n'));
-          rec.size = st.size;
-          dirty = true;
-        } finally { await fd.close(); }
+        if (await readNew(file, st.size, rec)) dirty = true;
       }
     }
     if (dirty) this.save();
@@ -179,4 +163,48 @@ class Usage {
   }
 }
 
-module.exports = { Usage, costOf, ingest, dayOf };
+/** A project folder's transcripts, plus its sessions' subagent transcripts (<session>/subagents/*.jsonl). */
+function transcriptFiles(dir) {
+  const out = [];
+  let ents = [];
+  try { ents = fs.readdirSync(dir, { withFileTypes: true }); } catch { return out; }
+  for (const e of ents) {
+    if (e.isFile() && e.name.endsWith('.jsonl')) out.push(path.join(dir, e.name));
+    else if (e.isDirectory()) {
+      const sub = path.join(dir, e.name, 'subagents');
+      try { for (const f of fs.readdirSync(sub)) if (f.endsWith('.jsonl')) out.push(path.join(sub, f)); } catch {}
+    }
+  }
+  return out;
+}
+
+const CHUNK = 2 * 1024 * 1024;
+/**
+ * Reads a file's new bytes in chunks, ingesting whole lines only (a half-written
+ * last line waits for the next scan). Offsets are counted in bytes, so a UTF-8
+ * character split across chunks is never mangled. Returns true if anything was read.
+ */
+async function readNew(file, size, rec) {
+  const fd = await fs.promises.open(file, 'r');
+  const start = rec.offset;
+  try {
+    let pos = rec.offset;
+    let carry = Buffer.alloc(0);
+    while (pos < size) {
+      const buf = Buffer.alloc(Math.min(CHUNK, size - pos));
+      const { bytesRead } = await fd.read(buf, 0, buf.length, pos);
+      if (!bytesRead) break;
+      pos += bytesRead;
+      const data = carry.length ? Buffer.concat([carry, buf.subarray(0, bytesRead)]) : buf.subarray(0, bytesRead);
+      const end = data.lastIndexOf(0x0a);
+      if (end < 0) { carry = data; continue; }
+      ingest(rec, data.toString('utf8', 0, end).split('\n'));
+      rec.offset += end + 1;
+      carry = data.subarray(end + 1);
+    }
+    rec.size = size;
+  } finally { await fd.close(); }
+  return rec.offset !== start;
+}
+
+module.exports = { Usage, costOf, ingest, dayOf, readNew, transcriptFiles };
