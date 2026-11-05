@@ -235,6 +235,7 @@
       const dir = list.querySelector('.recent-item.sel')?.dataset.dir;
       if (kind() === 'shell') { set(false, false); return; }
       if (!dir) { set(true, false); return; }
+      box.title = 'Own branch, in .' + base(dir.replace(/[\\/]+$/, '')) + '-worktrees beside the repo';
       if (!wt.git.has(dir)) wt.git.set(dir, await hangar.isGit(dir));
       set(true, wt.git.get(dir));
     };

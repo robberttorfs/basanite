@@ -10,17 +10,22 @@ const DIFF_CAP = 200 * 1024;
 function run(args, cwd, opts) {
   const { timeout = 4000, maxBuffer = 4 * 1024 * 1024 } = opts || {};
   return new Promise((resolve) => {
-    execFile('git', ['-c', 'core.quotepath=off', ...args], { cwd, timeout, maxBuffer, windowsHide: true, encoding: 'utf8' },
+    // --no-optional-locks: background reads never take index.lock, so they cannot
+    // collide with Claude's own git add / commit.
+    execFile('git', ['--no-optional-locks', '-c', 'core.quotepath=off', ...args], { cwd, timeout, maxBuffer, windowsHide: true, encoding: 'utf8' },
       (err, stdout) => resolve(err && !stdout ? null : String(stdout)));
   });
 }
 
-/** Parses `git status --porcelain=v1 -b`. */
+/** Parses `git status --porcelain=v1 -b -z` (NUL separated, paths never quoted); plain lines also work. */
 function parseStatus(text) {
-  const lines = String(text || '').split('\n').filter(Boolean);
+  const raw = String(text || '');
+  const z = raw.includes('\0');
+  const lines = raw.split(z ? '\0' : '\n').filter(Boolean);
   let branch = null;
   const files = [];
-  for (const l of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
     if (l.startsWith('## ')) {
       const h = l.slice(3);
       if (/^HEAD \(no branch\)/.test(h)) branch = 'detached';
@@ -30,11 +35,16 @@ function parseStatus(text) {
     } else {
       const status = l.slice(0, 2);
       let p = l.slice(3);
-      if (status[0] === 'R' || status[0] === 'C') p = p.split(' -> ').pop();
+      if (status[0] === 'R' || status[0] === 'C') { if (z) i++; else p = p.split(' -> ').pop(); } // -z: the old path follows
       files.push({ path: p, status: status.trim() || '?' });
     }
   }
   return { branch, files };
+}
+
+/** Where a new worktree goes: beside the repo, never inside it: <parent>/.<repo>-worktrees/<name>. */
+function worktreeDir(root, slug) {
+  return path.join(path.dirname(root), `.${path.basename(root)}-worktrees`, slug);
 }
 
 class GitInfo {
@@ -76,7 +86,7 @@ class GitInfo {
     if (r.busy || age < (force ? MIN_GAP_MS : MAX_AGE_MS)) return false;
     r.busy = true;
     try {
-      const out = await this.run(['status', '--porcelain=v1', '-b'], root, { timeout: 4000 });
+      const out = await this.run(['status', '--porcelain=v1', '-b', '-z'], root, { timeout: 4000 });
       r.at = this.now();
       if (out == null) return false;
       const st = parseStatus(out);
@@ -94,7 +104,7 @@ class GitInfo {
     if (!root) return { error: 'Not a git folder.' };
     const slug = String(name || '').trim().toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
       || 'wt-' + new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
-    const dir = path.join(path.dirname(root), '.worktrees', `${path.basename(root)}-${slug}`);
+    const dir = worktreeDir(root, slug);
     const branch = `hangar/${slug}`;
     const out = await this.run(['worktree', 'add', '-b', branch, dir], root, { timeout: 30000 });
     if (out == null) return { error: 'Could not create the worktree (the branch or folder may already exist).' };
@@ -106,7 +116,7 @@ class GitInfo {
     const diffCap = (o && o.diffCap) || DIFF_CAP;
     const root = await this.rootOf(cwd);
     if (!root) return { git: false, files: [], fileCount: 0, diff: '', truncated: false };
-    const st = parseStatus(await this.run(['status', '--porcelain=v1', '-b', '-uall'], root, { timeout: 6000 }) || '');
+    const st = parseStatus(await this.run(['status', '--porcelain=v1', '-b', '-z', '-uall'], root, { timeout: 6000 }) || '');
     let diff = await this.run(['diff', 'HEAD', '--no-color', '--no-ext-diff'], root, { timeout: 8000, maxBuffer: Math.max(diffCap * 4, 1024 * 1024) });
     if (diff == null) diff = await this.run(['diff', '--no-color', '--no-ext-diff'], root, { timeout: 8000, maxBuffer: Math.max(diffCap * 4, 1024 * 1024) });
     diff = diff || '';
@@ -116,4 +126,4 @@ class GitInfo {
   }
 }
 
-module.exports = { GitInfo, parseStatus };
+module.exports = { GitInfo, parseStatus, worktreeDir };

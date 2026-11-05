@@ -99,6 +99,13 @@ test('Overlaps: one event per pair and file, only live sessions, 30 minute windo
 
 // ---- E2 / E3 git
 
+test('parseStatus reads -z output: spaces and renames unquoted', () => {
+  const nul = String.fromCharCode(0);
+  const r = parseStatus(['## main...origin/main', ' M a b.txt', 'R  new name.js', 'old name.js', '?? "odd".txt', ''].join(nul));
+  assert.equal(r.branch, 'main');
+  assert.deepEqual(r.files, [{ path: 'a b.txt', status: 'M' }, { path: 'new name.js', status: 'R' }, { path: '"odd".txt', status: '??' }]);
+});
+
 test('parseStatus reads branch and files', () => {
   const r = parseStatus('## main...origin/main [ahead 1]\n M src/a.js\n?? new.txt\nR  old.js -> moved.js\n');
   assert.equal(r.branch, 'main');
@@ -138,7 +145,9 @@ test('GitInfo: non-git folder is null; real repo gives branch, dirty, changes an
     const wt = await g2.createWorktree(repo, 'try it');
     assert.equal(wt.branch, 'hangar/try-it');
     assert.ok(fs.existsSync(path.join(wt.dir, 'a.txt')));
-    assert.ok(wt.dir.includes('.worktrees'));
+    assert.equal(path.dirname(path.dirname(wt.dir)), path.dirname(repo), 'beside the repo, not inside it');
+    assert.equal(path.basename(path.dirname(wt.dir)), '.' + path.basename(repo) + '-worktrees');
+    assert.equal(path.basename(wt.dir), 'try-it');
     const again = await g2.createWorktree(repo, 'try it');
     assert.ok(again.error);
     const plain = fs.mkdtempSync(path.join(os.tmpdir(), 'hangar-nogit-'));
