@@ -4,4 +4,7 @@
 module.exports = {
   name: 'Hangar OSS',      // shown to people
   slug: 'hangar-oss',      // files, ids
+  // Where releases are published (GitHub Releases). Fill both in when the public
+  // releases repo exists; while either is empty, update checks are off.
+  releases: { owner: '', repo: '' },
 };

@@ -1,0 +1,83 @@
+name: Release
+
+# Push a version tag (v0.4.0) to build the installers and attach them to a draft
+# GitHub release. Nothing is published until you press Publish on the draft.
+#
+# Optional signing secrets (builds are unsigned when they are absent):
+#   WIN_CSC_LINK, WIN_CSC_KEY_PASSWORD   Windows code signing certificate
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      # Ad-hoc signed by build/adhoc-sign.js (no Apple Developer ID needed).
+      - run: npx electron-builder --mac --arm64 --x64 --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac
+          path: |
+            dist/Hangar-mac-*.dmg
+            dist/Hangar-mac-*.dmg.blockmap
+            dist/latest-mac.yml
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Build x64 and arm64 installers
+        shell: bash
+        env:
+          # Signing is skipped when the certificate secret is empty.
+          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: |
+          if [ -z "$CSC_LINK" ]; then unset CSC_LINK CSC_KEY_PASSWORD; fi
+          npx electron-builder --win --x64 --arm64 --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/Hangar-windows-*-setup.exe
+            dist/Hangar-windows-*-setup.exe.blockmap
+            dist/latest.yml
+          if-no-files-found: error
+
+  draft-release:
+    needs: [mac, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" assets/* \
+            --repo "${{ github.repository }}" \
+            --draft \
+            --title "${{ github.ref_name }}" \
+            --generate-notes
