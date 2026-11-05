@@ -46,6 +46,9 @@ contextBridge.exposeInMainWorld('hangar', {
   setSettings: (patch) => ipcRenderer.send('settings:set', patch),
   zoom: (dir) => ipcRenderer.send('ui:zoom', dir),
   openMenu: (x, y) => ipcRenderer.send('menu:popup', { x, y }),
+  font: (dir) => ipcRenderer.send('ui:font', dir),
+  setMenu: (spec) => ipcRenderer.send('menu:set', spec),
+  onCommand: on('cmd:run'),
 
   onState: on('state'),
   onData: on('tile:data'),
@@ -57,9 +60,5 @@ contextBridge.exposeInMainWorld('hangar', {
   onScreenRequest: on('screen:request'),
   onOverseerData: on('overseer:data'),
   onOverseerClear: on('overseer:clear'),
-  onUi: (fn) => {
-    for (const c of ['new', 'new-terminal', 'overseer', 'pin', 'timer', 'next-waiting', 'mode', 'modes', 'rename', 'usage',
-      'reset-sizes', 'reopen', 'fresh', 'zoom', 'settings', 'close', 'set-mode', 'clean-view']) ipcRenderer.on(`ui:${c}`, (_e, arg) => fn(c, arg));
-  },
   platform: process.platform,
 });

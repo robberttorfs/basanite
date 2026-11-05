@@ -55,6 +55,7 @@ function startServer(handlers) {
         if (cmd === 'log') return reply(200, await handlers.log(q.tile, Number(q.n) || 4));
         if (cmd === 'shot' && handlers.shot) return reply(200, await handlers.shot(q.file));
         if (cmd === 'key' && handlers.key) return reply(200, await handlers.key(q.key, q.mods));
+        if (cmd === 'menu' && handlers.menu) return reply(200, await handlers.menu(q.accel));
         if (cmd === 'js' && handlers.js) return reply(200, await handlers.js(q.code));
         if (cmd === 'open' && handlers.open) return reply(200, await handlers.open(q.dir, q.timer));
         if (cmd === 'detach' && req.method === 'POST' && handlers.detach) return reply(200, await handlers.detach(q.tile));

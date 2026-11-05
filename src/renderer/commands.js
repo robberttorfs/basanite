@@ -17,7 +17,8 @@
 //     secondary(ctx, opts) optional ⌘↩ / Ctrl+↩
 //     actions(ctx)         optional sub-list for ⇥ (session rows)
 //   provide(name, fn)       dynamic commands, rebuilt on every read (sessions, modes, folders)
-//   setContext(fn)          fn() returns ctx handed to when() and run()
+//   setContext(fn)          fn(scopeId) returns ctx handed to when() and run()
+//   setScope(id) / scope()  aim session actions at another session (the palette's scope chip)
 //   run(id, opts)           run one by id, records it for the palette's recent list
 //   all() / get(id) / search(query, list) / recent(n) / menuSpec(isMac) / keyLabel(acc, isMac)
 //   changed()               call after state changes; listeners (the menu) rebuild when needed
@@ -30,6 +31,7 @@
   const listeners = [];
   let ctxFn = () => ({});
   let isMac = false;
+  let scopeId = null; // the palette can aim actions at another session than the focused one
 
   function register(cmds) {
     for (const c of [].concat(cmds)) {
@@ -42,7 +44,9 @@
   function provide(name, fn) { providers.set(name, fn); changed(); }
   function setContext(fn) { ctxFn = fn; }
   function setPlatform(mac) { isMac = !!mac; }
-  const ctx = () => ctxFn() || {};
+  function setScope(id) { scopeId = id || null; }
+  const scope = () => scopeId;
+  const ctx = () => ctxFn(scopeId) || {};
 
   function all() {
     const out = [...statics.values()];
@@ -90,6 +94,7 @@
 
   // ---------- matching ----------
   // exact prefix > word-start initials > fuzzy subsequence, then frecency. Ties keep table order.
+  const SMALL = new Set(['and', 'or', 'of', 'the', 'a', 'an', 'to', 'in', 'as', 'that']);
   function scoreText(q, text) {
     const t = text.toLowerCase();
     if (!q) return 1;
@@ -97,10 +102,13 @@
     if (t.startsWith(q)) return 900 - t.length / 100;
     const words = t.split(/[^a-z0-9]+/).filter(Boolean);
     if (words.some((w) => w.startsWith(q))) return 700 - t.length / 100;
+    // Initials with and without little words, so rc finds Rename and colour.
     const initials = words.map((w) => w[0]).join('');
-    if (initials.startsWith(q)) return 600;
-    if (q.length > 1 && initials.includes(q)) return 500;
-    // Fuzzy: every typed letter in order; tighter matches score higher.
+    const main = words.filter((w) => !SMALL.has(w)).map((w) => w[0]).join('');
+    if (initials.startsWith(q) || main.startsWith(q)) return 600;
+    if (q.length > 1 && (initials.includes(q) || main.includes(q))) return 500;
+    // Fuzzy: every typed letter in order; tighter matches score higher. Two letters match too much.
+    if (q.length < 3) return 0;
     let i = 0, gaps = 0, last = -1;
     for (let j = 0; j < t.length && i < q.length; j++) {
       if (t[j] === q[i]) { if (last >= 0) gaps += j - last - 1; last = j; i++; }
@@ -136,7 +144,7 @@
     if (!acc) return '';
     const parts = acc.split('+');
     const key = parts.pop();
-    const names = { Enter: mac ? '↩' : 'Enter', Return: mac ? '↩' : 'Enter', Plus: '+', '=': '+', Up: '↑', Down: '↓', Escape: 'Esc' };
+    const names = { Enter: mac ? '↩' : 'Enter', Return: mac ? '↩' : 'Enter', Plus: '+', Up: '↑', Down: '↓', Escape: 'Esc' };
     const k = names[key] || (key.length === 1 ? key.toUpperCase() : key);
     const mods = parts.map((p) => p.toLowerCase());
     const has = (...m) => mods.some((x) => m.includes(x));
@@ -156,7 +164,6 @@
   const MENU_ORDER = ['App', 'Session', 'Workspace', 'Modes', 'View', 'Window', 'Help'];
   /** Plain data for main.js: [{ label, items: [{ id, label, accel, enabled } | { sep: true }] }]. */
   function menuSpec(mac = isMac) {
-    const cx = ctx();
     const menus = new Map();
     for (const c of all()) {
       if (!c.menu) continue;
@@ -172,7 +179,7 @@
         const sec = c.menu.section || '';
         if (items.length && sec !== section) items.push({ sep: true });
         section = sec;
-        items.push({ id: c.id, label: c.menu.label || c.label, accel: accel(c, mac), enabled: ok(c, cx) });
+        items.push({ id: c.id, label: c.menu.label || c.label, accel: accel(c, mac) });
       }
       return { label: name, items };
     });
@@ -190,7 +197,7 @@
   function onChange(fn) { listeners.push(fn); lastSpec = ''; changed(); }
 
   const api = {
-    register, unregister, provide, setContext, setPlatform, all, get, ok, run, search, score, recent, recordUse,
+    register, unregister, provide, setContext, setScope, scope, ctx, setPlatform, all, get, ok, run, search, score, recent, recordUse,
     frecency, accel, keyLabel, shortcutLabel, menuSpec, changed, onChange,
     _reset() { statics.clear(); providers.clear(); listeners.length = 0; uses = {}; lastSpec = ''; },
   };

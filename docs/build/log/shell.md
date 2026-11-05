@@ -10,3 +10,5 @@
 
 ## Log
 - 20:10 commands.js registry created (API above)
+- 20:19 menu built from registry (main.js menu:set), app-commands.js, palette.js, focus return, tests
+- 20:28 palette, ? sheet, focus return checked in dev app (shots in .devdata/shell/shots); committed

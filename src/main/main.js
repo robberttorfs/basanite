@@ -654,41 +654,29 @@ function createWindow() {
 }
 
 // The menu bar holds everything, so the window itself can stay quiet.
-// Rebuilt when modes change, since the Modes menu lists them.
+// Its items come from the renderer's command registry (src/renderer/commands.js), so the
+// menu, the command palette and the shortcuts share one list. Main adds only the roles.
+let menuSpec = null;
 function buildMenu() {
-  const ui = (c) => () => send(`ui:${c}`);
-  const tileItems = Array.from({ length: 9 }, (_, i) => ({
-    label: `Session ${i + 1}`, accelerator: `CmdOrCtrl+${i + 1}`, click: () => send('tile:focus-index', i),
-  }));
-  const modeItems = modes.list().map((m) => ({ label: m.name, click: () => send('ui:set-mode', m.id) }));
+  const items = (name) => {
+    const m = menuSpec?.find((x) => x.label === name);
+    return m ? m.items.map((it) => (it.sep ? { type: 'separator' } : {
+      label: it.label, accelerator: it.accel || undefined, click: () => send('cmd:run', it.id),
+    })) : [];
+  };
+  const withSep = (list) => (list.length ? [...list, { type: 'separator' }] : []);
+  const known = ['App', 'Session', 'Workspace', 'Modes', 'View', 'Window', 'Help'];
+  const others = (menuSpec || []).filter((m) => !known.includes(m.label)).map((m) => ({ label: m.label, submenu: items(m.label) }));
+  const sub = (label, list) => (list.length ? [{ label, submenu: list }] : []);
   const template = [
     ...(isMac ? [{ label: 'Hangar', submenu: [
       { role: 'about' }, { type: 'separator' },
-      { label: 'Settings…', accelerator: 'Cmd+,', click: ui('settings') },
-      { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' },
+      ...withSep(items('App')),
+      { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' },
     ] }] : []),
-    { label: 'Session', submenu: [
-      // On Windows plain Ctrl+N / Ctrl+T belong to Claude Code inside the terminal.
-      { label: 'New Session…', accelerator: isMac ? 'Cmd+N' : 'Ctrl+Shift+N', click: ui('new') },
-      { label: 'New Terminal', accelerator: isMac ? 'Alt+Cmd+N' : 'Ctrl+Alt+N', click: ui('new-terminal') },
-      { type: 'separator' },
-      { label: 'Fresh Start…', accelerator: 'CmdOrCtrl+Shift+K', click: ui('fresh') },
-      { label: 'Rename and Colour…', accelerator: 'CmdOrCtrl+Shift+R', click: ui('rename') },
-      { label: 'Time Budget…', accelerator: isMac ? 'Cmd+T' : 'Ctrl+Shift+T', click: ui('timer') },
-      { label: 'Pin as Main', accelerator: 'CmdOrCtrl+Shift+P', click: ui('pin') },
-      { label: 'Zoom', accelerator: 'CmdOrCtrl+Shift+Enter', click: ui('zoom') },
-      { type: 'separator' },
-      { label: 'Close Session', click: ui('close') },
-      { label: 'Reopen Closed Session', accelerator: isMac ? 'Cmd+Shift+T' : 'Ctrl+Alt+T', click: ui('reopen') },
-    ] },
-    { label: 'Modes', submenu: [
-      { label: 'Choose Mode…', accelerator: 'CmdOrCtrl+Shift+M', click: ui('mode') },
-      { type: 'separator' },
-      ...modeItems,
-      { label: 'No Mode', click: () => send('ui:set-mode', null) },
-      { type: 'separator' },
-      { label: 'Edit Modes…', click: ui('modes') },
-    ] },
+    ...sub('Session', items('Session')),
+    ...sub('Workspace', items('Workspace')),
+    ...sub('Modes', items('Modes')),
     // On Windows and Linux the edit keys must reach the page itself (terminals, picture paste),
     // so the Edit menu shows them without grabbing them.
     isMac ? { role: 'editMenu' } : { label: 'Edit', submenu: [
@@ -697,28 +685,17 @@ function buildMenu() {
       { role: 'paste', registerAccelerator: false }, { role: 'selectAll', registerAccelerator: false },
     ] },
     { label: 'View', submenu: [
-      { label: 'Overseer', accelerator: 'CmdOrCtrl+Shift+O', click: ui('overseer') },
-      { label: 'Clean View', accelerator: 'CmdOrCtrl+Shift+L', click: ui('clean-view') },
-      { label: 'Usage', accelerator: 'CmdOrCtrl+Shift+Y', click: ui('usage') },
-      { type: 'separator' },
-      { label: 'Reset Tile Sizes', click: ui('reset-sizes') },
-      { label: 'Bigger Text', accelerator: 'CmdOrCtrl+=', click: () => setFont(1) },
-      { label: 'Smaller Text', accelerator: 'CmdOrCtrl+-', click: () => setFont(-1) },
-      { type: 'separator' },
-      { label: 'Larger Interface', click: () => setZoom(1) },
-      { label: 'Smaller Interface', click: () => setZoom(-1) },
-      { label: 'Actual Size', accelerator: 'CmdOrCtrl+0', click: () => setZoom(0) },
-      { type: 'separator' },
+      ...withSep(items('View')),
+      ...(isMac ? [] : withSep(items('App'))),
       { role: 'togglefullscreen' },
       ...(process.env.HANGAR_DEV ? [{ role: 'toggleDevTools' }] : []),
     ] },
+    ...others,
     { label: 'Window', submenu: [
-      { label: 'Next Session That Needs You', accelerator: 'CmdOrCtrl+Shift+U', click: ui('next-waiting') },
-      { type: 'separator' },
-      ...tileItems,
-      { type: 'separator' },
+      ...withSep(items('Window')),
       { role: 'minimize' }, ...(isMac ? [{ role: 'zoom', label: 'Fill Screen' }] : [{ label: 'Maximize', click: () => (win.isMaximized() ? win.unmaximize() : win.maximize()) }]),
     ] },
+    ...(items('Help').length ? [{ role: 'help', submenu: items('Help') }] : []),
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
@@ -909,6 +886,8 @@ function wireIpc() {
     startOverseer();
   });
   ipcMain.on('ui:zoom', (_e, dir) => setZoom(Math.sign(Number(dir) || 0)));
+  ipcMain.on('ui:font', (_e, dir) => setFont(Math.sign(Number(dir) || 0)));
+  ipcMain.on('menu:set', (_e, spec) => { if (Array.isArray(spec)) { menuSpec = spec; buildMenu(); } });
   // Windows and Linux hide the menu bar with the title bar, so the top bar has a button that opens it.
   ipcMain.on('menu:popup', (_e, { x, y } = {}) => {
     const z = settings.uiZoom || 1;
@@ -967,6 +946,22 @@ const serverHandlers = {
     if (keyCode.length === 1) win.webContents.sendInputEvent({ type: 'char', keyCode, modifiers });
     win.webContents.sendInputEvent({ type: 'keyUp', keyCode, modifiers });
     return { text: 'ok' };
+  },
+  // Dev only: the native menu as text, or accel=Ctrl+Shift+K clicks the item with that shortcut
+  // (sendInputEvent skips menu accelerators on Windows, so this checks them instead).
+  menu: async (acc) => {
+    if (!process.env.HANGAR_DEV) throw new Error('not available');
+    const out = [];
+    const walk = (items, path) => { for (const it of items) {
+      if (it.submenu) walk(it.submenu.items, `${path}${it.label} > `);
+      else if (it.type !== 'separator') {
+        const a = it.accelerator ? String(it.accelerator).replace(/CmdOrCtrl|CommandOrControl/, isMac ? 'Cmd' : 'Ctrl') : '';
+        if (acc && a === acc) { it.click(); return out.push(`clicked ${path}${it.label}`); }
+        out.push(`${path}${it.label}${a ? ` [${a}]` : ''}`);
+      }
+    } };
+    walk(Menu.getApplicationMenu()?.items || [], '');
+    return { text: acc ? (out.find((l) => l.startsWith('clicked')) || `no item for ${acc}`) : out.join('\n') };
   },
   js: async (code) => {
     if (!process.env.HANGAR_DEV) throw new Error('not available');

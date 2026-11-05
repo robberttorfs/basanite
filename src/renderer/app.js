@@ -18,6 +18,7 @@ if (!isMac) {
   // No menu bar here, so a button opens the app menu (Session, Modes, View, Window).
   const mb = $('#btn-menu');
   mb.hidden = false;
+  mb.onmousedown = (e) => e.preventDefault();
   mb.onclick = (e) => { const r = e.currentTarget.getBoundingClientRect(); hangar.openMenu(r.left, r.bottom + 4); };
   window.addEventListener('keyup', (e) => {
     if (e.key === 'Alt' && !e.ctrlKey && !e.shiftKey && !e.metaKey && altAlone) mb.click();
@@ -767,6 +768,20 @@ function nextWaiting() {
 
 const layer = $('#layer');
 let closePop = null;
+// The last place the keyboard was (a terminal, the message box, the overseer), so every
+// popover, the palette and the menus hand it back to exactly that element.
+let lastInput = null;
+window.addEventListener('focusin', (e) => {
+  const t = e.target;
+  if (t.closest?.('#layer')) return;
+  if (t.matches?.('textarea, input, [contenteditable="true"]')) lastInput = t;
+}, true);
+function returnFocus() {
+  const t = lastInput;
+  const tile = t?.closest?.('.tile');
+  if (t && t.isConnected && t.getClientRects().length && (!tile || tile.classList.contains('focused'))) t.focus();
+  else if (focused && tiles.has(focused)) focusInput(focused);
+}
 function openPop(el, anchorEl, opts = {}) {
   if (closePop) closePop();
   layer.innerHTML = '';
@@ -788,7 +803,7 @@ function openPop(el, anchorEl, opts = {}) {
     layer.removeEventListener('mousedown', onDown);
     closePop = null;
     opts.onClose?.();
-    if (focused && tiles.has(focused)) focusInput(focused);
+    returnFocus();
   };
   window.addEventListener('keydown', onKey, true);
   layer.addEventListener('mousedown', onDown);
@@ -845,10 +860,10 @@ function openMore(id, anchorEl) {
   const shell = snap.kind === 'shell';
   const el = h('div', 'pop menu');
   menuItems(el, [
-    { label: 'Rename and colour', kbd: `${SHIFT_MOD}R`, run: () => openRename(id) },
-    ...(shell ? [] : [{ label: 'Mode', kbd: `${SHIFT_MOD}M`, run: () => openModePicker(id) }]),
-    ...(shell || snap.status === 'exited' ? [] : [{ label: 'Fresh start', kbd: `${SHIFT_MOD}K`, run: () => openFresh(id) }]),
-    { label: snap.pinned ? 'Unpin' : 'Pin as main', kbd: `${SHIFT_MOD}P`, run: () => hangar.pin(id) },
+    { label: 'Rename and colour', kbd: HangarCommands.shortcutLabel('session.rename'), run: () => openRename(id) },
+    ...(shell ? [] : [{ label: 'Mode', kbd: HangarCommands.shortcutLabel('mode.choose'), run: () => openModePicker(id) }]),
+    ...(shell || snap.status === 'exited' ? [] : [{ label: 'Fresh start', run: () => openFresh(id) }]),
+    { label: snap.pinned ? 'Unpin' : 'Pin as main', kbd: HangarCommands.shortcutLabel('session.pin'), run: () => hangar.pin(id) },
     ...(snap.lock ? [{ label: 'Let it size itself', run: () => setLock(id, null) }] : []),
     ...(snap.status === 'exited' ? [{ label: shell ? 'Reopen' : snap.sessionId ? 'Resume' : 'Restart', run: () => hangar.restart(id) }] : []),
     null,
@@ -1380,29 +1395,7 @@ hangar.onScreenRequest(({ req, id, lines }) => {
   const t = tiles.get(id);
   hangar.screenReply(req, t ? screenText(t.term, lines) : null);
 });
-hangar.onUi((c, arg) => {
-  if (c === 'new-terminal') start(null, 'shell');
-  if (c === 'settings') openSettings($('#btn-settings'));
-  if (c === 'set-mode' && focused && tiles.get(focused)?.snap.kind !== 'shell') hangar.setMode(focused, arg);
-  if (c === 'close' && focused) closeTile(focused);
-  if (c === 'new') openNew();
-  if (c === 'overseer') toggleOverseer();
-  if (c === 'pin' && focused) hangar.pin(focused);
-  if (c === 'timer' && focused) openTimer(focused);
-  if (c === 'mode' && focused) openModePicker(focused);
-  if (c === 'rename' && focused) openRename(focused);
-  if (c === 'modes') openModes();
-  if (c === 'usage') openUsage();
-  if (c === 'reset-sizes') resetSizes();
-  if (c === 'reopen') hangar.reopen();
-  if (c === 'fresh' && focused) openFresh(focused);
-  if (c === 'zoom' && focused) toggleZoom(focused);
-  if (c === 'clean-view') {
-    if (document.body.classList.contains('ov-open') && $('#overseer').contains(document.activeElement)) { if (ov) setOvView(!ovChatOn); }
-    else if (focused) setView(focused, !tiles.get(focused)?.chat?.on);
-  }
-  if (c === 'next-waiting') nextWaiting();
-});
+// Menu items and shortcuts run through the command registry (commands.js, app-commands.js).
 
 let lastFont = null;
 let lastZoom = null;
@@ -1483,4 +1476,5 @@ hangar.init().then((s) => {
   lastLook = `${s.settings.polishTerm !== false}`;
   document.body.classList.toggle('polish', s.settings.polishTerm !== false);
   render();
+  window.HangarCommands?.changed();
 });
