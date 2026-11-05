@@ -1,1 +1,2 @@
 - 21:17 P1s: palette without status colours (src/shared/palette.js) + migration; name keeps ~7ch, state/doing/markers shrink first
+- 21:24 P2: mode picker arrows + type-to-filter; New filter + listbox roles + backdrop; usage popover trimmed + reserved chart + framed control; error counts; one notice style (tile notices below header, window notices in top bar); Undo on close; tooltips from registry; settings copy + select; 120 ms motion. (codefix's commits c0836cd/60458da picked up some of my extras.js/modes-ui.js edits)

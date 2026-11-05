@@ -25,11 +25,11 @@
 }
 /* done and error: glyphs */
 .st-done .head .dot::before, .summary .done .dot::before, .pal-chip.st-done .dot::before,
-.st-error .head .dot::before, .pal-chip.st-error .dot::before {
+.st-error .head .dot::before, .summary .error .dot::before, .pal-chip.st-error .dot::before {
   width: auto; height: auto; border: 0; border-radius: 0; font: 700 10px/1 var(--font);
 }
 .st-done .head .dot::before, .summary .done .dot::before, .pal-chip.st-done .dot::before { content: "✓"; color: var(--done); }
-.st-error .head .dot::before, .pal-chip.st-error .dot::before { content: "✕"; color: var(--error); }
+.st-error .head .dot::before, .summary .error .dot::before, .pal-chip.st-error .dot::before { content: "✕"; color: var(--error); }
 .st-exited .head .dot::before { border-style: dashed; opacity: .6; }
 @keyframes breathe { 50% { opacity: .45; } }
 
@@ -99,6 +99,7 @@ body.compact #stage { margin: 4px; }
   .field:focus { border-color: #9fb5de; }
   .me-item.sel, .seg button.on, .mchip.sel { background: #e7ebf2; }
   .mchip.sel { border-color: #c3ccdb; }
+  #layer.open:has(> .modal) { background: rgba(20, 30, 50, .14); }
   /* User colours are tuned for dark; on light they get a darker text tone so chips never look disabled. */
   .mode-chip.set { color: color-mix(in srgb, var(--mc) 55%, #000); background: color-mix(in srgb, var(--mc) 18%, transparent); border-color: color-mix(in srgb, var(--mc) 60%, transparent); }
   .mi, .mm-addons .mm-addon.on .mi, .mi-btn.sel { color: color-mix(in srgb, var(--c) 60%, #000); }
@@ -184,6 +185,7 @@ body.compact .gitchip { height: 18px; }
 
 .own-branch { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; cursor: pointer; }
 .own-branch input[type="checkbox"] { accent-color: var(--accent); }
+.own-branch.off { opacity: .45; cursor: default; }
 .own-branch .wt-name { width: 150px; height: 26px; }
 
 .uh-read { margin-bottom: 6px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; white-space: pre; }

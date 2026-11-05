@@ -33,9 +33,9 @@ test('attention: seen turns Done into Idle and leaves the rest', () => {
 test('attention: counts skip snoozed and terminals', () => {
   const c = A.counts([
     { status: 'needs_input' }, { status: 'needs_input', snoozed: true }, { status: 'working' },
-    { status: 'done' }, { status: 'done', kind: 'shell' }, { status: 'idle' },
+    { status: 'done' }, { status: 'done', kind: 'shell' }, { status: 'idle' }, { status: 'error' },
   ]);
-  assert.deepEqual(c, { needs_input: 1, working: 1, done: 1, idle: 1 });
+  assert.deepEqual(c, { needs_input: 1, error: 1, working: 1, done: 1, idle: 1 });
 });
 
 test('attention: overview sections', () => {

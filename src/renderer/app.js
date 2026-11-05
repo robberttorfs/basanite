@@ -215,11 +215,11 @@ function createTile(snap) {
         <button class="fresh-hint" hidden>Fresh start</button>
         <span class="ctx"><span class="bar"><i></i></span><span class="cv"></span></span>
       </span>
-      <button class="hbtn lock" aria-label="Size locked. Click to let it size itself again">${ICON.lock}</button>
+      <button class="hbtn lock" aria-label="Unlock size">${ICON.lock}</button>
       <button class="hbtn timer" aria-label="Time budget">${ICON.timer}<span class="tv"></span></button>
       <button class="hbtn pin" aria-label="Pin as main">${ICON.pin}</button>
       <button class="hbtn view" aria-label="Clean view">${ICON.chat}</button>
-      <button class="hbtn more" aria-label="More">${ICON.more}</button>
+      <button class="hbtn more" aria-label="More" title="More">${ICON.more}</button>
     </div>
     <div class="agents"></div>
     <div class="term"></div>
@@ -242,7 +242,7 @@ function createTile(snap) {
   $('.mode-chip', el).onclick = (e) => { e.stopPropagation(); openModePicker(snap.id, e.currentTarget); };
   $('.fresh-hint', el).onclick = (e) => { e.stopPropagation(); openFresh(snap.id, e.currentTarget); };
   $('.restart', el).onclick = () => hangar.restart(snap.id);
-  $('.close', el).onclick = () => hangar.close(snap.id);
+  $('.close', el).onclick = () => closeNow(snap.id);
   $('.name', el).ondblclick = (e) => { e.stopPropagation(); openRename(snap.id); };
   $('.head', el).ondblclick = (e) => { if (!e.target.closest('button')) toggleZoom(snap.id); };
 
@@ -370,7 +370,7 @@ function setView(id, on, tile = tiles.get(id)) {
   tile.el.classList.toggle('chat-on', on);
   saveViewPref(id, on);
   $('.view', tile.el).classList.toggle('active', on);
-  $('.view', tile.el).title = on ? `Show the terminal (${SHIFT_MOD}L)` : `Clean view (${SHIFT_MOD}L)`;
+  $('.view', tile.el).title = on ? `Show the terminal (${HangarCommands.shortcutLabel('view.clean')})` : `Clean view (${HangarCommands.shortcutLabel('view.clean')})`;
   if (on) hangar.chatOpen(id).then((items) => { tile.chat.view.set(items, true); tile.chat.view.scrollToEnd(); });
   else hangar.chatClose(id);
   tile.fitSoon(60);
@@ -451,13 +451,13 @@ function updateTile(tile, snap) {
   } else if (tm && tm.finished) {
     $('.tv', el).textContent = 'done'; tb.title = 'Timer finished';
   } else {
-    $('.tv', el).textContent = ''; tb.title = `Time budget (${MOD}T)`;
+    $('.tv', el).textContent = ''; tb.title = `Time budget (${HangarCommands.shortcutLabel('session.timer')})`;
   }
   $('.pin', el).classList.toggle('active', snap.pinned);
-  $('.pin', el).title = snap.pinned ? 'Unpin' : `Pin as main (${SHIFT_MOD}P)`;
+  $('.pin', el).title = snap.pinned ? 'Unpin' : `Pin as main (${HangarCommands.shortcutLabel('session.pin')})`;
   const lk = $('.lock', el);
   lk.hidden = !snap.lock;
-  lk.title = 'Size set by hand. Click to let it size itself again.';
+  lk.title = 'Unlock size';
 
   // Agents strip
   const strip = $('.agents', el);
@@ -481,6 +481,7 @@ function updateTile(tile, snap) {
     tile.chat.view.setBusy(working, snap.handover ? label : working ? label || 'Working' : '');
   } else el.classList.remove('term-forced');
   $('.view', el).hidden = shell;
+  if (!$('.view', el).title) $('.view', el).title = `Clean view (${HangarCommands.shortcutLabel('view.clean')})`;
   $('.overlay .msg', el).textContent = shell ? 'Terminal closed' : 'Session ended';
   $('.overlay .restart', el).textContent = shell ? 'Reopen' : snap.sessionId ? 'Resume' : 'Restart';
 }
@@ -740,6 +741,7 @@ function renderBar() {
   const ovKey = `Overview (${HangarCommands.shortcutLabel('view.overview')})`;
   const parts = [];
   if (c.needs_input) parts.push(`<button class="s needs" data-act="next" title="${jumpOnly() ? `Jump to it (${SHIFT_MOD}U)` : ovKey}"><span class="dot"></span>${c.needs_input} need${c.needs_input > 1 ? '' : 's'} you</button>`);
+  if (c.error) parts.push(`<button class="s error" data-act="overview" title="${ovKey}"><span class="dot"></span>${c.error} error${c.error > 1 ? 's' : ''}</button>`);
   if (c.working) parts.push(`<button class="s working" data-act="overview" title="${ovKey}"><span class="dot"></span>${c.working} working</button>`);
   if (c.done) parts.push(`<button class="s done" data-act="overview" title="${ovKey}"><span class="dot"></span>${c.done} done</button>`);
   const sum = $('#summary');
@@ -756,6 +758,7 @@ function renderBar() {
   }
   const uh = u.length ? u.join('') : `<span class="u">${ICON.chart}</span>`;
   if ($('#usage').innerHTML !== uh) $('#usage').innerHTML = uh;
+  $('#usage').classList.toggle('icon-only', !u.length);
   $('#ov-model').textContent = state.settings.overseerModel || '';
 }
 
@@ -832,10 +835,22 @@ function menuItems(el, items) {
     el.appendChild(b);
   }
 }
-function arrowNav(el) {
+/** Arrow keys move between the visible items. With opts.filter, typing filters the rows:
+ *  opts.filter(query) hides what doesn't match and returns nothing; Backspace edits the query. */
+function arrowNav(el, opts = {}) {
+  let q = '';
+  const visible = () => [...el.querySelectorAll('.item')].filter((b) => b.offsetParent !== null && !b.disabled);
   return (e) => {
+    if (opts.filter && !e.ctrlKey && !e.metaKey && !e.altKey && document.activeElement?.tagName !== 'INPUT' &&
+      ((e.key.length === 1 && (q || e.key !== ' ')) || (e.key === 'Backspace' && q))) {
+      e.preventDefault();
+      q = e.key === 'Backspace' ? q.slice(0, -1) : q + e.key;
+      opts.filter(q);
+      visible()[0]?.focus();
+      return;
+    }
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-    const items = [...el.querySelectorAll('.item')];
+    const items = visible();
     if (!items.length) return;
     e.preventDefault();
     const i = items.indexOf(document.activeElement);
@@ -849,12 +864,11 @@ function openTimer(id, anchorEl) {
   if (!snap || snap.kind === 'shell') return;
   anchorEl = anchorEl || $('.timer', tiles.get(id).el);
   const el = h('div', 'pop');
-  const running = snap.status === 'working' || snap.status === 'needs_input';
   el.innerHTML = `<h3>Time budget</h3>
     <div class="row">${[10, 15, 30, 45, 60, 90].map((m) => `<button class="btn small" data-m="${m}">${m}m</button>`).join('')}</div>
     <div class="row" style="margin-top:8px"><input type="number" min="1" max="600" placeholder="min" aria-label="Minutes"><button class="btn small" data-custom>Set</button>
     ${snap.timer ? '<div class="grow"></div><button class="btn small" data-clear>Clear</button>' : ''}</div>
-    <p class="hint">${running ? 'Starts now.' : 'Starts with your next prompt.'} Claude wraps up near the end.</p>`;
+`;
   openPop(el, anchorEl);
   el.querySelectorAll('[data-m]').forEach((b) => { b.onclick = () => { hangar.setTimer(id, Number(b.dataset.m)); closePop(); }; });
   const input = $('input', el);
@@ -909,22 +923,50 @@ function openFresh(id, anchorEl) {
   $('[data-go]', el).focus();
 }
 
+/** The one notice style: text, optional buttons, a ×. It stays until acted on or closed
+ *  (nothing closes by itself). actions: [label, fn, primary?]. */
+function makeNotice(html, actions, done) {
+  const el = h('div', 'toast', `<span>${html}</span>`);
+  el.setAttribute('role', 'status');
+  for (const [label, fn, primary] of actions) {
+    const b = h('button', `btn small${primary ? ' primary' : ''}`, esc(label));
+    b.onclick = () => { if (fn() !== false) { el.remove(); done(); } };
+    el.appendChild(b);
+  }
+  const x = h('button', 'hbtn tx-x', '<svg viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>');
+  x.setAttribute('aria-label', 'Dismiss');
+  x.title = 'Dismiss';
+  x.onclick = () => { el.remove(); done(); };
+  el.appendChild(x);
+  return el;
+}
+
+/** A notice about one tile, inside it just below its header, so it never covers the header's controls. */
 function tileNotice(id, html, actions = []) {
   const t = tiles.get(id);
   if (!t) return;
-  t.el.querySelector('.toast')?.remove();
-  const el = h('div', 'toast', `<span>${html}</span>`);
-  for (const [label, fn] of actions) {
-    const b = h('button', 'btn small', esc(label));
-    b.onclick = () => { fn(); el.remove(); focusInput(id); };
-    el.appendChild(b);
-  }
-  // Stays until dismissed (nothing closes by itself).
-  const x = h('button', 'hbtn tx-x', '<svg viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>');
-  x.setAttribute('aria-label', 'Dismiss');
-  x.onclick = () => { el.remove(); focusInput(id); };
-  el.appendChild(x);
-  t.el.appendChild(el);
+  t.el.querySelector(':scope > .toast')?.remove();
+  t.el.appendChild(makeNotice(html, actions, () => focusInput(id)));
+}
+
+/** A notice about the window (a workspace, a closed session, an update): in the top bar, never over a tile.
+ *  One per key; a newer one with the same key replaces it. Returns the element. */
+function windowNotice(html, actions = [], key = 'any') {
+  let box = $('#notices');
+  if (!box) { box = h('div', 'notices'); box.id = 'notices'; $('#bar').insertBefore(box, $('#usage')); }
+  box.querySelector(`[data-key="${key}"]`)?.remove();
+  const el = makeNotice(html, actions, () => {});
+  el.dataset.key = key;
+  box.appendChild(el);
+  while (box.children.length > 2) box.firstChild.remove();
+  return el;
+}
+
+/** Close a session or terminal, with Undo (the same as put away). */
+function closeNow(id) {
+  const snap = (state.allTiles || state.tiles).find((t) => t.id === id);
+  hangar.close(id);
+  if (snap) windowNotice(`${esc(snap.name)} closed`, [['Undo', () => hangar.reopen()]], 'closed');
 }
 
 // ---------- rename and colour ----------
@@ -1002,8 +1044,8 @@ function askTile(id, text, okLabel, onYes) {
 function closeTile(id) {
   const snap = state.tiles.find((t) => t.id === id);
   if (!snap) return;
-  if (snap.kind !== 'shell' && (snap.status === 'working' || snap.status === 'needs_input')) askTile(id, `${snap.name} is still working. Close it?`, 'Close', () => hangar.close(id));
-  else hangar.close(id);
+  if (snap.kind !== 'shell' && (snap.status === 'working' || snap.status === 'needs_input')) askTile(id, `${snap.name} is still working. Close it?`, 'Close', () => closeNow(id));
+  else closeNow(id);
 }
 
 function flash(el, text) {
@@ -1027,16 +1069,16 @@ function openUsage(anchorEl) {
       return `<div class="lim${p >= 90 ? ' hot' : p >= 70 ? ' warn' : ''}"><div class="lt"><span>${label}</span><b>${p}%</b></div>
         <div class="lbar"><i style="width:${p}%"></i></div><div class="lr">${reset}</div></div>`;
     }).join('');
+    // Only sessions with numbers; the block stays away until one has some.
     const rows = state.tiles.filter((t) => t.kind !== 'shell').map((t) => {
       const out = t.tokens.output + t.tokens.agentOutput;
       return { t, out, cost: t.tokens.costUSD || 0 };
-    }).sort((a, b) => b.cost - a.cost || b.out - a.out);
+    }).filter((r) => r.out || r.cost).sort((a, b) => b.cost - a.cost || b.out - a.out);
     const total = rows.reduce((a, r) => a + r.cost, 0);
     const table = rows.length ? `<h3 class="sub">Open sessions</h3><div class="ut">${rows.map(({ t, out, cost }) =>
-      `<div class="ur"><span class="mdot" style="--c:${t.color || 'var(--line)'}"></span><span class="un">${esc(t.name)}</span><span class="uo">${out ? `${k(out)} out` : ''}</span><span class="uc">${cost ? `$${cost.toFixed(2)}` : ''}</span></div>`).join('')}
-      ${total ? `<div class="ur total"><span></span><span class="un">Total</span><span></span><span class="uc">$${total.toFixed(2)}</span></div>` : ''}</div>
-      <p class="hint">Cost is what these sessions would cost at API prices.</p>` : '';
-    el.innerHTML = `<h3>Usage</h3>${limits || '<p class="hint">Plan limits show up after the first reply in any session.</p>'}${table}`;
+      `<div class="ur"><span class="mdot" style="--c:${t.color || 'var(--line)'}"></span><span class="un">${esc(t.name)}</span><span class="uo">${out ? `${k(out)} out` : ''}</span><span class="uc" title="Estimate at API prices">${cost ? `≈${cost.toFixed(2)}` : ''}</span></div>`).join('')}
+      ${total ? `<div class="ur total"><span></span><span class="un">Total</span><span></span><span class="uc" title="Estimate at API prices">≈${total.toFixed(2)}</span></div>` : ''}</div>` : '';
+    el.innerHTML = `<h3>Usage</h3>${limits}${table}`;
     window.HangarExtras?.usageSection(el);
   };
   draw();
@@ -1048,14 +1090,30 @@ $('#usage').onclick = (e) => openUsage(e.currentTarget);
 
 // ---------- new session ----------
 
+/** Folder label: its name, or parent/name when two recent folders share a name. */
+function folderLabels(dirs) {
+  const count = new Map();
+  for (const d of dirs) count.set(folderName(d).toLowerCase(), (count.get(folderName(d).toLowerCase()) || 0) + 1);
+  return dirs.map((d) => {
+    if (count.get(folderName(d).toLowerCase()) < 2) return folderName(d);
+    const parts = d.split(/[\\/]/).filter(Boolean);
+    return parts.slice(-2).join('/');
+  });
+}
+
 async function renderRecent(container, limit, onPick, opts = {}) {
-  const list = (await hangar.recent()).slice(0, limit);
+  const all = await hangar.recent();
+  const labels = folderLabels(all);
+  const q = (opts.filter?.() || '').trim().toLowerCase();
+  const list = all.filter((d, i) => !q || labels[i].toLowerCase().includes(q) || d.toLowerCase().includes(q)).slice(0, limit);
   container.innerHTML = '';
+  if (opts.listbox) { container.setAttribute('role', 'listbox'); container.setAttribute('aria-label', 'Folders'); }
   for (const dir of list) {
-    const row = h('div', 'recent-item', `<span class="rn">${esc(folderName(dir))}</span><span class="rp">${esc(shortPath(dir))}</span>` +
-      (opts.terminal?.() ? '' : '<button class="rc rh" title="History">History</button><button class="rc" title="Continue the last conversation in this folder">Continue</button>'));
+    const row = h('div', 'recent-item', `<span class="rn">${esc(labels[all.indexOf(dir)])}</span><span class="rp">${esc(shortPath(dir))}</span>` +
+      (opts.terminal?.() ? '' : '<button class="rc rh" title="History" tabindex="-1">History</button><button class="rc" title="Continue the last conversation in this folder" tabindex="-1">Continue</button>'));
     row.dataset.dir = dir;
     row.tabIndex = -1;
+    if (opts.listbox) { row.setAttribute('role', 'option'); row.setAttribute('aria-selected', 'false'); row.id = `np-opt-${container.children.length}`; }
     row.onclick = (e) => {
       if (e.target.closest('.rh')) { onPick?.(); window.HangarExtras?.openHistory(dir); return; }
       const how = opts.terminal?.() ? 'shell' : e.target.closest('.rc') ? 'continue' : 'new';
@@ -1078,8 +1136,9 @@ let lastNewMode = null;
 async function openNew() {
   const el = h('div', 'pop modal new-pop');
   el.innerHTML = `<div class="np-head"><h3>New</h3>
-      <div class="seg" role="tablist"><button role="tab" data-kind="claude">Claude Code</button><button role="tab" data-kind="shell">${ICON.term}Terminal</button></div></div>
-    <div class="recent-list"></div>
+      <div class="seg" role="tablist"><button role="tab" data-kind="claude">${ICON.spark}Claude Code</button><button role="tab" data-kind="shell">${ICON.term}Terminal</button></div></div>
+    <input class="field np-filter" type="text" placeholder="Filter" aria-label="Filter folders" spellcheck="false" role="combobox" aria-controls="np-list" aria-expanded="true">
+    <div class="recent-list" id="np-list"></div>
     <div class="foot"><button class="btn small np-mode" data-mode></button><div class="grow"></div>
       <button class="btn" data-pick>Choose folder…</button><button class="btn primary" data-home>${ICON.term}Open terminal</button></div>`;
   let kind = lastNewKind;
@@ -1089,7 +1148,12 @@ async function openNew() {
   let sel = 0;
   const list = $('.recent-list', el);
   const modeBtn = $('[data-mode]', el);
-  const highlight = () => [...list.children].forEach((c, i) => c.classList.toggle('sel', i === sel));
+  const filter = $('.np-filter', el);
+  const highlight = () => {
+    [...list.children].forEach((c, i) => { c.classList.toggle('sel', i === sel); c.setAttribute('aria-selected', String(i === sel)); });
+    const cur = list.children[sel];
+    if (cur) { filter.setAttribute('aria-activedescendant', cur.id); cur.scrollIntoView({ block: 'nearest' }); } else filter.removeAttribute('aria-activedescendant');
+  };
   const drawMode = () => {
     const m = modeById(mode);
     modeBtn.innerHTML = m ? `<span class="mdot" style="--c:${m.color}"></span>${esc(m.name)} mode` : 'No mode';
@@ -1116,11 +1180,13 @@ async function openNew() {
     modeBtn.hidden = kind === 'shell';
     $('[data-home]', el).hidden = kind !== 'shell';
     drawMode();
-    await renderRecent(list, 8, () => closePop && closePop(), { terminal: () => kind === 'shell', mode: pickedMode });
+    await renderRecent(list, 8, () => closePop && closePop(), { terminal: () => kind === 'shell', mode: pickedMode, filter: () => filter.value, listbox: true });
     sel = Math.min(sel, Math.max(0, list.children.length - 1));
     highlight();
   };
-  el.querySelectorAll('[data-kind]').forEach((b) => { b.onclick = () => { kind = b.dataset.kind; lastNewKind = kind; draw(); }; });
+  // Remembered only for this run of the app, and only when picked here (New terminal doesn't count).
+  el.querySelectorAll('[data-kind]').forEach((b) => { b.onclick = () => { kind = b.dataset.kind; lastNewKind = kind; draw(); filter.focus(); }; });
+  filter.oninput = () => { sel = 0; draw(); };
   openPop(el, null, {
     onKey: (e) => {
       if (el.querySelector('.inline-menu')) return;
@@ -1136,6 +1202,7 @@ async function openNew() {
     },
   });
   await draw();
+  filter.focus();
   window.HangarExtras?.newPopover(el, list, () => kind);
   $('[data-pick]', el).onclick = async () => {
     const dir = await hangar.pickFolder();
@@ -1157,18 +1224,14 @@ function openSettings(anchorEl) {
     <label class="opt">Session needs you<input type="checkbox" data-k="needsInput" ${s.notify.needsInput ? 'checked' : ''}></label>
     <label class="opt">Session finished a task<input type="checkbox" data-k="done" ${s.notify.done ? 'checked' : ''}></label>
     <label class="opt">Sound<input type="checkbox" data-k="sound" ${s.notify.sound ? 'checked' : ''}></label>
-    <label class="opt">Context fuller than (%)<input type="number" min="0" max="100" data-n="contextPct" value="${s.notify.contextPct || 0}"></label>
-    <label class="opt">Plan usage above (%)<input type="number" min="0" max="100" data-n="usagePct" value="${s.notify.usagePct || 0}"></label>
-    <p class="hint">0 turns a warning off.</p>
+    <label class="opt">Context fuller than (%)<input type="number" min="0" max="100" data-n="contextPct" value="${s.notify.contextPct || ''}" placeholder="Off"></label>
+    <label class="opt">Plan usage above (%)<input type="number" min="0" max="100" data-n="usagePct" value="${s.notify.usagePct || ''}" placeholder="Off"></label>
     <div class="sep"></div><h3>Sessions</h3>
     <label class="opt">Permissions<select data-perm>${PERMISSION_LABELS.map(([v, l]) => `<option value="${v}" ${(s.permissionMode || 'default') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-    <p class="hint">For sessions started or resumed after the change. Shift+Tab in a tile changes it there.</p>
     <label class="opt">New sessions open in clean view<input type="checkbox" data-s="cleanDefault" ${s.cleanDefault ? 'checked' : ''}></label>
     <label class="opt">Polished terminal<input type="checkbox" data-s="polishTerm" ${s.polishTerm !== false ? 'checked' : ''}></label>
-    <button class="btn small wide" data-modes>Edit modes</button>
     <div class="sep"></div><h3>Overseer</h3>
-    <label class="opt">Model<select data-model>${['haiku', 'sonnet', 'opus'].map((m) => `<option ${s.overseerModel === m ? 'selected' : ''}>${m}</option>`).join('')}</select></label>
-    <p class="hint">Applies on New chat.</p>`;
+    <label class="opt">Model<select data-model>${['haiku', 'sonnet', 'opus'].map((m) => `<option ${s.overseerModel === m ? 'selected' : ''}>${m}</option>`).join('')}</select></label>`;
   window.HangarLook?.settingsRows(el);
   openPop(el, anchorEl);
   el.querySelectorAll('[data-k]').forEach((c) => { c.onchange = () => hangar.setSettings({ notify: { [c.dataset.k]: c.checked } }); });
@@ -1176,7 +1239,6 @@ function openSettings(anchorEl) {
   el.querySelectorAll('[data-n]').forEach((c) => { c.onchange = () => hangar.setSettings({ notify: { [c.dataset.n]: Number(c.value) || 0 } }); });
   $('[data-model]', el).onchange = (e) => hangar.setSettings({ overseerModel: e.target.value });
   $('[data-perm]', el).onchange = (e) => hangar.setSettings({ permissionMode: e.target.value });
-  $('[data-modes]', el).onclick = () => { closePop(); openModes(); };
 }
 
 $('#btn-new').onclick = openNew;

@@ -3,7 +3,7 @@
 // Loaded after app.js and uses its helpers ($, h, esc, state, tiles, setFocus,
 // openPop, menuItems...). The two pure helpers at the top are unit tested.
 /* global $, h, esc, ICON, SWATCHES, hangar, isMac, state:writable, tiles, focused:writable, anchor:writable, layoutKey:writable,
-   setFocus, focusInput, openPop, closePop, arrowNav, swatchRow, visibleModes, modeById, render, dragDepth:writable, HangarCommands */
+   setFocus, focusInput, openPop, closePop, arrowNav, swatchRow, visibleModes, modeById, render, dragDepth:writable, HangarCommands, windowNotice */
 (function (root) {
   'use strict';
 
@@ -315,18 +315,9 @@
   }
   function reopen(id) { hangar.wsReopen(id); }
 
-  /** One notice for the whole window. It stays until Undo or ×. */
+  /** The app's one window notice (app.js), in the top bar. It stays until Undo or ×. */
   function notice(html, undo) {
-    document.querySelector('.ws-toast')?.remove();
-    const el = h('div', 'toast ws-toast', `<span>${html}</span>`);
-    el.setAttribute('role', 'status');
-    const u = h('button', 'btn small', 'Undo');
-    u.onclick = () => { undo(); el.remove(); };
-    const x = h('button', 'btn icon small', '<svg viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>');
-    x.setAttribute('aria-label', 'Dismiss');
-    x.onclick = () => el.remove();
-    el.append(u, x);
-    document.body.appendChild(el);
+    windowNotice(html, [['Undo', undo]], 'ws');
   }
 
   // ---------- commands (palette and native menu) ----------

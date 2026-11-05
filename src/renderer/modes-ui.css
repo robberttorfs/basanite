@@ -16,7 +16,8 @@
 .mode-chip .mc-addons:first-child { margin-left: 0; }
 
 /* Picker */
-.mm2 { width: 320px; }
+.mm2 { width: 320px; display: flex; flex-direction: column; }
+.mm2 > .mm-desc { margin-top: auto; }
 .mm2 .item { gap: 8px; align-items: center; }
 .mm2 .item .mn { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mm2 .item .ck { width: 14px; display: inline-flex; color: var(--accent); }

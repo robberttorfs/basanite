@@ -28,7 +28,7 @@
 
   /** Counts for the top bar: snoozed sessions do not glow, so they do not count as needing you. */
   function counts(tiles) {
-    const c = { needs_input: 0, working: 0, done: 0, idle: 0 };
+    const c = { needs_input: 0, error: 0, working: 0, done: 0, idle: 0 };
     for (const t of tiles) {
       if (t.kind === 'shell') continue;
       if (t.status === 'needs_input') { if (!t.snoozed) c.needs_input++; } else if (t.status in c) c[t.status]++;
