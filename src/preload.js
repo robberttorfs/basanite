@@ -90,7 +90,6 @@ contextBridge.exposeInMainWorld('hangar', {
   onModeEnded: on('tile:mode-ended'),
   onNotice: on('tile:notice'),
   onFocus: on('tile:focus'),
-  onFocusIndex: on('tile:focus-index'),
   onScreenRequest: on('screen:request'),
   onOverseerData: on('overseer:data'),
   onOverseerClear: on('overseer:clear'),

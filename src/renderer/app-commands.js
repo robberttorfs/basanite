@@ -1,6 +1,6 @@
 /* global HangarCommands, HangarPalette, hangar, state, tiles, focused, isMac, ICON, STATUS_LABEL, folderName, esc, h, $,
-   openNew, start, openFresh, openRename, openTimer, openModePicker, openModes, openUsage, openSettings, toggleOverseer,
-   toggleZoom, closeTile, resetSizes, nextWaiting, setFocus, setView, setOvView, ov, ovChatOn, modeById, visibleModes, openPop, closePop */
+   openNew, start, openFresh, openRename, openTimer, openModePicker, openUsage, openSettings, toggleOverseer,
+   toggleZoom, closeTile, resetSizes, nextWaiting, setFocus, setView, setOvView, ov, ovChatOn, modeById, openPop, closePop */
 // Hangar's own commands. The native menu, the command palette, the shortcut sheet and
 // the tile menus all read this one list (see commands.js for the fields).
 'use strict';
@@ -89,18 +89,7 @@
     })),
   ]);
 
-  // One entry per mode, in the Modes menu and the palette.
-  C.provide('modes', () => [...visibleModes().map((m) => ({
-    id: `mode.set:${m.id}`, label: m.name, group: 'Modes', aliases: ['mode', `mode ${m.name}`], color: m.color, isMode: true,
-    menu: { menu: 'Modes', section: 'list' }, when: claude,
-    run: (cx) => hangar.setMode(cx.id, m.id),
-    // ⌘↩ puts every Claude session in this mode.
-    secondary: () => { for (const t of state.tiles) if (t.kind !== 'shell') hangar.setMode(t.id, m.id); },
-  })),
-  { id: 'mode.none', label: 'No mode', group: 'Modes', menu: { menu: 'Modes', section: 'list' },
-    when: claude, run: (cx) => hangar.setMode(cx.id, null) },
-  { id: 'mode.edit', label: 'Edit modes…', group: 'Modes', menu: { menu: 'Modes', section: 'edit' }, run: () => openModes() },
-  ]);
+  // The 'modes' provider (one entry per mode) lives in modes-ui.js.
 
   // Sessions: one row each. ↩ focuses, ⌘↩ zooms, ⇥ lists its actions.
   const SHAPE = { idle: '○', starting: '○', working: '●', needs_input: '◆', done: '✓', error: '✕', exited: '–' };

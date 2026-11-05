@@ -258,7 +258,7 @@ class Session {
       case 'PreToolUse': {
         // A guard mode stops the tool for real. Nothing is returned otherwise, so no tokens.
         const reason = guards.check(this.guard(), modes.get(this.mode)?.name, hook.tool_name, hook.tool_input || {});
-        if (reason) { this.onChange({ type: 'guard', tool: hook.tool_name }); return guards.denyBody(reason); }
+        if (reason) return guards.denyBody(reason);
         if (ASKS_USER.has(hook.tool_name)) {
           this.waitingOn = source;
           this.setStatus('needs_input');

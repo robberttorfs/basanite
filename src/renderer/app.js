@@ -1335,7 +1335,6 @@ hangar.onClear(({ id }) => tiles.get(id)?.term.reset());
 hangar.onModeEnded(({ id, mode }) => tileNotice(id, `${esc(mode.name)} mode ended`, [['Undo', () => hangar.setMode(id, mode.id)]]));
 hangar.onNotice(({ id, text }) => tileNotice(id, esc(text)));
 hangar.onFocus(({ id }) => setFocus(id));
-hangar.onFocusIndex((i) => { const t = state.tiles[i]; if (t) setFocus(t.id); });
 hangar.onScreenRequest(({ req, id, lines }) => {
   const t = tiles.get(id);
   hangar.screenReply(req, t ? screenText(t.term, lines) : null);
@@ -1414,6 +1413,7 @@ setInterval(() => {
       hangar.dialog(id, open);
     }
   }
+  for (const id of dialogShown.keys()) if (!tiles.has(id)) dialogShown.delete(id); // closed tiles
 }, 1500);
 
 hangar.init().then((s) => {
