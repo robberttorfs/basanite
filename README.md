@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  Free and open source (MIT) · Mac and Windows · No telemetry · No extra tokens
+  Free and open source, for Mac and Windows. No telemetry, and no extra tokens.
 </p>
 
 > **Hangar OSS is a placeholder name.** The final name comes before the first public release.
