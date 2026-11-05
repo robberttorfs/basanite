@@ -1,0 +1,34 @@
+/* The ☰ menu (Windows and Linux): the app's own popover, see app-menu.js */
+.pop.app-menu { width: 296px; max-width: calc(100vw - 16px); padding: 0 6px 6px; }
+.am-search { display: flex; align-items: center; gap: 8px; height: 38px; margin: 0 -6px 6px; padding: 0 14px; border-bottom: 1px solid var(--line); color: var(--faint); }
+.am-search input { flex: 1; min-width: 0; height: 100%; border: 0; outline: none; background: transparent; color: var(--text); font: 13px var(--font); user-select: text; }
+.am-search input::placeholder { color: var(--faint); }
+.am-body { max-height: calc(100vh - 120px); overflow-y: auto; }
+.pop .am-row { gap: 10px; min-height: 30px; padding: 4px 8px; white-space: nowrap; }
+.pop .am-row:disabled { color: var(--faint); opacity: .55; cursor: default; }
+.pop .am-row:disabled:hover { background: transparent; }
+.am-ic { display: inline-flex; width: 16px; justify-content: center; color: var(--muted); flex: none; }
+.am-row:hover .am-ic, .am-row:focus .am-ic { color: var(--text); }
+.am-ic.am-ck { color: var(--accent); }
+.am-ic .mdot { margin: 0; }
+.am-l { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.am-ctx { margin-left: auto; color: var(--faint); font-size: 11.5px; flex: none; }
+.am-ctx + kbd { margin-left: 8px; }
+.am-row kbd { margin-left: auto; flex: none; color: var(--muted); }
+.am-row .chev { margin-left: auto; color: var(--faint); }
+.am-row.has-sub[aria-expanded="true"] { background: var(--hover); }
+/* Help and About: quiet, at the bottom */
+.am-foot { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+.am-foot .am-row { min-height: 28px; color: var(--muted); font-size: 12.5px; }
+.am-foot .am-row:hover, .am-foot .am-row:focus { color: var(--text); }
+.app-menu.filtering .am-foot { display: none; }
+.am-h { padding: 6px 8px 2px; font-size: 11.5px; font-weight: 500; color: var(--faint); }
+.am-h:first-child { padding-top: 2px; }
+.am-none { padding: 10px 8px; color: var(--faint); text-align: center; }
+.am-sub { width: 270px; min-width: 0; max-width: none; overflow-y: auto; padding: 6px; }
+.am-sub.am-cols { width: 560px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 6px; align-items: start; }
+.am-col { min-width: 0; }
+@media (max-width: 900px) { .am-sub.am-cols { width: 290px; grid-template-columns: 1fr; } }
+.am-sub .sep + .am-h { padding-top: 2px; }
+#btn-menu[aria-expanded="true"] { background: var(--panel); border-color: #333844; }
+@media (prefers-color-scheme: light) { #btn-menu[aria-expanded="true"] { border-color: #c6ccd6; } }

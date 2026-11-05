@@ -19,7 +19,12 @@ if (!isMac) {
   const mb = $('#btn-menu');
   mb.hidden = false;
   mb.onmousedown = (e) => e.preventDefault();
-  mb.onclick = (e) => { const r = e.currentTarget.getBoundingClientRect(); hangar.openMenu(r.left, r.bottom + 4); };
+  // The app's own menu (app-menu.js); the native one only if that file is missing.
+  mb.setAttribute('aria-haspopup', 'menu');
+  mb.onclick = (e) => {
+    if (window.HangarAppMenu) { HangarAppMenu.open(mb); mb.setAttribute('aria-expanded', String(HangarAppMenu.isOpen())); return; }
+    const r = e.currentTarget.getBoundingClientRect(); hangar.openMenu(r.left, r.bottom + 4);
+  };
   window.addEventListener('keyup', (e) => {
     if (e.key === 'Alt' && !e.ctrlKey && !e.shiftKey && !e.metaKey && altAlone) mb.click();
   });
@@ -133,6 +138,9 @@ function makeTerm(container, onInput, onResize, bg) {
     gl.onContextLoss(() => gl.dispose());
     term.loadAddon(gl);
   } catch { /* falls back to the DOM renderer */ }
+  // A repaint's cursor hide split across two pieces of output must not show as a flicker.
+  const steady = window.HangarCursor ? HangarCursor.steady(term.write.bind(term)) : null;
+  if (steady) term.write = steady.write;
 
   term.attachCustomKeyEventHandler((e) => {
     if (e.type !== 'keydown') return true;
@@ -187,7 +195,7 @@ function makeTerm(container, onInput, onResize, bg) {
   ro.observe(container);
   // fitSoon: for callers that just moved the box. ResizeObserver does not fire
   // while the window is hidden behind others; a timer still does.
-  return { term, bg, fit: doFit, fitSoon: schedule, dispose: () => { clearTimeout(pending); ro.disconnect(); term.dispose(); } };
+  return { term, bg, fit: doFit, fitSoon: schedule, dispose: () => { clearTimeout(pending); ro.disconnect(); steady?.dispose(); term.dispose(); } };
 }
 
 function screenText(term, lines) {

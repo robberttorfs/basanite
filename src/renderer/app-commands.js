@@ -50,11 +50,11 @@
     // (one entry per mode, then No mode and Edit modes, come from the provider below)
 
     // App and view
-    { id: 'app.palette', label: 'Command palette', group: 'App', palette: false,
+    { id: 'app.palette', label: 'Command palette', group: 'App', icon: 'search', palette: false,
       shortcut: { mac: 'Cmd+K', win: 'Ctrl+Shift+K' }, menu: { menu: 'View', section: 'palette' }, run: () => HangarPalette.open() },
-    { id: 'app.overseer', label: 'Overseer', group: 'App', icon: 'chat', aliases: ['ask'],
+    { id: 'app.overseer', label: 'Overseer', group: 'App', icon: 'eye', aliases: ['ask'],
       shortcut: 'CmdOrCtrl+Shift+O', menu: { menu: 'View', section: 'panels' }, run: () => toggleOverseer() },
-    { id: 'view.clean', label: 'Clean view', group: 'App', aliases: ['chat', 'terminal'],
+    { id: 'view.clean', label: 'Clean view', group: 'App', icon: 'chat', aliases: ['chat', 'terminal'],
       shortcut: 'CmdOrCtrl+Shift+L', menu: { menu: 'View', section: 'panels' },
       run: () => {
         if (document.body.classList.contains('ov-open') && $('#overseer').contains(document.activeElement)) { if (ov) setOvView(!ovChatOn); }
@@ -74,9 +74,9 @@
       menu: { menu: 'View', section: 'ui' }, run: () => hangar.zoom(-1) },
     { id: 'view.ui-actual', label: 'Actual size', group: 'App', aliases: ['zoom reset'],
       shortcut: 'CmdOrCtrl+0', menu: { menu: 'View', section: 'ui' }, run: () => hangar.zoom(0) },
-    { id: 'app.settings', label: 'Settings…', group: 'App', aliases: ['preferences', 'options'],
+    { id: 'app.settings', label: 'Settings…', group: 'App', icon: 'sliders', aliases: ['preferences', 'options'],
       shortcut: { mac: 'Cmd+,', win: null }, menu: { menu: 'App' }, run: () => openSettings($('#btn-settings')) },
-    { id: 'app.shortcuts', label: 'Keyboard shortcuts', group: 'App', aliases: ['keys', 'help', '?'],
+    { id: 'app.shortcuts', label: 'Keyboard shortcuts', group: 'App', icon: 'keyboard', aliases: ['keys', 'help', '?'],
       menu: { menu: 'Help' }, run: () => HangarPalette.openShortcuts() },
 
     // Window

@@ -1063,6 +1063,17 @@ function wireIpc() {
     const z = settings.uiZoom || 1;
     Menu.getApplicationMenu()?.popup({ window: win, x: Math.round((x || 0) * z), y: Math.round((y || 0) * z) });
   });
+  // The in-app ☰ menu (Windows, Linux): the few items the native template adds itself.
+  ipcMain.on('menu:role', (_e, name) => {
+    if (!win || win.isDestroyed()) return;
+    if (name === 'fullscreen') win.setFullScreen(!win.isFullScreen());
+    else if (name === 'minimize') win.minimize();
+    else if (name === 'maximize') (win.isMaximized() ? win.unmaximize() : win.maximize());
+    else if (name === 'update') updater?.act();
+    else if (name === 'about') {
+      dialog.showMessageBox(win, { type: 'none', title: brand.name, message: brand.name, detail: `Version ${app.getVersion()}`, buttons: ['OK'], noLink: true });
+    }
+  });
   ipcMain.on('settings:set', (_e, patch) => {
     settings = { ...settings, ...patch, notify: { ...settings.notify, ...(patch.notify || {}) } };
     saveJSON(paths.settingsFile(), settings);

@@ -273,7 +273,7 @@
   const C = window.HangarCommands;
   if (C) {
     C.register([
-      { id: 'view.overview', label: 'Overview', group: 'App', aliases: ['attention', 'inbox', 'all sessions'], shortcut: 'CmdOrCtrl+Shift+A',
+      { id: 'view.overview', label: 'Overview', group: 'App', icon: 'grid', aliases: ['attention', 'inbox', 'all sessions'], shortcut: 'CmdOrCtrl+Shift+A',
         menu: { menu: 'View', section: 'overview' }, run: () => open() },
       { id: 'session.snooze', label: "Don't glow for 30 min", group: 'Actions', aliases: ['snooze'],
         when: (cx) => !!cx.snap && cx.snap.kind !== 'shell' && !cx.snap.snoozed, run: (cx) => hangar.snooze(cx.snap.id, 'time') },

@@ -78,6 +78,9 @@ contextBridge.exposeInMainWorld('hangar', {
   setSettings: (patch) => ipcRenderer.send('settings:set', patch),
   zoom: (dir) => ipcRenderer.send('ui:zoom', dir),
   openMenu: (x, y) => ipcRenderer.send('menu:popup', { x, y }),
+  // The in-app ☰ menu's window items: fullscreen, minimize, maximize, about, update.
+  menuRole: (name) => ipcRenderer.send('menu:role', name),
+  appName: require('./shared/brand').name,
   font: (dir) => ipcRenderer.send('ui:font', dir),
   setMenu: (spec) => ipcRenderer.send('menu:set', spec),
   look: () => ipcRenderer.invoke('look'),
