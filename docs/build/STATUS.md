@@ -1,0 +1,37 @@
+# Status: end of the 5 Nov 2026 build
+
+Everything in PLAN.md rounds 1 to 5 is built, reviewed (code and UX), and fixed. Round 6 is done except the steps that need the owner. The repo stays private, and nothing is deployed.
+
+## Built
+- **Foundations:**
+  - Windows quit crash fixed (ConPTY teardown) and auto-update (electron-updater).
+  - CI: tests on Linux and Windows, plus a release workflow for all four builds on `v*` tags.
+  - One command registry behind the menus, the palette (⌘K / Ctrl+Shift+K) and the shortcut sheet.
+  - Focus return, themes (system/light/dark), high contrast, reduced motion, status shapes, the header diet, compact density.
+- **Workspaces:** pills, switching, put away and reopen, moving sessions, cross-workspace attention, per-workspace notifications and default mode.
+- **Overview:** attention list, preview, number keys answer menus, seen state, snooze, notifications named after the session.
+- **Tiles:** doing line, git chip, changes peek, same-file notice, folder actions, cold-cache marker.
+- **Sessions:** history and search, branch a session (fork), own branch (worktree), Claude inside terminal tiles.
+- **Modes 2.0:**
+  - Add-ons, plus the new modes Until done (`/goal`), Test first, Debug and Spec first.
+  - Real guards: Review/Plan block edits; Careful blocks risky commands.
+  - Library with token-cost dots, per-folder default, mode files, and one-click Review/Simplify.
+- **Usage:** 14-day chart (≈ estimate) and per-project list.
+- **Launch material:** MIT licence, README, website (landing page and docs, local only, in site/).
+
+## Needs the owner
+1. **Name.** Rename in `src/shared/brand.js`, `package.json` (name, productName, build.appId, artifact names, repository) and `site/config.mjs`.
+2. **Public repo.** Make it public (or create the final repo). Then:
+   - set `brand.releases`;
+   - fix `package.json` `repository` (it still points at the private personal repo);
+   - add `macos-latest` back to `.github/workflows/test.yml`.
+3. **Signing.** Apple notarisation and Windows signing (optional; the README explains the unsigned steps).
+4. **Website deploy.** It is ready in site/ (`node site/build.mjs --serve 4377` to preview).
+5. **First release.** Tag `v0.4.0`; check the Windows installer file names and `latest-mac.yml`.
+
+## Known rough edges
+- Real OS key presses (⌘K, workspace keys, Folder flyout arrows) were never tested by automation; try them by hand.
+- Creating a worktree and real same-file overlap events were only unit-tested.
+- Clicking a new (untracked) file in the changes peek shows no content.
+- History doesn't find conversations for very long folder paths.
+- Snoozes don't survive a restart (on purpose).
