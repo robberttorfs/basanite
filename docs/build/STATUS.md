@@ -34,3 +34,11 @@ Everything in PLAN.md rounds 1 to 5 is built, reviewed (code and UX), and fixed.
 - Creating a worktree and real same-file overlap events were only unit-tested.
 - History doesn't find conversations for very long folder paths.
 - Snoozes don't survive a restart (on purpose).
+
+## Website v3 (night of 5-6 Nov)
+- One finished site in site/ ("Runway" palette: petrol black and amber, chosen from 6 researched schemes in site/directions/colours.html). v1 and v2 are in versions/.
+- Built in 3 chunks by one designer, then a fresh review (site/REVIEW-v3.md: 2 P1, 8 P2, 22 P3), all fixed except: the two P1s need the public repo (then run `node site/build.mjs && node site/check-links.mjs`).
+- Small leftovers:
+  - the palette screenshot shows slivers of the app at its right edge;
+  - the overview shot's sample prompt differs from the wall's;
+  - E:\demo (4 tiny demo repos used for screenshots) must be deleted by hand, because the tool's safety check blocks it.
