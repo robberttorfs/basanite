@@ -1149,6 +1149,7 @@ app.whenReady().then(async () => {
   installHelpers();
   wireIpc();
   ipcMain.on('update:action', () => updater?.act());
+  require('./shellops').register({ ipcMain, shell });
   data = dataIpc.register({ ipcMain, sessions, find, addSession, uniqueName, send, broadcast, defaultWs: () => workspaces.active });
   updater = updaterMod.init({ app, onChange: (st) => { buildMenu(); send('update:state', st); } });
   pruneImages();

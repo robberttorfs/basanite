@@ -56,7 +56,6 @@ body.compact .head { height: 26px; gap: 6px; padding: 0 4px 0 9px; font-size: 12
 body.compact .head .hbtn { height: 20px; min-width: 20px; padding: 0 4px; }
 body.compact .mode-chip { height: 18px; padding: 0 7px; font-size: 11px; }
 body.compact .fresh-hint { height: 18px; }
-body.compact .head .path { visibility: hidden; }  /* stays the spacer that keeps ⋯ last */
 body.compact .overlay { top: 26px; }
 body.compact .agents { padding: 4px 8px; }
 body.compact .term { padding: 4px 2px 2px 6px; }
@@ -141,3 +140,53 @@ body.hc .pop, body.hc .toast, body.hc .tile.zoomed { box-shadow: none; }
 }
 body.calm *, body.calm *::before, body.calm *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 .pop select[data-look] { width: auto; }
+
+/* ---------- tile extras (extras.js) ---------- */
+/* The doing line is the header's spacer: it fills the gap, so nothing else moves. */
+.head .doing { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--faint); font-size: 12px; }
+.head .tx { display: inline-flex; align-items: center; gap: 4px; flex: none; }
+.txm { display: inline-flex; color: var(--faint); }
+.gitchip { display: inline-flex; align-items: center; gap: 5px; height: 22px; max-width: 150px; padding: 0 7px; border-radius: 11px; border: 0; background: none; color: var(--faint); font-size: 11.5px; cursor: pointer; }
+.gitchip .gb { overflow: hidden; text-overflow: ellipsis; }
+.gitchip .gd { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); flex: none; }
+.gitchip:not(.dirty) { opacity: 0; transition: opacity .12s; }
+.tile:hover .gitchip, .gitchip:focus-visible { opacity: 1; }
+.gitchip:hover { background: var(--hover); color: var(--text); }
+body.compact .gitchip { height: 18px; }
+.toast .tx-x { height: 22px; min-width: 22px; padding: 0 4px; }
+
+.changes-pop { width: 780px; max-height: 78vh; display: flex; flex-direction: column; padding: 12px 12px 8px; }
+.ch-head { display: flex; align-items: center; gap: 8px; margin: 0 4px 8px; color: var(--muted); }
+.ch-head b { color: var(--text); font-weight: 600; }
+.faint { color: var(--faint); }
+.ch-files { max-height: 168px; overflow: auto; padding-bottom: 6px; border-bottom: 1px solid var(--line); flex: none; }
+.cf { display: flex; align-items: center; gap: 10px; width: 100%; height: 26px; padding: 0 6px; border: 0; border-radius: 6px; background: none; cursor: pointer; text-align: left; font-size: 12.5px; }
+.cf:hover, .cf:focus-visible { background: var(--hover); outline: none; }
+.cs { width: 18px; flex: none; color: var(--muted); font: 600 11px "SF Mono", Menlo, Consolas, monospace; }
+.cp { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cn { flex: none; font: 11px "SF Mono", Menlo, Consolas, monospace; }
+.changes-pop .add { color: var(--done); }
+.changes-pop .del { color: var(--error); }
+.changes-pop .hk { color: var(--faint); }
+.ch-diff { flex: 1; min-height: 0; overflow: auto; margin-top: 8px; }
+.cd summary { padding: 4px 2px; cursor: pointer; font-size: 12.5px; }
+.cd pre { margin: 0 0 8px; padding: 8px 10px; overflow-x: auto; background: var(--bg); border: 1px solid var(--line-soft); border-radius: 8px; font: 12px/1.45 "SF Mono", Menlo, Consolas, monospace; user-select: text; }
+.cd pre span { display: block; white-space: pre; min-height: 1.45em; }
+
+.hist-pop { width: 620px; padding: 0; overflow: hidden; }
+.hist-pop .pal-list { max-height: 360px; }
+.hist-meta { color: var(--faint); font-size: 12px; white-space: pre; }
+.hint.pad { margin: 0; padding: 12px 14px; }
+.recent-item .rc + .rc { margin-left: -4px; }
+
+.own-branch { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; cursor: pointer; }
+.own-branch input[type="checkbox"] { accent-color: var(--accent); }
+.own-branch .wt-name { width: 150px; height: 26px; }
+
+.uh-read { margin-bottom: 6px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; white-space: pre; }
+.uh-chart { display: block; width: 100%; height: 64px; }
+.uh-chart .bar { fill: var(--accent); opacity: .8; }
+.uh-chart g.on .bar { opacity: 1; }
+.uh-chart .hit { fill: transparent; }
+.uh-chart .zero { fill: var(--line); }
+.uh-chart, .uh-chart * { stroke: none; }

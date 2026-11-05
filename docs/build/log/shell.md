@@ -26,3 +26,4 @@
 - Windows title-bar buttons follow the theme via setTitleBarOverlay; capturePage doesn't show them, so not seen in a shot.
 - High contrast and forced-colors CSS written but not seen (no HC mode toggled on this PC).
 - Light theme: Claude Code's own truecolor text is kept readable by xterm minimumContrastRatio 4.5; its "auto mode" yellow reads as dark gold.
+- 20:43 chunk 3: extras.js (doing, git chip + changes, overlap notice, cold marker, folder actions, history, fork, worktree, usage chart), shellops.js; path element removed; tileNotice no longer auto-closes

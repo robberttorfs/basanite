@@ -56,6 +56,10 @@ contextBridge.exposeInMainWorld('hangar', {
   createWorktree: (cwd, name) => ipcRenderer.invoke('tile:worktree', cwd, name),
   usageHistory: (days) => ipcRenderer.invoke('usage:history', days),
   onOverlap: on('tile:overlap'),
+  reveal: (dir) => ipcRenderer.invoke('folder:reveal', dir),
+  editorName: () => ipcRenderer.invoke('folder:editor'),
+  openEditor: (dir) => ipcRenderer.invoke('folder:open-editor', dir),
+  isGit: (dir) => ipcRenderer.invoke('folder:is-git', dir),
   onUpdate: on('update:state'),
   updateAction: () => ipcRenderer.send('update:action'),
 

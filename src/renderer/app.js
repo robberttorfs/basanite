@@ -210,7 +210,7 @@ function createTile(snap) {
       <span class="name"></span>
       <button class="mode-chip" aria-label="Mode"></button>
       <span class="state"></span>
-      <span class="path"></span>
+      <span class="doing"></span><span class="tx"></span>
       <span class="meta">
         <button class="fresh-hint" hidden>Fresh start</button>
         <span class="ctx"><span class="bar"><i></i></span><span class="cv"></span></span>
@@ -888,6 +888,7 @@ function openMore(id, anchorEl) {
     null,
     { label: 'Copy folder path', run: () => navigator.clipboard.writeText(snap.cwd) },
     ...(snap.sessionId && !shell ? [{ label: 'Copy session ID', run: () => navigator.clipboard.writeText(snap.sessionId) }] : []),
+    ...(window.HangarExtras?.moreItems(snap) || []),
     null,
     { label: shell ? 'Close terminal' : 'Close session', cls: 'danger', run: () => closeTile(id) },
   ]);
@@ -923,8 +924,12 @@ function tileNotice(id, html, actions = []) {
     b.onclick = () => { fn(); el.remove(); focusInput(id); };
     el.appendChild(b);
   }
+  // Stays until dismissed (nothing closes by itself).
+  const x = h('button', 'hbtn tx-x', '<svg viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>');
+  x.setAttribute('aria-label', 'Dismiss');
+  x.onclick = () => { el.remove(); focusInput(id); };
+  el.appendChild(x);
   t.el.appendChild(el);
-  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 200); }, 9000);
 }
 
 // ---------- rename and colour ----------
@@ -1160,7 +1165,7 @@ function flash(el, text) {
 
 function openUsage(anchorEl) {
   const el = h('div', 'pop usage-pop');
-  el.style.width = '340px';
+  el.style.width = '380px';
   const draw = () => {
     const rl = state.rateLimits;
     const limits = [['five_hour', '5-hour limit'], ['seven_day', 'Weekly limit']].map(([key, label]) => {
@@ -1181,6 +1186,7 @@ function openUsage(anchorEl) {
       ${total ? `<div class="ur total"><span></span><span class="un">Total</span><span></span><span class="uc">$${total.toFixed(2)}</span></div>` : ''}</div>
       <p class="hint">Cost is what these sessions would cost at API prices.</p>` : '';
     el.innerHTML = `<h3>Usage</h3>${limits || '<p class="hint">Plan limits show up after the first reply in any session.</p>'}${table}`;
+    window.HangarExtras?.usageSection(el);
   };
   draw();
   usageRefresh = draw;
@@ -1196,10 +1202,11 @@ async function renderRecent(container, limit, onPick, opts = {}) {
   container.innerHTML = '';
   for (const dir of list) {
     const row = h('div', 'recent-item', `<span class="rn">${esc(folderName(dir))}</span><span class="rp">${esc(shortPath(dir))}</span>` +
-      (opts.terminal?.() ? '' : '<button class="rc" title="Continue the last conversation in this folder">Continue</button>'));
+      (opts.terminal?.() ? '' : '<button class="rc rh" title="History">History</button><button class="rc" title="Continue the last conversation in this folder">Continue</button>'));
     row.dataset.dir = dir;
     row.tabIndex = -1;
     row.onclick = (e) => {
+      if (e.target.closest('.rh')) { onPick?.(); window.HangarExtras?.openHistory(dir); return; }
       const how = opts.terminal?.() ? 'shell' : e.target.closest('.rc') ? 'continue' : 'new';
       start(dir, how, opts.mode?.());
       onPick?.();
@@ -1210,6 +1217,7 @@ async function renderRecent(container, limit, onPick, opts = {}) {
 }
 
 async function start(dir, how = 'new', sessionMode = null) {
+  if (how === 'new' && dir && window.HangarExtras?.wantsWorktree(dir)) return HangarExtras.startWorktree(dir);
   const id = await hangar.create(dir, how, sessionMode);
   if (id) setTimeout(() => setFocus(id), 50);
 }
@@ -1275,6 +1283,7 @@ async function openNew() {
     },
   });
   await draw();
+  window.HangarExtras?.newPopover(el, list, () => kind);
   $('[data-pick]', el).onclick = async () => {
     const dir = await hangar.pickFolder();
     if (dir) { closePop?.(); start(dir, kind === 'shell' ? 'shell' : 'new', mode || 'none'); }
