@@ -3,3 +3,4 @@
 - 22:53 NOTE: a bash-mode test (!ping) made Claude Code answer once (a few Haiku tokens); not repeated. Spinner frames: ?25l..?25h every ~100 ms, each inside one chunk, still 0 hidden frames
 - 22:56 built src/renderer/cursor-steady.js (holds output while a repaint's ?25l is open, up to 40 ms) + wired in makeTerm; 7 unit tests, npm test 116/116
 - 22:58 found + fixed a real bug in verification (default setTimeout called on an object = Illegal invocation in Chromium). Dev check: 20 split repaints, hidden frames 70/274 raw vs 0/275 guarded; 6 shots while typing all show the cursor; shell tile cursor normal
+- 22:59 ported to personal Hangar (same terminal code), committed + pushed there; OSS 6801041 pushed. Left over: flicker NOT reproduced in the dev harness (unfocused window), so the cause is inferred; owner should confirm in real use
