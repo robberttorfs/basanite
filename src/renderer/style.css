@@ -147,8 +147,10 @@ body.resizing .term { pointer-events: none; }
 .tile.shell.st-exited .ticon { opacity: .5; }
 @keyframes pulse { 50% { opacity: .35; } }
 
-.name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; max-width: 32%; cursor: text; }
-.state { color: var(--muted); font-size: 12px; }
+/* The name never vanishes: it keeps about 7 characters, and the state, doing line and
+   markers shrink (with an ellipsis) before it does. */
+.name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; flex: 0 0 auto; max-width: max(32%, 7ch); cursor: text; }
+.state { color: var(--muted); font-size: 12px; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .st-needs_input .state { color: var(--needs); }
 .st-done .state { color: var(--done); }
 .st-error .state { color: var(--error); }
@@ -156,6 +158,7 @@ body.resizing .term { pointer-events: none; }
 .meta { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .tile.shell .meta, .tile.shell .timer { display: none; }
 .ctx { display: flex; align-items: center; gap: 6px; }
+.ctx.empty { display: none; }
 .ctx .bar { width: 36px; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
 .ctx .bar i { display: block; height: 100%; background: var(--muted); }
 .ctx.warn .bar i { background: var(--needs); }
@@ -171,8 +174,9 @@ body.resizing .term { pointer-events: none; }
 
 /* Mode chip: outlined until the next message carries it, filled once Claude has it */
 .mode-chip { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 11px; font-size: 11.5px; font-weight: 500; cursor: pointer; border: 1px dashed transparent; background: none; color: var(--faint); flex: none; }
-.mode-chip:not(.set) { opacity: 0; transition: opacity .15s; }
-.head:hover .mode-chip:not(.set), .mode-chip:focus-visible { opacity: 1; }
+/* An unset chip takes no room until hover or focus, so no gap opens after the name. */
+.mode-chip:not(.set) { opacity: 0; width: 0; padding: 0; overflow: hidden; border-width: 0; transition: opacity .12s; }
+.head:hover .mode-chip:not(.set), .mode-chip:focus-visible { opacity: 1; width: auto; padding: 0 9px; border-width: 1px; }
 .mode-chip:not(.set):hover { color: var(--text); border-color: var(--line); }
 .mode-chip.set { color: var(--mc); background: color-mix(in srgb, var(--mc) 14%, transparent); border: 1px solid color-mix(in srgb, var(--mc) 35%, transparent); }
 .mode-chip.set.pending { background: transparent; border-style: dashed; }

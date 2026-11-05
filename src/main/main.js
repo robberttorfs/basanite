@@ -14,6 +14,7 @@ const modesIpc = require('./modes-ipc');
 const { ChatFeed, findTranscript } = require('./chat');
 const { migrate: loadWorkspaces } = require('./workspaces');
 const attention = require('../shared/attention');
+const palette = require('../shared/palette');
 const lifecycle = require('./lifecycle');
 const updaterMod = require('./updater');
 const dataIpc = require('./data-ipc');
@@ -876,7 +877,7 @@ function wireIpc() {
   ipcMain.on('tile:fresh', (_e, id) => freshStart(find(id)));
   ipcMain.on('tile:color', (_e, { id, color }) => {
     const s = find(id);
-    if (s) { s.color = color || null; saveWorkspace(); broadcast(); }
+    if (s) { s.color = palette.migrate(color); saveWorkspace(); broadcast(); }
   });
   ipcMain.on('tile:lock', (_e, { id, lock }) => {
     const s = find(id);

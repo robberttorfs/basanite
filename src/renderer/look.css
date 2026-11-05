@@ -99,6 +99,9 @@ body.compact #stage { margin: 4px; }
   .field:focus { border-color: #9fb5de; }
   .me-item.sel, .seg button.on, .mchip.sel { background: #e7ebf2; }
   .mchip.sel { border-color: #c3ccdb; }
+  /* User colours are tuned for dark; on light they get a darker text tone so chips never look disabled. */
+  .mode-chip.set { color: color-mix(in srgb, var(--mc) 55%, #000); background: color-mix(in srgb, var(--mc) 18%, transparent); border-color: color-mix(in srgb, var(--mc) 60%, transparent); }
+  .mi, .mm-addons .mm-addon.on .mi, .mi-btn.sel { color: color-mix(in srgb, var(--c) 60%, #000); }
   .toast { border-color: #d3d8e0; box-shadow: 0 8px 24px rgba(20, 30, 50, .12); }
   .ask-bar { background: #f3f5f8; }
   .tile.zoomed { box-shadow: 0 16px 50px rgba(20, 30, 50, .2); }
@@ -144,7 +147,7 @@ body.calm *, body.calm *::before, body.calm *::after { animation: none !importan
 /* ---------- tile extras (extras.js) ---------- */
 /* The doing line is the header's spacer: it fills the gap, so nothing else moves. */
 .head .doing { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--faint); font-size: 12px; }
-.head .tx { display: inline-flex; align-items: center; gap: 4px; flex: none; }
+.head .tx { display: inline-flex; align-items: center; gap: 4px; flex: 0 1 auto; min-width: 0; overflow: hidden; }
 .txm { display: inline-flex; color: var(--faint); }
 .gitchip { display: inline-flex; align-items: center; gap: 5px; height: 22px; max-width: 150px; padding: 0 7px; border-radius: 11px; border: 0; background: none; color: var(--faint); font-size: 11.5px; cursor: pointer; }
 .gitchip .gb { overflow: hidden; text-overflow: ellipsis; }

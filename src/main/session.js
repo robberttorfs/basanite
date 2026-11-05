@@ -9,6 +9,7 @@ const timer = require('./timer');
 const modes = require('./modes');
 const guards = require('./guards');
 const paths = require('../shared/paths');
+const { migrate: migrateColor } = require('../shared/palette');
 const { Doing, EDIT_TOOLS } = require('./doing');
 
 // Set by main.js: { onEdit(session, absFile), enrich(session, snapshot) }.
@@ -31,7 +32,7 @@ class Session {
     this.addons = [...addons];      // add-on ids, stacked on top of the mode
     this.addonsApplied = addonsApplied.filter((a) => this.addons.includes(a)); // reached Claude
     this.addonsOff = [];            // names turned off since the last prompt, so Claude is told once
-    this.color = color;
+    this.color = migrateColor(color); // old amber/green/red/purple picks move to an allowed colour
     this.lock = lock;               // { w, h } as fractions of the stage, set by dragging an edge
     this.kind = kind;               // 'claude' or 'shell' (a plain terminal)
     this.hosted = false;            // a shell tile with Claude Code running inside it

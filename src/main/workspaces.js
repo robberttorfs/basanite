@@ -10,6 +10,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const { migrate: migrateColor } = require('../shared/palette');
 
 const MAIN_ID = 'main';
 const NOTIFY = ['all', 'needs', 'none'];
@@ -20,7 +21,7 @@ function blank(id, name) {
 
 function clean(w, i) {
   const out = blank(typeof w?.id === 'string' && w.id ? w.id : i === 0 ? MAIN_ID : `w${i}`, typeof w?.name === 'string' && w.name.trim() ? w.name.trim().slice(0, 40) : i === 0 ? 'Main' : `Workspace ${i + 1}`);
-  out.color = typeof w?.color === 'string' ? w.color : null;
+  out.color = migrateColor(w?.color);
   out.notify = NOTIFY.includes(w?.notify) ? w.notify : 'all';
   out.defaultMode = typeof w?.defaultMode === 'string' ? w.defaultMode : null;
   out.focused = typeof w?.focused === 'string' ? w.focused : null;
@@ -94,7 +95,7 @@ class Workspaces {
       if (n.toLowerCase() !== w.name.toLowerCase()) w.name = this.uniqueName(n);
       else w.name = n;
     }
-    if ('color' in patch) w.color = typeof patch.color === 'string' && patch.color ? patch.color : null;
+    if ('color' in patch) w.color = migrateColor(patch.color);
     if ('notify' in patch && NOTIFY.includes(patch.notify)) w.notify = patch.notify;
     if ('defaultMode' in patch) w.defaultMode = typeof patch.defaultMode === 'string' && patch.defaultMode ? patch.defaultMode : null;
     return w;

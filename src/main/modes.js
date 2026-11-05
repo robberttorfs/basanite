@@ -7,7 +7,7 @@
 const fs = require('fs');
 const paths = require('../shared/paths');
 
-const COLORS = ['#8ab4ff', '#5fd39a', '#f5b545', '#ff8a7a', '#c49cff', '#6fd4e0', '#f28fc3', '#b8bec9'];
+const { PALETTE: COLORS, migrate: migrateColor } = require('../shared/palette');
 
 // cost: token cost dots on the card (0 to 3). guard: a real limit enforced by Hangar's
 // PreToolUse hook (see guards.js). shelf: the first 7 in the library, in this order.
@@ -16,7 +16,7 @@ const COLORS = ['#8ab4ff', '#5fd39a', '#f5b545', '#ff8a7a', '#c49cff', '#6fd4e0'
 // Until done wraps Claude Code's own /goal.
 const BUILTIN = [
   {
-    id: 'notes', name: 'Notes', color: '#f5b545', icon: 'list', cost: 0, shelf: 1,
+    id: 'notes', name: 'Notes', color: '#b3907a', icon: 'list', cost: 0, shelf: 1,
     description: 'Collect notes in a numbered list. No work until you say start.',
     exitPhrases: ['start', 'go', 'begin', 'get started', 'discuss', 'lets discuss'],
     instructions: `The user is giving you notes one at a time. Only record them.
@@ -38,7 +38,7 @@ const BUILTIN = [
 - When the user says go ahead, build the agreed plan.`,
   },
   {
-    id: 'build', name: 'Build', color: '#5fd39a', icon: 'hammer', cost: 1, shelf: 3,
+    id: 'build', name: 'Build', color: '#b9d36c', icon: 'hammer', cost: 1, shelf: 3,
     description: 'Hands-off build. Questions first, then start to finish, one report.',
     exitPhrases: [],
     instructions: `Autonomous build. The user will read your report later.
@@ -50,7 +50,7 @@ const BUILTIN = [
 - End with one short report: done, decided, what to check, what is left.`,
   },
   {
-    id: 'overnight', name: 'Overnight', color: '#c49cff', icon: 'moon', cost: 2, shelf: 4,
+    id: 'overnight', name: 'Overnight', color: '#8ab4ff', icon: 'moon', cost: 2, shelf: 4,
     description: 'Unsupervised. Never waits on you. Safe choices, morning report.',
     exitPhrases: [], tokenWarn: 1000,
     instructions: `Overnight run. Nobody will answer until morning, so never end a turn on a question.
@@ -63,7 +63,7 @@ const BUILTIN = [
 - Finish with a short morning report at the top of the progress file: done, what to try first, decisions to check, what is left.`,
   },
   {
-    id: 'review', name: 'Review', color: '#c49cff', icon: 'eye', cost: 1, shelf: 5, guard: 'readonly',
+    id: 'review', name: 'Review', color: '#6fd4e0', icon: 'eye', cost: 1, shelf: 5, guard: 'readonly',
     description: 'Read-only audit. Findings ranked, no edits.',
     exitPhrases: ['fix', 'fix it', 'fix them', 'fix them all', 'now fix it'],
     instructions: `Read-only review. File changes are blocked; read-only commands are fine.
@@ -73,7 +73,7 @@ const BUILTIN = [
 - When the user says fix, fix the findings they choose.`,
   },
   {
-    id: 'careful', name: 'Careful', color: '#ff8a7a', icon: 'shield', cost: 0, shelf: 6, guard: 'risky',
+    id: 'careful', name: 'Careful', color: '#f28fc3', icon: 'shield', cost: 0, shelf: 6, guard: 'risky',
     description: 'Near live systems. Local only; pushes and deploys are blocked.',
     exitPhrases: [],
     instructions: `Careful mode: this work is close to live systems. Pushes, deploys and destructive commands are blocked.
@@ -95,7 +95,7 @@ const BUILTIN = [
 - If no /goal is set, treat the user's next message as the goal and keep working until it is verifiably met; stop after 20 tool steps without progress.`,
   },
   {
-    id: 'test-first', name: 'Test first', color: '#5fd39a', icon: 'flask', cost: 1,
+    id: 'test-first', name: 'Test first', color: '#b9d36c', icon: 'flask', cost: 1,
     description: 'Failing test first, then the smallest code that passes.',
     exitPhrases: [],
     instructions: `Test first, for every change:
@@ -106,7 +106,7 @@ const BUILTIN = [
 - Report the tests you added and the final run.`,
   },
   {
-    id: 'debug', name: 'Debug', color: '#ff8a7a', icon: 'bug', cost: 1,
+    id: 'debug', name: 'Debug', color: '#f28fc3', icon: 'bug', cost: 1,
     description: 'Reproduce, isolate, fix the cause, prove it.',
     exitPhrases: [],
     instructions: `Debug: find the root cause before changing anything.
@@ -163,12 +163,12 @@ const BUILTIN = [
   },
   // Add-ons: stack on top of any mode, sent the same way.
   {
-    id: 'verify', kind: 'addon', name: 'Verify at end', color: '#5fd39a', icon: 'check', cost: 1,
+    id: 'verify', kind: 'addon', name: 'Verify at end', color: '#b9d36c', icon: 'check', cost: 1,
     description: 'Prove it works before saying done.',
     instructions: 'Before you say a task is done, run the real check (tests, build, or the app itself) and show the result in a line or two. Say plainly what you could not verify.',
   },
   {
-    id: 'commits', kind: 'addon', name: 'Tidy commits', color: '#f5b545', icon: 'commit', cost: 0,
+    id: 'commits', kind: 'addon', name: 'Tidy commits', color: '#b3907a', icon: 'commit', cost: 0,
     description: 'Small commits, explicit paths, never main.',
     instructions: 'Commit each working step on its own: explicit paths (never git add -A), a clear one-line message, no secrets, never on main or a shared branch.',
   },
@@ -184,6 +184,8 @@ function load() {
   if (store) return store;
   try { store = JSON.parse(fs.readFileSync(paths.modesFile(), 'utf8')); } catch { store = {}; }
   store = { custom: store.custom || [], overrides: store.overrides || {}, hidden: store.hidden || [], projects: store.projects || {} };
+  // Colours saved before the status colours left the palette move to the nearest allowed one.
+  for (const m of [...store.custom, ...Object.values(store.overrides)]) if (m && m.color) m.color = migrateColor(m.color, COLORS[0]);
   return store;
 }
 function save() {
@@ -221,7 +223,7 @@ function clean(m) {
   return {
     kind: isAddon(m) ? 'addon' : 'mode',
     name: String(m.name || 'Mode').trim().slice(0, 24) || 'Mode',
-    color: COLORS.includes(m.color) ? m.color : COLORS[0],
+    color: migrateColor(m.color, COLORS[0]),
     icon: /^[a-z]{2,12}$/.test(m.icon || '') ? m.icon : null,
     cost: Number.isFinite(cost) ? Math.max(0, Math.min(3, Math.round(cost))) : 1,
     guard: GUARDS.includes(m.guard) ? m.guard : null,

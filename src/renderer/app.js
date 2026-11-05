@@ -1,4 +1,4 @@
-/* global Terminal, FitAddon, Unicode11Addon, WebglAddon, HangarLayout, HangarChat, hangar */
+/* global Terminal, FitAddon, Unicode11Addon, WebglAddon, HangarLayout, HangarChat, HangarPalette, hangar */
 'use strict';
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -45,7 +45,7 @@ let state = { tiles: [], settings: { fontSize: 13 }, modes: [] };
 let focused = null;
 
 let GAP = 8;  // look.js makes it smaller in Compact density
-const SWATCHES = ['#8ab4ff', '#5fd39a', '#f5b545', '#ff8a7a', '#c49cff', '#6fd4e0', '#f28fc3', '#b8bec9'];
+const SWATCHES = HangarPalette.PALETTE; // no status colours (src/shared/palette.js)
 
 const ICON = {
   pin: '<svg viewBox="0 0 16 16"><path d="M6 2.5h4M7 2.5v4L4.5 9h7L9 6.5v-4M8 9v4.5"/></svg>',
@@ -400,7 +400,7 @@ function updateTile(tile, snap) {
   $('.name', el).textContent = snap.name;
   el.classList.toggle('snoozed', !!snap.snoozed);  // a tiny moon instead of the glow
   $('.dot', el).title = snap.snoozed ? 'Snoozed' : '';
-  $('.name', el).title = `${snap.cwd}\nDouble-click to rename`;
+  $('.name', el).title = snap.cwd;
 
   const since = Date.now() - snap.statusSince;
   // Only say something when it matters: quiet tiles show just their dot.
@@ -410,7 +410,8 @@ function updateTile(tile, snap) {
     const running = snap.agents.filter((a) => a.running).length;
     label = running ? `${running} agent${running > 1 ? 's' : ''} working` : `Working ${dur(since)}`;
   }
-  if (snap.status === 'error' && snap.error) label = `Error: ${snap.error}`.slice(0, 60);
+  // The ✕ already says error, so a leading "API error:" is dropped (the word appears once).
+  if (snap.status === 'error' && snap.error) label = `Error: ${String(snap.error).replace(/^(api\s+)?error:\s*/i, '')}`.slice(0, 60);
   if (snap.handover) label = { queued: 'Fresh start after this turn', writing: 'Writing handover', clearing: 'Clearing context', continuing: 'Continuing' }[snap.handover] || label;
   $('.state', el).textContent = label;
   $('.dot', el).setAttribute('aria-label', STATUS_LABEL[snap.status] || snap.status);
@@ -423,7 +424,7 @@ function updateTile(tile, snap) {
   const tk = snap.tokens;
   const pct = tk.contextSize ? Math.min(100, (tk.context / tk.contextSize) * 100) : 0;
   const ctx = $('.ctx', el);
-  ctx.className = `ctx${pct >= 90 ? ' hot' : pct >= 70 ? ' warn' : ''}`;
+  ctx.className = `ctx${pct >= 90 ? ' hot' : pct >= 70 ? ' warn' : ''}${pct > 0 ? '' : ' empty'}`;
   $('.bar i', ctx).style.width = `${pct}%`;
   $('.cv', ctx).textContent = pct >= 70 ? `${Math.round(pct)}%` : '';
   // Past 60% context, offer a fresh start right where you look.

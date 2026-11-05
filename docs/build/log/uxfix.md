@@ -1,0 +1,1 @@
+- 21:17 P1s: palette without status colours (src/shared/palette.js) + migration; name keeps ~7ch, state/doing/markers shrink first

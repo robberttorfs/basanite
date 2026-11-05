@@ -28,7 +28,7 @@ test('workspaces: missing, empty or broken files give one empty Main', () => {
 test('workspaces: saving and loading again round-trips, and older apps still find the open tiles', () => {
   const ws = migrate({ tiles: [tile('a')] });
   const school = ws.create('School');
-  ws.update(school.id, { color: '#5fd39a', notify: 'needs', defaultMode: 'build' });
+  ws.update(school.id, { color: '#6fd4e0', notify: 'needs', defaultMode: 'build' });
   const away = ws.create('Old');
   ws.putAway(away.id, [tile('z')]);
   ws.switchTo(school.id);
@@ -40,7 +40,7 @@ test('workspaces: saving and loading again round-trips, and older apps still fin
   assert.deepEqual(back.list.map((w) => w.name), ['Main', 'Old', 'School']);
   assert.equal(back.get(school.id).notify, 'needs');
   assert.equal(back.get(school.id).defaultMode, 'build');
-  assert.equal(back.get(school.id).color, '#5fd39a');
+  assert.equal(back.get(school.id).color, '#6fd4e0');
   assert.equal(back.get(away.id).putAway, true);
   assert.deepEqual(back.get(away.id).tiles.map((t) => t.id), ['z']);
 });
