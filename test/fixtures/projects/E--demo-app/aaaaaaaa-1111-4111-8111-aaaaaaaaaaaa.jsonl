@@ -1,0 +1,8 @@
+{"type":"queue-operation"}
+{"type":"user","isMeta":true,"message":{"role":"user","content":"<system-reminder>x</system-reminder>"},"timestamp":"2026-11-01T10:00:00.000Z","cwd":"E:/demo/app"}
+{"type":"user","message":{"role":"user","content":"<command-name>/clear</command-name>"},"timestamp":"2026-11-01T10:00:01.000Z"}
+{"type":"user","message":{"role":"user","content":"Add a dark mode toggle to the settings page"},"timestamp":"2026-11-01T10:00:02.000Z","cwd":"E:/demo/app"}
+{"type":"assistant","message":{"id":"m1","model":"claude-sonnet-5-5","role":"assistant","content":[{"type":"text","text":"Sure, I will add the toggle."},{"type":"tool_use","id":"t1","name":"Read","input":{"file_path":"E:/demo/app/settings.js"}}],"usage":{"input_tokens":10,"output_tokens":5,"cache_read_input_tokens":1000,"cache_creation_input_tokens":2000,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":2000}}},"timestamp":"2026-11-01T10:00:05.000Z","cwd":"E:/demo/app"}
+{"type":"assistant","message":{"id":"m1","model":"claude-sonnet-5-5","role":"assistant","content":[{"type":"text","text":"Sure, I will add the toggle."}],"usage":{"input_tokens":10,"output_tokens":50,"cache_read_input_tokens":1000,"cache_creation_input_tokens":2000,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":2000}}},"timestamp":"2026-11-01T10:00:06.000Z","cwd":"E:/demo/app"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"file text"}]},"timestamp":"2026-11-01T10:00:07.000Z"}
+{"type":"user","message":{"role":"user","content":"Also please mention the needle phrase purple elephant here"},"timestamp":"2026-11-02T09:00:00.000Z"}

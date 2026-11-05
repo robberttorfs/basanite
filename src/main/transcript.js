@@ -15,7 +15,12 @@ class TranscriptReader {
     this.lastText = null;       // latest assistant text, short
     this.interrupted = false;   // last user entry was an interrupt marker
     this.lastActivity = 0;
+    this.lastAssistantAt = 0;   // timestamp of the latest assistant entry
+    this.cacheTtlMs = 5 * 60 * 1000;  // prompt-cache lifetime seen in the latest usage
+    this.tools = [];            // tool_use entries since the last drainTools(): { name, input, at }
   }
+
+  drainTools() { const t = this.tools; this.tools = []; return t; }
 
   poll() {
     let st;
@@ -54,7 +59,13 @@ class TranscriptReader {
         this.seen.add(id);
         this.outputTokens += u.output_tokens || 0;
       }
+      const at = Date.parse(j.timestamp);
+      if (at) this.lastAssistantAt = at;
+      const cc = u.cache_creation;
+      if (cc && cc.ephemeral_1h_input_tokens > 0) this.cacheTtlMs = 60 * 60 * 1000;
+      else if (cc && cc.ephemeral_5m_input_tokens > 0) this.cacheTtlMs = 5 * 60 * 1000;
       if (Array.isArray(m.content)) {
+        for (const c of m.content) if (c && c.type === 'tool_use' && c.name && this.tools.length < 200) this.tools.push({ name: c.name, input: c.input || {}, at: at || Date.now() });
         const t = m.content.filter((c) => c.type === 'text').map((c) => c.text).join(' ').trim();
         if (t) this.lastText = t.slice(0, 300);
       }

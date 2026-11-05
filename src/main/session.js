@@ -8,6 +8,10 @@ const { TranscriptReader } = require('./transcript');
 const timer = require('./timer');
 const modes = require('./modes');
 const paths = require('../shared/paths');
+const { Doing, EDIT_TOOLS } = require('./doing');
+
+// Set by main.js: { onEdit(session, absFile), enrich(session, snapshot) }.
+const services = { onEdit: null, onStop: null, enrich: null };
 
 const NEEDS_INPUT_NOTIFICATIONS = new Set(['permission_prompt', 'elicitation_dialog', 'elicitation_url_dialog', 'agent_needs_input']);
 const ASKS_USER = new Set(['AskUserQuestion', 'ExitPlanMode']);
@@ -42,6 +46,8 @@ class Session {
     this.statusline = null;
     this.claudeIdleSince = null;
     this.error = null;
+    this.doing = new Doing();
+    this.forkOf = null;             // session id to fork from on the next launch
     this.onChange = () => {};
   }
 
@@ -61,6 +67,7 @@ class Session {
     this.transcriptPath = p;
     this.reader = new TranscriptReader(p);
     this.reader.poll();
+    this.reader.drainTools();       // history, not current work
   }
 
   get subagentDir() {
@@ -175,6 +182,7 @@ class Session {
         if (typeof hook.prompt === 'string' && !hook.prompt.trimStart().startsWith('<')) this.lastPrompt = hook.prompt.slice(0, 200);
         if (typeof hook.prompt === 'string') context.push(...this.modeContext(hook.prompt));
         this.turnStartedAt = Date.now();
+        this.doing.clear();
         this.waitingOn = null;
         this.error = null;
         this.setStatus('working');
@@ -201,6 +209,11 @@ class Session {
       case 'PostToolUse':
       case 'PostToolUseFailure':
         this.clearWaitIf(source);
+        if (hook.tool_name) this.doing.tool(hook.tool_name, hook.tool_input);
+        if (event === 'PostToolUse' && EDIT_TOOLS.has(hook.tool_name) && services.onEdit) {
+          const f = hook.tool_input && (hook.tool_input.file_path || hook.tool_input.notebook_path);
+          if (f) services.onEdit(this, path.resolve(this.cwd, String(f)));
+        }
         break;
       case 'SubagentStart': {
         const a = this.agents.get(agent) || { type: hook.agent_type, desc: null, startedAt: Date.now(), reader: null };
@@ -222,6 +235,8 @@ class Session {
       }
       case 'Stop':
         this.waitingOn = null;
+        if (!this.runningAgents().length) this.doing.clear();
+        if (services.onStop) services.onStop(this);
         this.setStatus(this.runningAgents().length ? 'working' : 'done');
         break;
       case 'StopFailure':
@@ -270,6 +285,10 @@ class Session {
     // The first statusline render means Claude Code is up and waiting.
     this.booting = false;
     if (this.status === 'starting') this.setStatus('idle');
+    if (process.env.HANGAR_DEV && !Session.sampled) {
+      Session.sampled = true;
+      try { fs.writeFileSync(path.join(paths.dataDir(), 'statusline-sample.json'), JSON.stringify(j, null, 2)); } catch {}
+    }
     this.statusline = {
       costUSD: j?.cost?.total_cost_usd ?? null,
       ctxPct: j?.context_window?.used_percentage ?? null,
@@ -285,6 +304,10 @@ class Session {
   poll(claudeSessions) {
     let changed = false;
     if (this.reader && this.reader.poll()) changed = true;
+    if (this.reader) {
+      const tools = this.reader.drainTools();
+      if (this.status === 'working') for (const t of tools) this.doing.tool(t.name, t.input);
+    }
 
     // Subagents: pick up ones started before Hangar saw them, read their tokens.
     const dir = this.subagentDir;
@@ -352,7 +375,7 @@ class Session {
         startedAt: a.startedAt, endedAt: a.endedAt,
         context: a.reader?.contextTokens || 0, output: a.reader?.outputTokens || 0,
       }));
-    return {
+    const snap = {
       id: this.id, name: this.name, cwd: this.cwd, sessionId: this.sessionId,
       pinned: this.pinned, status: this.status, statusSince: this.statusSince, booting: !!this.booting,
       color: this.color, lock: this.lock, mode: this.modeSnapshot(),
@@ -361,11 +384,24 @@ class Session {
       lastPrompt: this.lastPrompt, lastText: this.reader?.lastText || null,
       model: this.statusline?.model || this.reader?.model || null,
       tokens: this.tokens(), agents, error: this.error,
+      doing: this.doing.get(this.status === 'working', now),
+      ...this.cacheSnapshot(now),
       timer: this.timer && {
         minutes: this.timer.minutes, startedAt: this.timer.startedAt, finished: this.timer.finished,
         remaining: timer.remaining(this.timer, now),
       },
     };
+    if (services.enrich) services.enrich(this, snap, now);
+    return snap;
+  }
+
+  /** Prompt-cache state from the transcript: the next message costs more once the cache expired. */
+  cacheSnapshot(now) {
+    const r = this.reader;
+    const at = r && r.lastAssistantAt;
+    const idle = this.status !== 'working' && this.status !== 'starting' && this.status !== 'exited';
+    const cold = !!(at && idle && r.contextTokens > 0 && now - at > r.cacheTtlMs);
+    return { cacheCold: cold, cacheTtlMin: r ? Math.round(r.cacheTtlMs / 60000) : 5, lastResponseAt: at || null };
   }
 
   modeSnapshot() {
@@ -438,4 +474,4 @@ function writeHookSettings(tileId, server, ctlCommand) {
   return file;
 }
 
-module.exports = { Session, statuslineText, hookSettings, writeHookSettings, permissionArgs, PERMISSION_MODES };
+module.exports = { services, Session, statuslineText, hookSettings, writeHookSettings, permissionArgs, PERMISSION_MODES };

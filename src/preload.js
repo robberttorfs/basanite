@@ -46,6 +46,17 @@ contextBridge.exposeInMainWorld('hangar', {
   chatClose: (id) => ipcRenderer.send('chat:close', id),
   onChat: on('chat:items'),
 
+  gitChanges: (id) => ipcRenderer.invoke('git:changes', id),
+  historyList: (cwd) => ipcRenderer.invoke('history:list', cwd),
+  historySearch: (cwd, q) => ipcRenderer.invoke('history:search', cwd, q),
+  historyOpen: (cwd, sessionId) => ipcRenderer.invoke('history:open', cwd, sessionId),
+  fork: (id) => ipcRenderer.invoke('tile:fork', id),
+  createWorktree: (cwd, name) => ipcRenderer.invoke('tile:worktree', cwd, name),
+  usageHistory: (days) => ipcRenderer.invoke('usage:history', days),
+  onOverlap: on('tile:overlap'),
+  onUpdate: on('update:state'),
+  updateAction: () => ipcRenderer.send('update:action'),
+
   overseerStart: () => ipcRenderer.send('overseer:start'),
   overseerInput: (d) => ipcRenderer.send('overseer:input', d),
   overseerResize: (cols, rows) => ipcRenderer.send('overseer:resize', { cols, rows }),
@@ -58,6 +69,8 @@ contextBridge.exposeInMainWorld('hangar', {
   openMenu: (x, y) => ipcRenderer.send('menu:popup', { x, y }),
   font: (dir) => ipcRenderer.send('ui:font', dir),
   setMenu: (spec) => ipcRenderer.send('menu:set', spec),
+  look: () => ipcRenderer.invoke('look'),
+  onLook: on('look'),
   onCommand: on('cmd:run'),
 
   onState: on('state'),
