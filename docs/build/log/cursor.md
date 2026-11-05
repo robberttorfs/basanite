@@ -1,0 +1,5 @@
+- 22:47 start: reading terminal setup
+- 22:52 captured PTY data: idle typing has no ?25l/?25h per key (Claude Code 2.1.318 uses the real cursor; ConPTY emits ?2026h?2026l empty then the diff); slash/@ menus wrap each repaint in ?25l..?25h inside ONE chunk; 0 hidden frames, 0 cursorless webgl renders, no focus churn, cursorBlink already false
+- 22:53 NOTE: a bash-mode test (!ping) made Claude Code answer once (a few Haiku tokens); not repeated. Spinner frames: ?25l..?25h every ~100 ms, each inside one chunk, still 0 hidden frames
+- 22:56 built src/renderer/cursor-steady.js (holds output while a repaint's ?25l is open, up to 40 ms) + wired in makeTerm; 7 unit tests, npm test 116/116
+- 22:58 found + fixed a real bug in verification (default setTimeout called on an object = Illegal invocation in Chromium). Dev check: 20 split repaints, hidden frames 70/274 raw vs 0/275 guarded; 6 shots while typing all show the cursor; shell tile cursor normal
