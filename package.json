@@ -1,0 +1,94 @@
+{
+  "name": "hangar-oss",
+  "version": "0.4.0-dev",
+  "description": "A calm, fullscreen home for your Claude Code sessions.",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "postinstall": "node scripts/fix-pty.js"
+  },
+  "author": "Robbert Torfs",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/addon-unicode11": "^0.9.0",
+    "@xterm/addon-webgl": "^0.19.0",
+    "@xterm/xterm": "^6.0.0",
+    "node-pty": "^1.1.0"
+  },
+  "devDependencies": {
+    "electron": "^45.2.2",
+    "electron-builder": "^26.18.0"
+  },
+  "allowScripts": {
+    "node-pty": false,
+    "electron-winstaller@5.4.0": true
+  },
+  "productName": "Hangar OSS",
+  "private": true,
+  "build": {
+    "appId": "com.robberttorfs.hangar-oss",
+    "productName": "Hangar OSS",
+    "files": [
+      "src/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "!node_modules/**/{test,tests,docs,example,examples}/**"
+    ],
+    "asarUnpack": [
+      "node_modules/node-pty/**",
+      "src/cli/**",
+      "src/shell/**",
+      "src/shared/**"
+    ],
+    "npmRebuild": false,
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.developer-tools",
+      "identity": null,
+      "icon": "build/icon.icns"
+    },
+    "dmg": {
+      "artifactName": "Hangar-mac-${arch}.dmg"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "Hangar-windows-${arch}-setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "afterSign": "build/adhoc-sign.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/robberttorfs/hangar.git"
+  }
+}
