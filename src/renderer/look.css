@@ -1,0 +1,143 @@
+/* Look and feel on top of style.css (look.js sets the body classes):
+   status shapes, header diet, amber only for "needs you", density, light theme,
+   high contrast and reduced motion. Dark stays as style.css draws it. */
+
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---------- status shapes: ○ idle, ● working, ◆ needs you, ✓ done, ✕ error ---------- */
+/* One 10 px box for every state, so nothing shifts when the status changes. */
+.head .dot, .summary .s .dot, .pal-chip .dot {
+  position: relative; width: 10px; height: 10px; border-radius: 0; border: 0; background: none !important;
+  display: inline-flex; align-items: center; justify-content: center; animation: none; opacity: 1; flex: none;
+}
+.head .dot::before, .summary .s .dot::before, .pal-chip .dot::before {
+  content: ""; display: block; box-sizing: border-box; width: 8px; height: 8px; border-radius: 50%;
+  border: 1.5px solid var(--idle); background: transparent;
+}
+/* working: filled, slow breathe */
+.st-working .head .dot::before, .summary .working .dot::before, .pal-chip.st-working .dot::before {
+  border: 0; background: var(--working); animation: breathe 2s ease-in-out infinite;
+}
+.st-starting .head .dot::before, .pal-chip.st-starting .dot::before { border-color: var(--working); opacity: .6; }
+/* needs you: diamond */
+.st-needs_input .head .dot::before, .summary .needs .dot::before, .pal-chip.st-needs_input .dot::before {
+  width: 7px; height: 7px; border: 0; border-radius: 1px; background: var(--needs); transform: rotate(45deg);
+}
+/* done and error: glyphs */
+.st-done .head .dot::before, .summary .done .dot::before, .pal-chip.st-done .dot::before,
+.st-error .head .dot::before, .pal-chip.st-error .dot::before {
+  width: auto; height: auto; border: 0; border-radius: 0; font: 700 10px/1 var(--font);
+}
+.st-done .head .dot::before, .summary .done .dot::before, .pal-chip.st-done .dot::before { content: "✓"; color: var(--done); }
+.st-error .head .dot::before, .pal-chip.st-error .dot::before { content: "✕"; color: var(--error); }
+.st-exited .head .dot::before { border-style: dashed; opacity: .6; }
+@keyframes breathe { 50% { opacity: .45; } }
+
+/* ---------- amber means "needs you" and nothing else ---------- */
+.hbtn.timer.wrap { color: var(--text); background: var(--hover); }
+.ctx.warn .bar i { background: var(--text); }
+.usage .u.warn .meter i, .usage-pop .warn .lbar i { background: var(--text); }
+
+/* ---------- tile header diet ----------
+   Always: status shape, name, mode chip, ⋯. The state word only when not idle (app.js).
+   Lock, timer, pin, view and the context bar fade in on hover or when in use; their
+   space stays reserved, so nothing moves. */
+.head .hbtn.view:not(.active), .head .hbtn.pin:not(.active),
+.head .hbtn.timer:not(.active):not(.armed):not(.wrap):not(.over),
+.head .ctx:not(.warn):not(.hot) { opacity: 0; transition: opacity .12s; }
+/* The focused tile rests quiet too (style.css shows them there; this takes it back). */
+.tile.focused:not(:hover) .head:not(:focus-within) .hbtn.view:not(.active),
+.tile.focused:not(:hover) .head:not(:focus-within) .hbtn.pin:not(.active),
+.tile.focused:not(:hover) .head:not(:focus-within) .hbtn.timer:not(.active):not(.armed):not(.wrap):not(.over) { opacity: 0 !important; }
+.tile:hover .head .hbtn, .tile:hover .head .ctx, .head:focus-within .hbtn, .head .hbtn:focus-visible { opacity: 1 !important; }
+
+/* ---------- density: Compact ---------- */
+body.compact .head { height: 26px; gap: 6px; padding: 0 4px 0 9px; font-size: 12px; }
+body.compact .head .hbtn { height: 20px; min-width: 20px; padding: 0 4px; }
+body.compact .mode-chip { height: 18px; padding: 0 7px; font-size: 11px; }
+body.compact .fresh-hint { height: 18px; }
+body.compact .head .path { visibility: hidden; }  /* stays the spacer that keeps ⋯ last */
+body.compact .overlay { top: 26px; }
+body.compact .agents { padding: 4px 8px; }
+body.compact .term { padding: 4px 2px 2px 6px; }
+body.compact #stage { margin: 4px; }
+
+/* Palette: a quiet label over a run of modes */
+.pal-group { padding: 8px 8px 2px; color: var(--faint); font-size: 11px; font-weight: 500; }
+
+/* ---------- light theme (nativeTheme.themeSource drives prefers-color-scheme) ---------- */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f6f7f9; --panel: #eef0f3; --pop: #ffffff; --tile: #ffffff;
+    --line: #d8dce3; --line-soft: #e7e9ee; --hover: #eceef2;
+    --text: #1f232b; --muted: #59606c; --faint: #737a86;
+    --accent: #2b62c9; --working: #2b62c9;
+    --needs: #a65f00;     /* darker amber: 4.5:1 on white, still unmistakably amber */
+    --done: #1d8340; --error: #c8362e; --idle: #9097a3;
+    --ov: #7652d6; --ov-bg: #f6f3fc;
+    color-scheme: light;
+  }
+  .summary .needs { background: rgba(166, 95, 0, .08); }
+  .summary .needs:hover { background: rgba(166, 95, 0, .14); }
+  .btn:hover { border-color: #c6ccd6; }
+  .btn.primary { background: #e6eefc; border-color: #c3d3f3; }
+  .btn.primary:hover { background: #dbe6fb; }
+  .btn.on { border-color: #b9c8e6; background: #e9effa; }
+  .ov-btn.on { border-color: rgba(118, 82, 214, .4); background: rgba(118, 82, 214, .08); color: #4b2fa6; }
+  .ov-title { color: #3d2a85; }
+  .ov-model { border-color: rgba(118, 82, 214, .3); }
+  body.ov-open #overseer { border-left-color: rgba(118, 82, 214, .22); }
+  .recent-item .rc:hover { border-color: #c6ccd6; }
+  #dropzone { background: rgba(235, 241, 252, .95); }
+  #dropzone.hover { background: rgba(220, 231, 250, .98); }
+  .tile.focused { border-color: #b4bdcb; box-shadow: 0 0 0 1px rgba(43, 98, 201, .14); }
+  .tile.st-needs_input { border-color: rgba(166, 95, 0, .8); box-shadow: 0 0 0 1px rgba(166, 95, 0, .28), 0 0 22px rgba(166, 95, 0, .14); }
+  .tile.st-error { border-color: rgba(200, 54, 46, .6); }
+  .chip { background: #f0f2f5; border-color: #dfe3e9; }
+  .term .xterm-viewport, .feed { scrollbar-color: #c9ced7 transparent; }
+  .overlay { background: rgba(246, 247, 249, .7); }
+  .pop { border-color: #d3d8e0; box-shadow: 0 14px 40px rgba(20, 30, 50, .14); }
+  .field:focus { border-color: #9fb5de; }
+  .me-item.sel, .seg button.on, .mchip.sel { background: #e7ebf2; }
+  .mchip.sel { border-color: #c3ccdb; }
+  .toast { border-color: #d3d8e0; box-shadow: 0 8px 24px rgba(20, 30, 50, .12); }
+  .ask-bar { background: #f3f5f8; }
+  .tile.zoomed { box-shadow: 0 16px 50px rgba(20, 30, 50, .2); }
+  .msg.you .bubble { background: #edf2fc; border-color: #d6e0f3; }
+  .msg code { background: #eef0f4; }
+  .msg pre, .steps .sd { background: #f6f7f9; }
+  .composer { background: #ffffff; }
+  .composer:focus-within { border-color: #b4bdcb; }
+  .composer .go { background: #dfe8fb; color: #1d3f86; }
+  .composer .go:hover { background: #d0ddf8; }
+  .composer .stop { background: #eceef2; }
+  .msg .ftag { background: rgba(0, 0, 0, .06); }
+  #ov-chat .composer { background: #fbf9ff; border-color: rgba(118, 82, 214, .2); }
+  #ov-chat .composer .go { background: rgba(118, 82, 214, .14); color: #3d2a85; }
+  #ov-chat .msg.you .bubble { background: #f3effc; border-color: rgba(118, 82, 214, .2); }
+  .ws-pills .wp.drop { box-shadow: inset 0 0 0 1px #9fb5de; }
+}
+
+/* ---------- high contrast: solid borders, no glows ---------- */
+body.hc { --line: #8a909b; --line-soft: #6b717c; --faint: var(--muted); }
+body.hc .tile, body.hc .pop, body.hc .btn { border-width: 2px; }
+body.hc .tile.focused { border-color: var(--accent); box-shadow: none; }
+body.hc .tile.st-needs_input { border-color: var(--needs); box-shadow: none; }
+body.hc .tile.colored .head { background: none; }
+body.hc .pop, body.hc .toast, body.hc .tile.zoomed { box-shadow: none; }
+@media (prefers-color-scheme: light) { body.hc { --line: #5f6672; --line-soft: #7a818d; } }
+@media (forced-colors: active) {
+  .tile, .pop, .btn, .hbtn, .mode-chip { border: 1px solid CanvasText; box-shadow: none !important; }
+  .tile.focused { border: 2px solid Highlight; }
+  .tile.st-needs_input { border: 2px solid Mark; }
+  .head .dot::before, .summary .s .dot::before, .pal-chip .dot::before { forced-color-adjust: none; border-color: CanvasText; }
+  .st-working .head .dot::before, .st-needs_input .head .dot::before, .summary .working .dot::before, .summary .needs .dot::before { background: CanvasText; }
+  .pal-row.sel { outline: 2px solid Highlight; }
+}
+
+/* ---------- reduced motion: the OS setting or Settings > Reduce motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+body.calm *, body.calm *::before, body.calm *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+.pop select[data-look] { width: auto; }

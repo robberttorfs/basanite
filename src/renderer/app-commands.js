@@ -91,8 +91,8 @@
 
   // One entry per mode, in the Modes menu and the palette.
   C.provide('modes', () => [...visibleModes().map((m) => ({
-    id: `mode.set:${m.id}`, label: `Mode: ${m.name}`, group: 'Modes', aliases: [m.name], color: m.color,
-    menu: { menu: 'Modes', section: 'list', label: m.name }, when: claude,
+    id: `mode.set:${m.id}`, label: m.name, group: 'Modes', aliases: ['mode', `mode ${m.name}`], color: m.color, isMode: true,
+    menu: { menu: 'Modes', section: 'list' }, when: claude,
     run: (cx) => hangar.setMode(cx.id, m.id),
     // ⌘↩ puts every Claude session in this mode.
     secondary: () => { for (const t of state.tiles) if (t.kind !== 'shell') hangar.setMode(t.id, m.id); },

@@ -19,7 +19,7 @@
     const svg = c.icon ? (ICON[c.icon] || '') : '';
     return `<span class="pal-ic" aria-hidden="true">${svg}</span>`;
   }
-  const accName = (c) => (c.group === 'Sessions' && c.statusLabel ? `${c.label}, ${c.statusLabel}` : c.label);
+  const accName = (c) => (c.group === 'Sessions' && c.statusLabel ? `${c.label}, ${c.statusLabel}` : c.isMode ? `${c.label} mode` : c.label);
 
   /** The rows for the current query and scope. */
   function rows() {
@@ -63,14 +63,23 @@
     st.rows = rows();
     st.sel = Math.min(st.sel, Math.max(0, st.rows.length - 1));
     st.list.innerHTML = '';
+    // Modes read as plain names: a run of them gets one quiet label above, a lone one a muted word.
+    const isMode = (r) => !!r?.c.isMode;
     st.rows.forEach((r, i) => {
       const c = r.c;
+      const run = isMode(r) && (isMode(st.rows[i - 1]) || isMode(st.rows[i + 1]));
+      if (run && !isMode(st.rows[i - 1])) {
+        const g = h('div', 'pal-group', 'Modes');
+        g.setAttribute('role', 'presentation');
+        st.list.appendChild(g);
+      }
+      const ctxText = isMode(r) && !run ? 'Mode' : c.context;
       const row = h('div', 'pal-row');
       row.id = `pal-opt-${i}`;
       row.setAttribute('role', 'option');
       row.setAttribute('aria-label', accName(c));
       row.innerHTML = `${iconHtml(c)}<span class="pal-label">${esc(c.label)}</span>` +
-        (c.context && c.context !== c.label ? `<span class="pal-ctx">${esc(c.context)}</span>` : '') +
+        (ctxText && ctxText !== c.label ? `<span class="pal-ctx">${esc(ctxText)}</span>` : '') +
         `<span class="pal-kb">${keyHtml(c)}</span>`;
       row.onmousedown = (e) => e.preventDefault();
       row.onmousemove = () => { if (st.sel !== i) { st.sel = i; highlight(); } };
@@ -83,11 +92,11 @@
     highlight();
   }
   function highlight() {
-    [...st.list.children].forEach((el, i) => {
+    [...st.list.querySelectorAll('.pal-row')].forEach((el, i) => {
       el.classList.toggle('sel', i === st.sel);
       el.setAttribute('aria-selected', String(i === st.sel));
     });
-    const cur = st.list.children[st.sel];
+    const cur = st.list.querySelectorAll('.pal-row')[st.sel];
     if (cur) { st.input.setAttribute('aria-activedescendant', cur.id); cur.scrollIntoView({ block: 'nearest' }); }
     else st.input.removeAttribute('aria-activedescendant');
   }

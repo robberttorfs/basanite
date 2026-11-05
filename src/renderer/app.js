@@ -44,7 +44,7 @@ const tiles = new Map();   // id -> { el, term, fit, snap, lastRect, handles }
 let state = { tiles: [], settings: { fontSize: 13 }, modes: [] };
 let focused = null;
 
-const GAP = 8;
+let GAP = 8;  // look.js makes it smaller in Compact density
 const SWATCHES = ['#8ab4ff', '#5fd39a', '#f5b545', '#ff8a7a', '#c49cff', '#6fd4e0', '#f28fc3', '#b8bec9'];
 
 const ICON = {
@@ -107,7 +107,8 @@ const POLISH = { foreground: '#d3d7df', brightBlack: '#6c7280', black: '#22252c'
 const polished = () => state.settings.polishTerm !== false;
 function termLook(bg) {
   const theme = { ...THEME, ...(polished() ? POLISH : {}) };
-  return { lineHeight: polished() ? 1.24 : 1.15, theme: bg ? { ...theme, background: bg, cursorAccent: bg } : theme };
+  const out = { lineHeight: polished() ? 1.24 : 1.15, theme: bg ? { ...theme, background: bg, cursorAccent: bg } : theme };
+  return window.HangarLook ? HangarLook.term(out, bg) : out;  // light theme swaps the palette
 }
 
 function makeTerm(container, onInput, onResize, bg) {
@@ -205,10 +206,10 @@ function createTile(snap) {
   el.dataset.id = snap.id;
   el.innerHTML = `
     <div class="head" draggable="true">
-      <span class="dot" aria-hidden="true"></span><span class="ticon" aria-hidden="true">${ICON.term}</span>
+      <span class="dot" role="img"></span><span class="ticon" aria-hidden="true">${ICON.term}</span>
       <span class="name"></span>
       <button class="mode-chip" aria-label="Mode"></button>
-      <span class="state" aria-live="polite"></span>
+      <span class="state"></span>
       <span class="path"></span>
       <span class="meta">
         <button class="fresh-hint" hidden>Fresh start</button>
@@ -410,6 +411,7 @@ function updateTile(tile, snap) {
   if (snap.status === 'error' && snap.error) label = `Error: ${snap.error}`.slice(0, 60);
   if (snap.handover) label = { queued: 'Fresh start after this turn', writing: 'Writing handover', clearing: 'Clearing context', continuing: 'Continuing' }[snap.handover] || label;
   $('.state', el).textContent = label;
+  $('.dot', el).setAttribute('aria-label', STATUS_LABEL[snap.status] || snap.status);
 
   // Mode chip: filled once Claude has the instructions, outlined until the next message carries them.
   const chip = $('.mode-chip', el);
@@ -1292,6 +1294,7 @@ function openSettings(anchorEl) {
     <div class="sep"></div><h3>Overseer</h3>
     <label class="opt">Model<select data-model>${['haiku', 'sonnet', 'opus'].map((m) => `<option ${s.overseerModel === m ? 'selected' : ''}>${m}</option>`).join('')}</select></label>
     <p class="hint">Applies on New chat.</p>`;
+  window.HangarLook?.settingsRows(el);
   openPop(el, anchorEl);
   el.querySelectorAll('[data-k]').forEach((c) => { c.onchange = () => hangar.setSettings({ notify: { [c.dataset.k]: c.checked } }); });
   el.querySelectorAll('[data-s]').forEach((c) => { c.onchange = () => hangar.setSettings({ [c.dataset.s]: c.checked }); });

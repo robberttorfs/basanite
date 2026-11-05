@@ -18,3 +18,11 @@
 - Session rows list `state.tiles` (the current workspace view); cross-workspace session rows are up to the workspaces helper (provide() a rows provider or widen state).
 - Workspace menu labels use Title Case ("New Workspace"); the rest of the registry is sentence case.
 - Palette rows have no second line for the highlighted session (spec says optional).
+- 20:34 chunk 2 start: palette mode rows plain names + quiet Modes label; look.js/look.css/main look.js (themes, hc, calm, density, shapes, diet, live region)
+- 20:39 chunk 2 done: themes (System default), high contrast, reduce motion, status shapes, live region, neutral timer/context/usage warn, header diet, Compact density; shots in .devdata/shell/shots (light, dark, compact, header-hover, settings, palette-modes)
+
+## Left over (chunk 2)
+- Real mouse hover can't be sent by the harness; the hover shot uses an injected style on an unfocused tile.
+- Windows title-bar buttons follow the theme via setTitleBarOverlay; capturePage doesn't show them, so not seen in a shot.
+- High contrast and forced-colors CSS written but not seen (no HC mode toggled on this PC).
+- Light theme: Claude Code's own truecolor text is kept readable by xterm minimumContrastRatio 4.5; its "auto mode" yellow reads as dark gold.

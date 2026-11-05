@@ -6,6 +6,7 @@
   <title>Hangar</title>
   <link rel="stylesheet" href="../../node_modules/@xterm/xterm/css/xterm.css">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="look.css">
 </head>
 <body>
   <header id="bar">
@@ -13,7 +14,7 @@
       <svg viewBox="0 0 16 16"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg>
     </button>
     <div id="ws-pills" class="ws-pills" role="toolbar" aria-label="Workspaces" hidden></div>
-    <div id="summary" class="summary" aria-live="polite"></div>
+    <div id="summary" class="summary"></div>
     <div class="grow"></div>
     <button id="usage" class="usage" title="Usage (⇧⌘Y)" aria-label="Usage"></button>
     <button id="btn-new" class="btn primary" title="New session or terminal (⌘N)">
@@ -62,6 +63,7 @@
   <script src="layout.js"></script>
   <script src="chat.js"></script>
   <script src="commands.js"></script>
+  <script src="look.js"></script>
   <script src="app.js"></script>
   <script src="app-commands.js"></script>
   <script src="palette.js"></script>
