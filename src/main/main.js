@@ -10,6 +10,7 @@ const { Session, writeHookSettings, permissionArgs, statuslineText } = require('
 const { startServer } = require('./server');
 const { readLog } = require('./log');
 const modes = require('./modes');
+const modesIpc = require('./modes-ipc');
 const { ChatFeed, findTranscript } = require('./chat');
 const { migrate: loadWorkspaces } = require('./workspaces');
 const attention = require('../shared/attention');
@@ -233,7 +234,7 @@ function addSession(opts, mode) {
     id: opts.id || crypto.randomBytes(4).toString('hex'),
     name: opts.name || uniqueName(path.basename(opts.cwd) || opts.cwd),
     cwd: opts.cwd, sessionId: opts.sessionId || null, pinned: !!opts.pinned,
-    mode: opts.mode || null, modeApplied: !!opts.modeApplied, color: opts.color || null, lock: opts.lock || null,
+    mode: opts.mode || null, modeApplied: !!opts.modeApplied, addons: opts.addons || [], addonsApplied: opts.addonsApplied || [], color: opts.color || null, lock: opts.lock || null,
     kind: opts.kind === 'shell' ? 'shell' : 'claude',
   });
   s.forkOf = opts.forkOf || null;
@@ -864,14 +865,14 @@ function wireIpc() {
     // A session starts in the given workspace (a folder dropped on its pill), else the current one,
     // in that workspace's default mode unless the New dialog said 'none'.
     const target = workspaces.get(ws) && !workspaces.get(ws).putAway ? ws : workspaces.active;
-    const smode = sessionMode === 'none' ? null : sessionMode || workspaces.get(target)?.defaultMode || null;
+    const smode = modesIpc.startMode(sessionMode, cwd, workspaces.get(target)?.defaultMode);
     // A plain terminal needs no folder: it opens in the home folder.
     if (mode === 'shell' && !cwd) return addSession({ cwd: os.homedir(), kind: 'shell', name: uniqueName('Terminal'), ws: target }, 'new').id;
     try { if (!fs.statSync(cwd).isDirectory()) return null; } catch { return null; }
     if (mode === 'shell') return addSession({ cwd, kind: 'shell', ws: target }, 'new').id;
     return addSession({ cwd, mode: smode, ws: target }, mode || 'new').id;
   });
-  ipcMain.on('tile:mode', (_e, { id, mode }) => find(id)?.setMode(mode));
+  modesIpc.wire({ ipcMain, dialog, getWin: () => win, find, typeInto, changed: () => { buildMenu(); broadcast(); } });
   ipcMain.on('tile:fresh', (_e, id) => freshStart(find(id)));
   ipcMain.on('tile:color', (_e, { id, color }) => {
     const s = find(id);
@@ -1109,12 +1110,12 @@ const serverHandlers = {
     if (minutes) s.timer = { minutes: Number(minutes), startedAt: null, sent: [], finished: false };
     return { text: s.id };
   },
-  modes: () => ({ modes: modes.list() }),
+  modes: () => ({ modes: modes.listModes() }),
   mode: ({ tile, mode }) => {
     const s = resolveTile(tile);
     const key = String(mode || '').trim().toLowerCase();
     if (!key || key === 'none' || key === 'off') { s.setMode(null); return { text: `${s.name} is in no mode now.` }; }
-    const m = modes.list().find((x) => x.id === key || x.name.toLowerCase() === key);
+    const m = modes.listModes().find((x) => x.id === key || x.name.toLowerCase() === key);
     if (!m) throw new Error(`No mode "${mode}". Run hangarctl modes.`);
     s.setMode(m.id);
     return { text: `${s.name} is in ${m.name} mode. Claude gets it with the next prompt.` };

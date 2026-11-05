@@ -7,6 +7,7 @@ const path = require('path');
 const { TranscriptReader } = require('./transcript');
 const timer = require('./timer');
 const modes = require('./modes');
+const guards = require('./guards');
 const paths = require('../shared/paths');
 const { Doing, EDIT_TOOLS } = require('./doing');
 
@@ -17,7 +18,7 @@ const NEEDS_INPUT_NOTIFICATIONS = new Set(['permission_prompt', 'elicitation_dia
 const ASKS_USER = new Set(['AskUserQuestion', 'ExitPlanMode']);
 
 class Session {
-  constructor({ id, name, cwd, sessionId = null, pinned = false, timer: t = null, mode = null, modeApplied = false, color = null, lock = null, kind = 'claude' }) {
+  constructor({ id, name, cwd, sessionId = null, pinned = false, timer: t = null, mode = null, modeApplied = false, addons = [], addonsApplied = [], color = null, lock = null, kind = 'claude' }) {
     this.id = id;
     this.name = name;
     this.cwd = cwd;
@@ -27,6 +28,9 @@ class Session {
     this.mode = mode;               // mode id or null
     this.modeApplied = modeApplied; // its instructions have reached Claude
     this.modeFrom = null;           // the applied mode being replaced, until the next prompt says so
+    this.addons = [...addons];      // add-on ids, stacked on top of the mode
+    this.addonsApplied = addonsApplied.filter((a) => this.addons.includes(a)); // reached Claude
+    this.addonsOff = [];            // names turned off since the last prompt, so Claude is told once
     this.color = color;
     this.lock = lock;               // { w, h } as fractions of the stage, set by dragging an edge
     this.kind = kind;               // 'claude' or 'shell' (a plain terminal)
@@ -88,6 +92,48 @@ class Session {
     this.onChange({ type: 'mode' });
   }
 
+  /** Turns an add-on on or off. Claude hears about it with the next prompt. */
+  setAddon(id, on) {
+    const a = modes.get(id);
+    if (on && (!a || !modes.isAddon(a) || this.addons.includes(id))) return;
+    if (!on && !this.addons.includes(id)) return;
+    if (on) {
+      this.addons.push(id);
+      this.addonsOff = this.addonsOff.filter((n) => n !== a.name);
+      // Turned off and on again before Claude heard either: nothing to say.
+      if (this.addonsWasApplied?.has(id)) { this.addonsApplied.push(id); this.addonsWasApplied.delete(id); }
+    } else {
+      this.addons = this.addons.filter((x) => x !== id);
+      if (this.addonsApplied.includes(id) && a) {
+        this.addonsOff.push(a.name);
+        (this.addonsWasApplied ||= new Set()).add(id);
+      }
+      this.addonsApplied = this.addonsApplied.filter((x) => x !== id);
+    }
+    this.onChange({ type: 'mode' });
+  }
+
+  /** Context for add-ons on this prompt: the ones just turned on, and a note for the ones turned off. */
+  addonContext() {
+    const out = [];
+    this.addons = this.addons.filter((id) => modes.isAddon(modes.get(id)));
+    const fresh = this.addons.filter((id) => !this.addonsApplied.includes(id)).map((id) => modes.get(id));
+    const off = modes.addonEndContext(this.addonsOff);
+    if (off) out.push(off);
+    const on = modes.addonContext(fresh);
+    if (on) out.push(on);
+    this.addonsWasApplied?.clear();
+    if (fresh.length || this.addonsOff.length) {
+      this.addonsApplied = [...this.addons];
+      this.addonsOff = [];
+      this.onChange({ type: 'mode' });
+    }
+    return out;
+  }
+
+  /** The guard of the current mode (see guards.js), or null. */
+  guard() { return modes.get(this.mode)?.guard || null; }
+
   /** Context for the mode on this prompt: start, switch, end or exit phrase. */
   modeContext(prompt) {
     const out = [];
@@ -146,6 +192,8 @@ class Session {
     this.error = null;
     this.modeApplied = false;
     this.modeFrom = null;
+    this.addonsApplied = [];
+    this.addonsOff = [];
   }
 
   /** Handles a hook event. Returns the JSON body to send back to Claude Code, or null. */
@@ -175,27 +223,38 @@ class Session {
           this.modeFrom = null;
           if (!this.modeApplied) { this.modeApplied = true; this.onChange({ type: 'mode' }); }
         }
+        if (hook.source !== 'resume') {
+          const on = modes.addonContext(this.addons.map((id) => modes.get(id)).filter(modes.isAddon), { reapply: hook.source === 'compact' });
+          if (on) context.push(on);
+          this.addonsApplied = [...this.addons];
+          this.addonsOff = [];
+        }
         break;
       }
       case 'UserPromptSubmit':
         // Agent hand-backs and other system turns also arrive as prompts; keep the human one.
         if (typeof hook.prompt === 'string' && !hook.prompt.trimStart().startsWith('<')) this.lastPrompt = hook.prompt.slice(0, 200);
-        if (typeof hook.prompt === 'string') context.push(...this.modeContext(hook.prompt));
+        if (typeof hook.prompt === 'string') context.push(...this.modeContext(hook.prompt), ...this.addonContext());
         this.turnStartedAt = Date.now();
         this.doing.clear();
         this.waitingOn = null;
         this.error = null;
         this.setStatus('working');
         break;
-      case 'PreToolUse':
+      case 'PreToolUse': {
+        // A guard mode stops the tool for real. Nothing is returned otherwise, so no tokens.
+        const reason = guards.check(this.guard(), modes.get(this.mode)?.name, hook.tool_name, hook.tool_input || {});
+        if (reason) { this.onChange({ type: 'guard', tool: hook.tool_name }); return guards.denyBody(reason); }
         if (ASKS_USER.has(hook.tool_name)) {
           this.waitingOn = source;
           this.setStatus('needs_input');
         } else {
-          if (hook.tool_input?.description) this.pendingDescs.push(String(hook.tool_input.description).slice(0, 80));
+          // Only agent launches name a subagent; Bash also carries a description.
+          if ((hook.tool_name === 'Agent' || hook.tool_name === 'Task') && hook.tool_input?.description) this.pendingDescs.push(String(hook.tool_input.description).slice(0, 80));
           this.clearWaitIf(source);
         }
         break;
+      }
       case 'PermissionRequest':
         this.waitingOn = source;
         this.setStatus('needs_input');
@@ -406,13 +465,17 @@ class Session {
 
   modeSnapshot() {
     const m = modes.get(this.mode);
-    return m ? { id: m.id, name: m.name, color: m.color, applied: this.modeApplied } : null;
+    const addons = this.addons.map((id) => modes.get(id)).filter(modes.isAddon)
+      .map((a) => ({ id: a.id, name: a.name, color: a.color, icon: a.icon, applied: this.addonsApplied.includes(a.id) }));
+    if (!m && !addons.length) return null;
+    return m ? { id: m.id, name: m.name, color: m.color, icon: m.icon, guard: m.guard || null, goal: !!m.goal, applied: this.modeApplied, addons }
+      : { id: null, addons };
   }
 
   persisted() {
     return {
       id: this.id, name: this.name, cwd: this.cwd, sessionId: this.sessionId, pinned: this.pinned,
-      mode: this.mode, modeApplied: this.modeApplied, color: this.color, lock: this.lock, kind: this.kind,
+      mode: this.mode, modeApplied: this.modeApplied, addons: this.addons, addonsApplied: this.addonsApplied, color: this.color, lock: this.lock, kind: this.kind,
     };
   }
 }
@@ -439,7 +502,8 @@ function hookSettings(tileId, server, ctlCommand, platform = process.platform) {
       // A command hook, so it works for every SessionStart source; it restates the mode after a compaction.
       SessionStart: [{ hooks: [{ type: 'command', command: `${ctlCommand} hook`, timeout: 5 }] }],
       UserPromptSubmit: http(),
-      PreToolUse: [{ matcher: 'AskUserQuestion|ExitPlanMode|Agent|Task', hooks: [{ type: 'http', url, timeout: 5 }] }],
+      // Edit and shell tools too, so guard modes can deny them; with no guard on the reply is empty.
+      PreToolUse: [{ matcher: guards.MATCHER, hooks: [{ type: 'http', url, timeout: 5 }] }],
       PermissionRequest: http(),
       PostToolUse: http(),
       PostToolUseFailure: http(),

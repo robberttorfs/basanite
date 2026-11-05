@@ -89,7 +89,7 @@ function shortPath(p, max = 60) {
 }
 const folderName = (dir) => dir.split(/[\\/]/).filter(Boolean).pop() || dir;
 const modeById = (id) => state.modes.find((m) => m.id === id);
-const visibleModes = () => state.modes.filter((m) => !m.hidden);
+const visibleModes = () => state.modes.filter((m) => !m.hidden && m.kind !== 'addon');
 
 // ---------- terminals ----------
 
@@ -417,14 +417,8 @@ function updateTile(tile, snap) {
 
   // Mode chip: filled once Claude has the instructions, outlined until the next message carries them.
   const chip = $('.mode-chip', el);
-  const m = snap.mode;
   chip.hidden = shell;
-  chip.className = `mode-chip${m ? ' set' : ''}${m && !m.applied ? ' pending' : ''}`;
-  chip.style.setProperty('--mc', m?.color || 'var(--muted)');
-  chip.textContent = m ? m.name : 'Mode';
-  chip.title = m
-    ? (m.applied ? `${m.name} mode. Click to change (${SHIFT_MOD}M).` : `${m.name} mode starts with your next message.`)
-    : `Put this session in a mode (${SHIFT_MOD}M)`;
+  if (window.HangarModes) HangarModes.drawChip(chip, snap); // mode name plus add-on glyphs
 
   const tk = snap.tokens;
   const pct = tk.contextSize ? Math.min(100, (tk.context / tk.contextSize) * 100) : 0;
@@ -773,7 +767,6 @@ $('#summary').addEventListener('click', (e) => {
   else window.HangarOverview?.open();
 });
 
-
 function nextWaiting() {
   if (window.HangarWs) return HangarWs.nextWaiting();  // hops workspaces when it has to
   const waiting = state.tiles.filter((t) => t.status === 'needs_input' || t.status === 'error');
@@ -881,6 +874,7 @@ function openMore(id, anchorEl) {
     { label: 'Rename and colour', kbd: HangarCommands.shortcutLabel('session.rename'), run: () => openRename(id) },
     ...(shell ? [] : [{ label: 'Mode', kbd: HangarCommands.shortcutLabel('mode.choose'), run: () => openModePicker(id) }]),
     ...(shell || snap.status === 'exited' ? [] : [{ label: 'Fresh start', run: () => openFresh(id) }]),
+    ...(window.HangarModes?.moreItems(snap) || []),
     { label: snap.pinned ? 'Unpin' : 'Pin as main', kbd: HangarCommands.shortcutLabel('session.pin'), run: () => hangar.pin(id) },
     ...(shell || snap.status === 'exited' ? [] : [{ label: snap.snoozed ? 'Glow again' : 'Snooze…', run: () => (snap.snoozed ? hangar.snooze(id, 'off') : window.HangarOverview?.snoozeMenu(id)) }]),
     ...(snap.lock ? [{ label: 'Let it size itself', run: () => setLock(id, null) }] : []),
@@ -969,155 +963,11 @@ function openRename(id) {
 }
 
 // ---------- modes ----------
+// The picker, library and editor live in modes-ui.js.
 
-function openModePicker(id, anchorEl) {
-  const snap = state.tiles.find((t) => t.id === id);
-  if (!snap || snap.kind === 'shell') return;
-  anchorEl = anchorEl || $('.mode-chip', tiles.get(id).el);
-  const cur = snap.mode?.id || null;
-  const el = h('div', 'pop menu modes-menu');
-  const row = (m) => ({
-    html: `<span class="mdot" style="--c:${m ? m.color : 'transparent'}"></span><span class="mt"><span class="mn">${esc(m ? m.name : 'No mode')}</span>` +
-      `${m?.description ? `<span class="md">${esc(m.description)}</span>` : ''}</span>${(m?.id || null) === cur ? `<span class="ck">${ICON.check}</span>` : ''}`,
-    run: () => hangar.setMode(id, m ? m.id : null),
-  });
-  menuItems(el, [
-    ...visibleModes().map(row),
-    row(null),
-    null,
-    { label: 'Make a mode from this session', run: () => modeFromSession(id) },
-    { label: 'Edit modes', run: () => openModes() },
-  ]);
-  // The description shows in a fixed footer, so rows never change height under the mouse.
-  const DEFAULT_HINT = 'Claude gets the mode with your next message.';
-  const hint = h('p', 'hint mm-desc', DEFAULT_HINT);
-  el.appendChild(hint);
-  const show = (b) => { hint.textContent = b?.querySelector('.md')?.textContent || DEFAULT_HINT; };
-  el.querySelectorAll('.item').forEach((b) => {
-    b.addEventListener('mouseenter', () => show(b));
-    b.addEventListener('focus', () => show(b));
-  });
-  el.addEventListener('mouseleave', () => show(el.contains(document.activeElement) ? document.activeElement : null));
-  openPop(el, anchorEl, { alignLeft: true, onKey: arrowNav(el) });
-  (el.querySelector('.ck')?.closest('.item') || el.querySelector('.item')).focus();
-}
-
-function modeFromSession(id) {
-  const n = state.tiles.findIndex((t) => t.id === id) + 1;
-  const snap = state.tiles[n - 1];
-  if (!snap) return;
-  toggleOverseer(true, `Make a new Hangar mode from session ${n} ("${snap.name}"). Read its log and capture how I told it to work (rules, style, when to stop or ask), not the task itself. Show me the draft in a few lines, then save it with hangarctl mode-save once I agree.`);
-}
-
-function openModes(selectId) {
-  const el = h('div', 'pop modal modes-editor');
-  el.innerHTML = `<div class="me-head"><h3>Modes</h3><div class="grow"></div>
-      <button class="btn small" data-ask title="Describe a mode in plain words and the overseer writes it">${ICON.spark}Ask the overseer</button>
-      <button class="btn small" data-new>New mode</button></div>
-    <div class="me-body"><div class="me-list" role="listbox" aria-label="Modes"></div><form class="me-form" autocomplete="off"></form></div>`;
-  const list = $('.me-list', el), form = $('.me-form', el);
-  let current = selectId || visibleModes()[0]?.id || null;
-  let dirty = false;
-
-  const drawList = () => {
-    list.innerHTML = '';
-    for (const m of state.modes) {
-      const b = h('button', `me-item${m.id === current ? ' sel' : ''}${m.hidden ? ' hidden-mode' : ''}`,
-        `<span class="mdot" style="--c:${m.color}"></span><span class="mn">${esc(m.name)}</span>${m.hidden ? '<span class="tag">hidden</span>' : m.edited ? '<span class="tag">edited</span>' : !m.builtin ? '<span class="tag">yours</span>' : ''}`);
-      b.type = 'button';
-      b.setAttribute('role', 'option');
-      b.onclick = async () => {
-        if (dirty && !(await askInline(form, 'Discard your changes to this mode?', 'Discard', true))) return;
-        current = m.id; dirty = false; drawList(); drawForm();
-      };
-      list.appendChild(b);
-    }
-  };
-
-  const drawForm = (draft) => {
-    const m = draft || modeById(current) || { name: '', color: SWATCHES[0], description: '', instructions: '', exitPhrases: [], exitTo: null, builtin: false };
-    let color = m.color;
-    form.innerHTML = `
-      <label>Name<input class="field" name="name" maxlength="24" required></label>
-      <label>Colour</label><div class="sw-slot"></div>
-      <label>Shown in the menu<input class="field" name="description" maxlength="120" placeholder="One short line"></label>
-      <label>Instructions for Claude<textarea class="field mono" name="instructions" rows="11" placeholder="- One rule per line"></textarea></label>
-      <details class="me-more"${(m.exitPhrases || []).length || m.exitTo || m.tokenWarn ? ' open' : ''}><summary>More options</summary>
-        <label>Ends when your whole message is<input class="field" name="exit" placeholder="start, go"></label>
-        <div class="two">
-          <label>Then switch to<select class="field" name="exitTo"><option value="">No mode</option>${state.modes.filter((x) => x.id !== m.id).map((x) => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select></label>
-          <label>Warn me after (k tokens)<input class="field" name="tokenWarn" type="number" min="0" step="50" placeholder="off"></label>
-        </div>
-      </details>
-      <div class="me-foot">
-        ${m.id && m.builtin && (m.edited || m.hidden) ? '<button type="button" class="btn small" data-reset>Restore original</button>' : ''}
-        ${m.id && !m.hidden ? `<button type="button" class="btn small danger" data-del>${m.builtin ? 'Hide' : 'Delete'}</button>` : ''}
-        <div class="grow"></div>
-        <button type="submit" class="btn primary">Save</button>
-      </div>`;
-    form.elements.name.value = m.name;
-    form.elements.description.value = m.description || '';
-    form.elements.instructions.value = m.instructions || '';
-    form.elements.exit.value = (m.exitPhrases || []).join(', ');
-    form.elements.exitTo.value = m.exitTo || '';
-    form.elements.tokenWarn.value = m.tokenWarn || '';
-    $('.sw-slot', form).replaceWith(swatchRowModes(color, (c) => { color = c; dirty = true; }));
-    form.oninput = () => { dirty = true; };
-    form.onsubmit = async (e) => {
-      e.preventDefault();
-      const saved = await hangar.saveMode({
-        id: m.id, name: form.elements.name.value, color, description: form.elements.description.value,
-        instructions: form.elements.instructions.value, exitPhrases: form.elements.exit.value, exitTo: form.elements.exitTo.value || null,
-        tokenWarn: Number(form.elements.tokenWarn.value) || null,
-      });
-      current = saved.id;
-      dirty = false;
-      flash(form, 'Saved');
-    };
-    const del = $('[data-del]', form);
-    if (del) del.onclick = async () => {
-      if (!m.builtin && !(await askInline(form, `Delete the ${m.name} mode?`, 'Delete', true))) return;
-      hangar.deleteMode(m.id);
-      dirty = false;
-      if (!m.builtin) current = visibleModes().find((x) => x.id !== m.id)?.id || null;
-    };
-    const rs = $('[data-reset]', form);
-    if (rs) rs.onclick = async () => { await hangar.resetMode(m.id); dirty = false; };
-  };
-
-  // Re-render only when the modes themselves change (a save, or the overseer adding one).
-  let seen = JSON.stringify(state.modes);
-  modesEditorRefresh = () => {
-    const now = JSON.stringify(state.modes);
-    if (now === seen) return;
-    seen = now;
-    drawList();
-    if (!dirty) drawForm();
-  };
-  openPop(el, null, { onClose: () => { modesEditorRefresh = null; } });
-  $('[data-new]', el).onclick = async () => {
-    if (dirty && !(await askInline(form, 'Discard your changes to this mode?', 'Discard', true))) return;
-    current = null; dirty = true; drawList(); drawForm({ name: '', color: SWATCHES[(state.modes.length) % SWATCHES.length], description: '', instructions: '', exitPhrases: [], exitTo: null, builtin: false });
-    form.elements.name.focus();
-  };
-  $('[data-ask]', el).onclick = () => { closePop(); toggleOverseer(true, 'Help me create a new Hangar mode. Ask me what the mode is for, then draft it and save it with hangarctl mode-save once I agree.'); };
-  drawList();
-  drawForm();
-}
-let modesEditorRefresh = null;
-
-function swatchRowModes(current, onPick) {
-  const row = h('div', 'swatches');
-  for (const c of SWATCHES) {
-    const b = h('button', `sw${c === current ? ' sel' : ''}`);
-    b.type = 'button';
-    b.style.setProperty('--c', c);
-    b.setAttribute('aria-label', `Colour ${c}`);
-    b.onclick = () => { row.querySelectorAll('.sw').forEach((x) => x.classList.remove('sel')); b.classList.add('sel'); onPick(c); };
-    row.appendChild(b);
-  }
-  return row;
-}
+function openModePicker(id, anchorEl) { window.HangarModes?.openPicker(id, anchorEl); }
+function modeFromSession(id) { window.HangarModes?.modeFromSession(id); }
+function openModes(selectId) { window.HangarModes?.openLibrary(selectId); }
 
 /** Asks inside the given popover instead of a native dialog. Resolves true or false. */
 function askInline(container, text, okLabel = 'OK', danger = false) {
@@ -1233,6 +1083,8 @@ async function openNew() {
       <button class="btn" data-pick>Choose folder…</button><button class="btn primary" data-home>${ICON.term}Open terminal</button></div>`;
   let kind = lastNewKind;
   let mode = window.HangarWs?.defaultMode() || (modeById(lastNewMode) && !modeById(lastNewMode).hidden ? lastNewMode : null);
+  let touched = false;  // left alone, a folder that remembers its own mode starts in that
+  const pickedMode = () => (touched ? mode || 'none' : `default:${mode || 'none'}`);
   let sel = 0;
   const list = $('.recent-list', el);
   const modeBtn = $('[data-mode]', el);
@@ -1248,7 +1100,7 @@ async function openNew() {
     const menu = h('div', 'pop menu inline-menu');
     for (const m of [null, ...visibleModes()]) {
       const b = h('button', 'item', `<span class="mdot" style="--c:${m ? m.color : 'transparent'}"></span>${esc(m ? m.name : 'No mode')}${(m?.id || null) === mode ? `<span class="ck">${ICON.check}</span>` : ''}`);
-      b.onclick = (ev) => { ev.stopPropagation(); mode = m?.id || null; lastNewMode = mode; drawMode(); menu.remove(); };
+      b.onclick = (ev) => { ev.stopPropagation(); mode = m?.id || null; lastNewMode = mode; touched = true; drawMode(); menu.remove(); };
       menu.appendChild(b);
     }
     el.querySelector('.inline-menu')?.remove();
@@ -1263,7 +1115,7 @@ async function openNew() {
     modeBtn.hidden = kind === 'shell';
     $('[data-home]', el).hidden = kind !== 'shell';
     drawMode();
-    await renderRecent(list, 8, () => closePop && closePop(), { terminal: () => kind === 'shell', mode: () => mode || 'none' });
+    await renderRecent(list, 8, () => closePop && closePop(), { terminal: () => kind === 'shell', mode: pickedMode });
     sel = Math.min(sel, Math.max(0, list.children.length - 1));
     highlight();
   };
@@ -1278,7 +1130,7 @@ async function openNew() {
         e.preventDefault();
         const d = list.children[sel].dataset.dir;
         closePop();
-        start(d, kind === 'shell' ? 'shell' : e.shiftKey ? 'continue' : 'new', mode || 'none');
+        start(d, kind === 'shell' ? 'shell' : e.shiftKey ? 'continue' : 'new', pickedMode());
       }
     },
   });
@@ -1286,7 +1138,7 @@ async function openNew() {
   window.HangarExtras?.newPopover(el, list, () => kind);
   $('[data-pick]', el).onclick = async () => {
     const dir = await hangar.pickFolder();
-    if (dir) { closePop?.(); start(dir, kind === 'shell' ? 'shell' : 'new', mode || 'none'); }
+    if (dir) { closePop?.(); start(dir, kind === 'shell' ? 'shell' : 'new', pickedMode()); }
   };
   $('[data-home]', el).onclick = () => { closePop(); start(null, 'shell'); };
 }
@@ -1462,7 +1314,7 @@ hangar.onState((s) => {
   lastZoom = zoom;
   document.body.classList.toggle('fullscreen', window.innerHeight === screen.height);
   render();
-  modesEditorRefresh?.();
+  window.HangarModes?.refresh();
   usageRefresh?.();
 });
 
