@@ -63,7 +63,7 @@ const BUILTIN = [
 - Finish with a short morning report at the top of the progress file: done, what to try first, decisions to check, what is left.`,
   },
   {
-    id: 'review', name: 'Review', color: '#6fd4e0', icon: 'eye', cost: 1, shelf: 5, guard: 'readonly',
+    id: 'review', name: 'Review', color: '#6fd4e0', icon: 'search', cost: 1, shelf: 5, guard: 'readonly',
     description: 'Read-only audit. Findings ranked, no edits.',
     exitPhrases: ['fix', 'fix it', 'fix them', 'fix them all', 'now fix it'],
     instructions: `Read-only review. File changes are blocked; read-only commands are fine.

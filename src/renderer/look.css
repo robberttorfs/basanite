@@ -166,7 +166,13 @@ body.compact .gitchip { height: 18px; }
 .ch-files { max-height: 168px; overflow: auto; padding-bottom: 6px; border-bottom: 1px solid var(--line); flex: none; }
 .cf { display: flex; align-items: center; gap: 10px; width: 100%; height: 26px; padding: 0 6px; border: 0; border-radius: 6px; background: none; cursor: pointer; text-align: left; font-size: 12.5px; }
 .cf:hover, .cf:focus-visible { background: var(--hover); outline: none; }
-.cs { width: 18px; flex: none; color: var(--muted); font: 600 11px "SF Mono", Menlo, Consolas, monospace; }
+.cs { width: 58px; flex: none; color: var(--faint); font-size: 11.5px; }
+.ch-runs { display: flex; gap: 6px; }
+.ch-runs .kb { margin-left: 6px; }
+/* Tile ⋯ menu: Folder › flyout */
+.pop .item.has-sub .chev { margin-left: auto; color: var(--faint); }
+.pop .item.has-sub[aria-expanded="true"] { background: var(--hover); }
+.sub-menu { min-width: 190px; z-index: 1; }
 .cp { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cn { flex: none; font: 11px "SF Mono", Menlo, Consolas, monospace; }
 .changes-pop .add { color: var(--done); }
@@ -195,3 +201,9 @@ body.compact .gitchip { height: 18px; }
 .uh-chart .hit { fill: transparent; }
 .uh-chart .zero { fill: var(--line); }
 .uh-chart, .uh-chart * { stroke: none; }
+
+/* Thin app scrollbars inside popovers (history, changes, menus), like the terminals'. */
+.pop, .pop * { scrollbar-width: thin; scrollbar-color: #3a3f4b transparent; }
+@media (prefers-color-scheme: light) { .pop, .pop * { scrollbar-color: #c9ced7 transparent; } }
+/* Selected text stays readable in name fields. */
+::selection { background: color-mix(in srgb, var(--accent) 35%, transparent); color: var(--text); }

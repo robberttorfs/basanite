@@ -75,10 +75,11 @@ body.win #bar, body.linux #bar { padding-left: 8px; }
 
 /* Layout */
 #main { position: absolute; top: 44px; left: 0; right: 0; bottom: 0; display: flex; }
-#stage { position: relative; flex: 1; margin: 8px; }
+#stage { position: relative; flex: 1; margin: 8px; transition: opacity .12s; }
+#stage.swap { opacity: 0; transition: none; }
 
 /* Overseer: its own colour and surface, so it never reads as a session */
-#overseer { width: 0; overflow: hidden; display: flex; flex-direction: column; border-left: 1px solid transparent; background: var(--ov-bg); transition: width .22s var(--ease); position: relative; }
+#overseer { width: 0; overflow: hidden; display: flex; flex-direction: column; border-left: 1px solid transparent; background: var(--ov-bg); position: relative; }
 #overseer::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: linear-gradient(90deg, var(--ov), rgba(180, 156, 255, 0)); }
 body.ov-open #overseer { width: 420px; border-left-color: rgba(180, 156, 255, .22); }
 .ov-head { display: flex; align-items: center; gap: 8px; padding: 12px 10px 8px 14px; min-width: 420px; }
@@ -515,7 +516,7 @@ body.polish #ov-term { margin: 4px 6px 0 14px; }
 .ovw-counts { display: none; }
 .ovw-body { flex: 1; min-height: 0; display: flex; }
 .ovw-list { width: 42%; min-width: 340px; max-width: 560px; overflow-y: auto; padding: 8px; border-right: 1px solid var(--line-soft); }
-.ovw-sec { padding: 12px 10px 4px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+.ovw-sec { padding: 12px 10px 4px; font-size: 11.5px; font-weight: 500; color: var(--faint); }
 .ovw-row { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; border-radius: 7px; cursor: pointer; white-space: nowrap; font-size: 13px; }
 .ovw-row:hover { background: var(--panel); }
 .ovw-row.sel { background: var(--hover); }

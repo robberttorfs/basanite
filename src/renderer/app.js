@@ -360,7 +360,7 @@ function setView(id, on, tile = tiles.get(id)) {
       send: (text, files) => whenReady(id, () => typeMessage((d) => hangar.input(id, d), text, files)),
       takeFiles: pastedFiles,
       interrupt: () => hangar.input(id, '\x1b'),
-      empty: 'Nothing here yet. Messages and replies show up as you go.',
+      empty: '',
     });
     $('.chat-slot', tile.el).replaceWith(view.el);
     tile.chat = { view, on: false };
@@ -884,24 +884,61 @@ function openMore(id, anchorEl) {
   const snap = state.tiles.find((t) => t.id === id);
   if (!snap) return;
   const shell = snap.kind === 'shell';
-  const el = h('div', 'pop menu');
+  const el = h('div', 'pop menu tile-menu');
+  // About seven rows. Rarer actions (copy session ID, let it size itself, Review and Simplify)
+  // live in the palette and the Session menu; Review and Simplify also in the changes peek.
+  const extra = window.HangarExtras?.moreItems(snap) || { folder: [], items: [] };
+  const asks = snap.status === 'needs_input' || snap.snoozed;  // snooze only matters while it glows
   menuItems(el, [
-    { label: 'Rename and colour', kbd: HangarCommands.shortcutLabel('session.rename'), run: () => openRename(id) },
-    ...(shell ? [] : [{ label: 'Mode', kbd: HangarCommands.shortcutLabel('mode.choose'), run: () => openModePicker(id) }]),
-    ...(shell || snap.status === 'exited' ? [] : [{ label: 'Fresh start', run: () => openFresh(id) }]),
-    ...(window.HangarModes?.moreItems(snap) || []),
+    { label: 'Rename and colour…', kbd: HangarCommands.shortcutLabel('session.rename'), run: () => openRename(id) },
+    ...(shell ? [] : [{ label: 'Mode…', kbd: HangarCommands.shortcutLabel('mode.choose'), run: () => openModePicker(id) }]),
+    ...(shell || snap.status === 'exited' ? [] : [{ label: 'Fresh start…', run: () => openFresh(id) }]),
     { label: snap.pinned ? 'Unpin' : 'Pin as main', kbd: HangarCommands.shortcutLabel('session.pin'), run: () => hangar.pin(id) },
-    ...(shell || snap.status === 'exited' ? [] : [{ label: snap.snoozed ? 'Glow again' : 'Snooze…', run: () => (snap.snoozed ? hangar.snooze(id, 'off') : window.HangarOverview?.snoozeMenu(id)) }]),
-    ...(snap.lock ? [{ label: 'Let it size itself', run: () => setLock(id, null) }] : []),
+    ...(shell || snap.status === 'exited' || !asks ? [] : [{ label: snap.snoozed ? 'Glow again' : 'Snooze…', run: () => (snap.snoozed ? hangar.snooze(id, 'off') : window.HangarOverview?.snoozeMenu(id)) }]),
     ...(snap.status === 'exited' ? [{ label: shell ? 'Reopen' : snap.sessionId ? 'Resume' : 'Restart', run: () => hangar.restart(id) }] : []),
     null,
-    { label: 'Copy folder path', run: () => navigator.clipboard.writeText(snap.cwd) },
-    ...(snap.sessionId && !shell ? [{ label: 'Copy session ID', run: () => navigator.clipboard.writeText(snap.sessionId) }] : []),
-    ...(window.HangarExtras?.moreItems(snap) || []),
+    ...extra.items,
     null,
     { label: shell ? 'Close terminal' : 'Close session', cls: 'danger', run: () => closeTile(id) },
   ]);
-  openPop(el, anchorEl, { onKey: arrowNav(el) });
+  // Folder › opens a small flyout beside the menu.
+  const folderRow = h('button', 'item has-sub', `<span>Folder</span><span class="chev" aria-hidden="true">›</span>`);
+  folderRow.setAttribute('aria-haspopup', 'menu');
+  folderRow.setAttribute('aria-expanded', 'false');
+  const seps = el.querySelectorAll(':scope > .sep');
+  el.insertBefore(folderRow, seps[1] || null);
+  let sub = null;
+  const closeSub = (focusRow) => { sub?.remove(); sub = null; folderRow.setAttribute('aria-expanded', 'false'); if (focusRow) folderRow.focus(); };
+  const openSub = (focusFirst) => {
+    if (sub) { if (focusFirst) sub.querySelector('.item')?.focus(); return; }
+    sub = h('div', 'pop menu sub-menu');
+    sub.setAttribute('role', 'menu');
+    sub.setAttribute('aria-label', 'Folder');
+    menuItems(sub, extra.folder);
+    el.appendChild(sub);
+    folderRow.setAttribute('aria-expanded', 'true');
+    const r = folderRow.getBoundingClientRect(), pr = el.getBoundingClientRect();
+    const right = pr.right + sub.offsetWidth + 4 < window.innerWidth;
+    sub.style.left = right ? `${pr.width - 4}px` : `${-sub.offsetWidth + 4}px`;
+    sub.style.top = `${r.top - pr.top - 5}px`;
+    if (focusFirst) sub.querySelector('.item')?.focus();
+  };
+  folderRow.onclick = () => (sub ? closeSub(true) : openSub(true));
+  folderRow.addEventListener('mouseenter', () => openSub(false));
+  el.querySelectorAll(':scope > .item').forEach((b) => { if (b !== folderRow) b.addEventListener('mouseenter', () => closeSub(false)); });
+  const nav = arrowNav(el);
+  openPop(el, anchorEl, {
+    onKey: (e) => {
+      if (sub && sub.contains(document.activeElement)) {
+        if (e.key === 'ArrowLeft') { e.preventDefault(); closeSub(true); return; }
+        arrowNav(sub)(e);
+        return;
+      }
+      if (e.key === 'ArrowRight' && document.activeElement === folderRow) { e.preventDefault(); openSub(true); return; }
+      if (sub && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) closeSub(false);
+      nav(e);
+    },
+  });
   el.querySelector('.item').focus();
 }
 
@@ -1259,15 +1296,19 @@ function toggleOverseer(force, prompt) {
       takeFiles: pastedFiles,
       interrupt: () => hangar.overseerInput('\x1b'),
       placeholder: 'Ask about your sessions',
-      empty: 'Ask about your sessions, or tell it what to do in them.',
+      empty: '',
     });
     $('#ov-chat').appendChild(ovChat.el);
     setOvView(viewPref('overseer'));
   }
   if (open && prompt) hangar.overseerAsk(prompt);
   else if (open && !state.overseerRunning) hangar.overseerStart();
-  // The stage shrinks with the panel; lay out once it has finished sliding.
-  setTimeout(() => { layout(true); if (open) { ov?.fit(); focusOverseer(); } }, 240);
+  // An instant switch with a short fade: the tiles re-fit once, behind the fade, and never slide.
+  const st = $('#stage');
+  st.classList.add('swap');
+  layout(true);
+  requestAnimationFrame(() => requestAnimationFrame(() => st.classList.remove('swap')));
+  if (open) setTimeout(() => { ov?.fit(); focusOverseer(); }, 30);
 }
 
 let ovChat = null;

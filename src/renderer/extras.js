@@ -1,5 +1,5 @@
 /* global HangarCommands, hangar, state, tiles, focused, isMac, esc, h, $, k, folderName, shortPath, setFocus, openPop, closePop,
-   tileNotice, focusInput */
+   tileNotice, focusInput, setLock */
 // Tile extras drawn from the data side (data-ipc.js): doing line, git chip and changes peek,
 // same-file notice, cache-cold marker, folder actions, history, branch (fork), own-branch
 // worktree in New, and the usage history chart. Loaded after app.js.
@@ -96,16 +96,24 @@
     const sections = parseDiff(r.diff);
     const files = r.files.map((f) => {
       const s = sections.find((x) => x.file === f.path);
-      return `<button class="cf" data-file="${esc(f.path)}"><span class="cs st-${esc(f.status.trim()[0] || 'M')}">${esc(f.status.trim() || 'M')}</span><span class="cp">${esc(f.path)}</span>` +
+      const word = statusWord(f.status);
+      return `<button class="cf" data-file="${esc(f.path)}" aria-label="${esc(`${f.path}, ${word}`)}"><span class="cs" aria-hidden="true">${word}</span><span class="cp">${esc(f.path)}</span>` +
         (s ? `<span class="cn"><span class="add">+${s.add}</span> <span class="del">−${s.del}</span></span>` : '') + '</button>';
     }).join('');
     const body = sections.map((s, i) => `<details class="cd" open data-i="${i}"><summary>${esc(s.file)}</summary><pre>${s.lines.map((l) => {
       const cls = l.startsWith('@@') ? 'hk' : l.startsWith('+') ? 'add' : l.startsWith('-') ? 'del' : '';
       return `<span class="${cls}">${esc(l) || ' '}</span>`;
     }).join('')}</pre></details>`).join('');
-    el.innerHTML = `<div class="ch-head">${SVG.branch}<b>${esc(r.branch || '')}</b><span class="faint">${r.fileCount} file${r.fileCount === 1 ? '' : 's'}</span></div>
+    el.innerHTML = `<div class="ch-head">${SVG.branch}<b>${esc(r.branch || '')}</b><span class="faint">${r.fileCount} file${r.fileCount === 1 ? '' : 's'}</span><span class="grow"></span><span class="ch-runs"></span></div>
       <div class="ch-files">${files || '<p class="hint">No changes</p>'}</div>
       ${body ? `<div class="ch-diff">${body}${r.truncated ? '<p class="hint">Diff truncated</p>' : ''}</div>` : ''}`;
+    // Everything about changes in one place: Review and Simplify (they cost tokens, so the dots show it).
+    const runs = $('.ch-runs', el);
+    for (const it of window.HangarModes?.moreItems(snapOf(id)) || []) {
+      const b = h('button', 'btn small', it.html);
+      b.onclick = () => { closePop(); it.run(); };
+      runs.appendChild(b);
+    }
     el.querySelectorAll('.cf').forEach((b) => {
       b.onclick = () => {
         const d = [...el.querySelectorAll('.cd summary')].find((s) => s.textContent === b.dataset.file)?.parentElement;
@@ -113,6 +121,17 @@
       };
     });
     el.querySelector('.cf')?.focus();
+  }
+
+  /** Plain words for git's two-letter status codes. */
+  function statusWord(code) {
+    const c = String(code || '').trim();
+    if (c === '??') return 'new';
+    if (c.includes('U')) return 'conflict';
+    if (c.includes('A')) return 'added';
+    if (c.includes('D')) return 'deleted';
+    if (c.includes('R')) return 'renamed';
+    return 'modified';
   }
 
   // ---------- same file in two sessions ----------
@@ -142,12 +161,14 @@
     $('[data-go]', el).focus();
   }
 
+  /** For the tile's ⋯ menu: the Folder flyout's rows, and the rows that stay in the menu. */
   function moreItems(snap) {
-    const items = [{ label: revealLabel, run: () => hangar.reveal(snap.cwd) }];
-    if (editor) items.push({ label: `Open in ${editor}`, run: () => hangar.openEditor(snap.cwd) });
+    const folder = [{ label: 'Copy path', run: () => navigator.clipboard.writeText(snap.cwd) }, { label: revealLabel, run: () => hangar.reveal(snap.cwd) }];
+    if (editor) folder.push({ label: `Open in ${editor}`, run: () => hangar.openEditor(snap.cwd) });
+    const items = [];
     if (snap.kind !== 'shell') items.push({ label: 'History…', run: () => openHistory(snap.cwd) });
     if (canFork(snap) && snap.status !== 'exited') items.push({ label: 'Branch this session', run: () => confirmFork(snap.id) });
-    return items;
+    return { folder, items };
   }
 
   // ---------- history ----------
@@ -319,6 +340,10 @@
       menu: { menu: 'Session', section: 'folder' }, when: (cx) => !!cx.snap?.git, run: (cx) => openChanges(cx.id) },
     { id: 'session.history', label: 'History…', group: 'Actions', aliases: ['past', 'conversations', 'resume'],
       menu: { menu: 'Session', section: 'folder' }, when: (cx) => any(cx) && cx.snap.kind !== 'shell', run: (cx) => openHistory(cx.snap.cwd) },
+    { id: 'session.copy-id', label: 'Copy session ID', group: 'Actions', aliases: ['id', 'uuid'],
+      menu: { menu: 'Session', section: 'folder' }, when: (cx) => any(cx) && cx.snap.kind !== 'shell' && !!cx.snap.sessionId, run: (cx) => navigator.clipboard.writeText(cx.snap.sessionId) },
+    { id: 'session.unlock', label: 'Let it size itself', group: 'Actions', aliases: ['unlock', 'size', 'auto size'],
+      menu: { menu: 'Session', section: 'edit' }, when: (cx) => !!cx.snap?.lock, run: (cx) => setLock(cx.id, null) },
     { id: 'session.fork', label: 'Branch this session', group: 'Actions', aliases: ['fork', 'copy'],
       menu: { menu: 'Session', section: 'folder' }, when: (cx) => canFork(cx.snap) && cx.snap.status !== 'exited', run: (cx) => confirmFork(cx.id) },
   ]);
@@ -326,5 +351,5 @@
   // Read the history once soon after start, so the first Usage open paints at full size.
   setTimeout(() => { if (!usage && hangar.usageHistory) { usageAt = Date.now(); hangar.usageHistory(14).then((u) => { usage = u; }).catch(() => {}); } }, 4000);
 
-  window.HangarExtras = { drawAll, moreItems, openHistory, openChanges, newPopover, wantsWorktree, startWorktree, usageSection, parseDiff, ago };
+  window.HangarExtras = { drawAll, moreItems, openHistory, openChanges, newPopover, wantsWorktree, startWorktree, usageSection, parseDiff, ago, statusWord };
 })();

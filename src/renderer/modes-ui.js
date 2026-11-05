@@ -24,6 +24,7 @@
     check: '<svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7"/></svg>',
     commit: '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.5"/><path d="M1.5 8h4M10.5 8h4"/></svg>',
     quiet: '<svg viewBox="0 0 16 16"><path d="M3 6.5h2.5L9 3.5v9L5.5 9.5H3zM11.5 6.5l3 3M14.5 6.5l-3 3"/></svg>',
+    search: '<svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>',
     dot: '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="3"/></svg>',
     back: '<svg viewBox="0 0 16 16"><path d="M9.5 3.5L5 8l4.5 4.5"/></svg>',
     file: '<svg viewBox="0 0 16 16"><path d="M8 2.5v7M5 6.5l3 3 3-3M3 11.5v2h10v-2"/></svg>',
@@ -220,7 +221,7 @@
       el.innerHTML = `<div class="me-head"><h3>Modes</h3><div class="grow"></div>
           <button class="btn small" data-import title="Import a mode file">${MI.file}Import</button>
           <button class="btn small" data-ask title="Ask the overseer">${ICON.spark}Ask the overseer</button>
-          <button class="btn small" data-new>New mode</button></div>
+          <button class="btn small primary" data-new><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>New mode</button></div>
         <div class="ml-body"><div class="ml-grid" data-shelf></div>
           <details class="ml-more"><summary>More</summary><div class="ml-grid" data-rest></div></details>
           <div class="ml-label">Add-ons</div><div class="ml-grid small" data-addons></div></div>`;
@@ -251,7 +252,7 @@
           </div>
           <label>Colour</label><div class="sw-slot"></div>
           <label>Icon</label><div class="ml-icons" role="radiogroup" aria-label="Icon"></div>
-          <label>Shown in the menu<input class="field" name="description" maxlength="120" placeholder="One short line"></label>
+          <label>Description<input class="field" name="description" maxlength="120" placeholder="One short line"></label>
           <label><span class="ml-row">Instructions for Claude<span class="grow"></span><span class="ml-est" aria-live="polite"></span></span>
             <textarea class="field mono" name="instructions" rows="9" placeholder="- One rule per line"></textarea></label>
           <div class="two">
@@ -267,7 +268,7 @@
           </details>`}
           <div class="me-foot">
             ${m.id && m.builtin && (m.edited || m.hidden) ? '<button type="button" class="btn small" data-reset>Restore original</button>' : ''}
-            ${m.id && !m.hidden ? `<button type="button" class="btn small danger" data-del>${m.builtin ? 'Hide' : 'Delete'}</button>` : ''}
+            ${m.id && !m.hidden ? `<button type="button" class="btn small${m.builtin ? '' : ' danger'}" data-del>${m.builtin ? 'Hide' : 'Delete'}</button>` : ''}
             <div class="grow"></div>
             <button type="submit" class="btn primary">Save</button>
           </div>
@@ -318,11 +319,18 @@
         exitPhrases: F.exit ? F.exit.value : [], exitTo: F.exitTo ? F.exitTo.value || null : null,
         tokenWarn: F.tokenWarn ? Number(F.tokenWarn.value) || null : null,
       });
+      // "Saved" and "Exported" stay on the button as a quiet state until the next edit (no timers).
+      const done = (b, word) => {
+        if (!b) return;
+        b.dataset.was ??= b.innerHTML;
+        b.innerHTML = `${ICON.check}${word}`;
+        form.addEventListener('input', () => { b.innerHTML = b.dataset.was; }, { once: true });
+      };
       form.onsubmit = async (e) => {
         e.preventDefault();
         const saved = await hangar.saveMode(collect());
         current = saved.id; draft = null; dirty = false;
-        flash(form, 'Saved');
+        done($('[type=submit]', form), 'Saved');
       };
       const del = $('[data-del]', form);
       if (del) del.onclick = async () => {
@@ -334,7 +342,7 @@
       const rs = $('[data-reset]', form);
       if (rs) rs.onclick = async () => { await hangar.resetMode(m.id); dirty = false; };
       const ex = $('[data-export]', el);
-      if (ex) ex.onclick = async () => { const p = await hangar.exportMode(m.id); if (p) flash(form, 'Exported'); };
+      if (ex) ex.onclick = async () => { const p = await hangar.exportMode(m.id); if (p) done(ex, 'Exported'); };
       $('[data-back]', el).onclick = async () => {
         if (dirty && !(await askInline(form, 'Discard your changes?', 'Discard', true))) return;
         dirty = false; draft = null; view = 'grid'; draw();
