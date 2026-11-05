@@ -12,3 +12,9 @@
 - 20:10 commands.js registry created (API above)
 - 20:19 menu built from registry (main.js menu:set), app-commands.js, palette.js, focus return, tests
 - 20:28 palette, ? sheet, focus return checked in dev app (shots in .devdata/shell/shots); committed
+
+## Left over
+- Real OS accelerators can't be pressed by the dev harness (sendInputEvent skips the menu on Windows); checked via `dev.sh api NAME menu 'accel=Ctrl%2BShift%2BK'`, which clicks the menu item with that shortcut.
+- Session rows list `state.tiles` (the current workspace view); cross-workspace session rows are up to the workspaces helper (provide() a rows provider or widen state).
+- Workspace menu labels use Title Case ("New Workspace"); the rest of the registry is sentence case.
+- Palette rows have no second line for the highlighted session (spec says optional).
