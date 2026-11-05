@@ -13,7 +13,17 @@ contextBridge.exposeInMainWorld('hangar', {
   pathForFile: (file) => webUtils.getPathForFile(file),
   saveImage: (bytes, type) => ipcRenderer.invoke('image:save', { bytes, type }),
 
-  create: (cwd, mode, sessionMode) => ipcRenderer.invoke('tile:create', { cwd, mode, sessionMode }),
+  create: (cwd, mode, sessionMode, ws) => ipcRenderer.invoke('tile:create', { cwd, mode, sessionMode, ws }),
+  // Workspaces
+  wsSwitch: (id) => ipcRenderer.send('ws:switch', id),
+  wsCreate: (name) => ipcRenderer.invoke('ws:create', name),
+  wsUpdate: (id, patch) => ipcRenderer.send('ws:update', { id, patch }),
+  wsMove: (id, to) => ipcRenderer.send('ws:move', { id, to }),
+  wsPutAway: (id) => ipcRenderer.send('ws:put-away', id),
+  wsReopen: (id) => ipcRenderer.send('ws:reopen', id),
+  wsClose: (id) => ipcRenderer.send('ws:close', id),
+  wsUndoClose: (id) => ipcRenderer.send('ws:undo-close', id),
+  tileToWs: (id, ws) => ipcRenderer.send('tile:to-ws', { id, ws }),
   setMode: (id, mode) => ipcRenderer.send('tile:mode', { id, mode }),
   setColor: (id, color) => ipcRenderer.send('tile:color', { id, color }),
   setLock: (id, lock) => ipcRenderer.send('tile:lock', { id, lock }),

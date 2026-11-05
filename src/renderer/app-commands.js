@@ -104,9 +104,11 @@
 
   // Sessions: one row each. ↩ focuses, ⌘↩ zooms, ⇥ lists its actions.
   const SHAPE = { idle: '○', starting: '○', working: '●', needs_input: '◆', done: '✓', error: '✕', exited: '–' };
-  C.provide('sessions', () => state.tiles.map((t) => ({
-    id: `tile:${t.id}`, label: t.name, group: 'Sessions', aliases: [folderName(t.cwd || '')],
-    context: folderName(t.cwd || ''), status: t.status, statusLabel: STATUS_LABEL[t.status] || t.status,
+  // Every workspace's sessions; with 2 or more workspaces each row names its workspace.
+  const wsName = (t) => ((state.workspaces || []).length > 1 ? (state.workspaces.find((w) => w.id === t.ws)?.name || '') : '');
+  C.provide('sessions', () => (state.allTiles || state.tiles).map((t) => ({
+    id: `tile:${t.id}`, label: t.name, group: 'Sessions', aliases: [folderName(t.cwd || ''), wsName(t)].filter(Boolean),
+    context: wsName(t) || folderName(t.cwd || ''), status: t.status, statusLabel: STATUS_LABEL[t.status] || t.status,
     shape: SHAPE[t.status] || '○', color: t.color, tileId: t.id,
     run: () => setFocus(t.id),
     secondary: () => { setFocus(t.id); toggleZoom(t.id); },

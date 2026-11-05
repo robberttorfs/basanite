@@ -1,0 +1,3 @@
+- 20:11 started: read rules, plan 3.B, UI research 1-2, main.js/app.js storage and bar
+- 20:17 workspaces.js model+migration+tests, renderer pills/menu/switch, main IPC wired; npm test green
+- 20:31 sentence-case labels, palette session rows cover all workspaces (app-commands.js), verified switch/move/put away/undo/close/default mode/keys in dev app; committed

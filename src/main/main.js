@@ -10,6 +10,7 @@ const { startServer } = require('./server');
 const { readLog } = require('./log');
 const modes = require('./modes');
 const { ChatFeed, findTranscript } = require('./chat');
+const { migrate: loadWorkspaces } = require('./workspaces');
 
 const isWin = process.platform === 'win32';
 const isMac = process.platform === 'darwin';
@@ -228,6 +229,8 @@ function addSession(opts, mode) {
     kind: opts.kind === 'shell' ? 'shell' : 'claude',
   });
   s.onChange = (ev) => onSessionChange(s, ev);
+  const w = workspaces.get(opts.ws);
+  s.ws = w && !w.putAway ? w.id : workspaces.active;  // new sessions land in the current workspace
   sessions.push(s);
   rememberFolder(s.cwd);
   if (mode === 'restore') mode = s.kind !== 'shell' && transcriptExists(s) ? 'resume' : 'new';
@@ -329,7 +332,7 @@ function stepHandover(s, ev) {
 function closeSession(id) {
   const s = find(id);
   if (!s) return;
-  lastClosed = { ...s.persisted(), index: sessions.indexOf(s) };
+  lastClosed = { ...s.persisted(), index: sessions.indexOf(s), ws: s.ws };
   const p = ptys.get(id);
   ptys.delete(id);
   try { p?.kill(); } catch {}
@@ -341,10 +344,14 @@ function closeSession(id) {
 }
 
 function saveWorkspace() {
-  saveJSON(paths.workspaceFile(), { tiles: sessions.map((s) => s.persisted()), recent: recentFolders.slice(0, 20) });
+  const byWs = {};
+  for (const s of sessions) (byWs[s.ws] ||= []).push(s.persisted());
+  saveJSON(paths.workspaceFile(), workspaces.toJSON(byWs, recentFolders.slice(0, 20)));
 }
 
 let recentFolders = loadJSON(paths.workspaceFile(), {}).recent || [];
+// Old files ({ tiles, recent }) load as one "Main" workspace.
+const workspaces = loadWorkspaces(loadJSON(paths.workspaceFile(), {}));
 function rememberFolder(dir) {
   if (isHangarInternal(dir) || dir === os.homedir()) return;
   recentFolders = [dir, ...recentFolders.filter((d) => d !== dir)].slice(0, 20);
@@ -384,6 +391,9 @@ function isHangarInternal(dir) {
 // ---------- notifications ----------
 
 function notify(key, title, body, tileId) {
+  // Each workspace can ask for all notifications, only "needs you", or none.
+  const ws = tileId && find(tileId)?.ws;
+  if (ws && !workspaces.allows(ws, key.startsWith('input:') ? 'needs' : 'other')) return;
   const last = notified.get(key) || 0;
   if (Date.now() - last < 30000) return;
   notified.set(key, Date.now());
@@ -467,8 +477,8 @@ function send(channel, payload) {
 }
 
 function state() {
-  const tiles = sessions.map((s) => s.snapshot());
-  return { tiles, rateLimits, focusedTile, overseerRunning: !!overseer, settings, platform: process.platform, modes: modes.list({ includeHidden: true }) };
+  const tiles = sessions.map((s) => ({ ...s.snapshot(), ws: s.ws }));
+  return { tiles, workspaces: workspaces.summary(), activeWs: workspaces.active, rateLimits, focusedTile, overseerRunning: !!overseer, settings, platform: process.platform, modes: modes.list({ includeHidden: true }) };
 }
 
 let broadcastTimer = null;
@@ -727,6 +737,83 @@ function setFont(d) {
   broadcast();
 }
 
+// ---------- workspaces ----------
+// Background workspaces keep running; switching only changes what the window draws.
+
+const closedWorkspaces = new Map();  // id -> removed workspace, for Undo
+function workspacesChanged() { saveWorkspace(); broadcast(); }
+
+/** Stops a workspace's sessions the way quitting does, and returns them to resume later. */
+function stopSessions(wsId) {
+  const out = [];
+  for (const s of sessions.filter((x) => x.ws === wsId)) {
+    out.push(s.persisted());
+    if (s.sizeWait) { clearTimeout(s.sizeWait.timer); s.sizeWait = null; }
+    const p = ptys.get(s.id);
+    ptys.delete(s.id);
+    try { p?.kill(); } catch {}
+    sessions.splice(sessions.indexOf(s), 1);
+    if (focusedTile === s.id) focusedTile = null;
+    chats.delete(s.id);
+  }
+  return out;
+}
+function resumeSessions(wsId, saved) {
+  for (const t of saved || []) {
+    if (!t || !fs.existsSync(t.cwd)) continue;
+    addSession({ ...t, ws: wsId }, 'restore');
+  }
+}
+
+function wireWorkspaces() {
+  ipcMain.on('ws:switch', (_e, id) => { if (workspaces.switchTo(id)) workspacesChanged(); });
+  ipcMain.handle('ws:create', (_e, name) => {
+    const w = workspaces.create(name);
+    workspaces.switchTo(w.id);
+    workspacesChanged();
+    return w.id;
+  });
+  ipcMain.on('ws:update', (_e, { id, patch }) => { if (workspaces.update(id, patch)) workspacesChanged(); });
+  ipcMain.on('ws:move', (_e, { id, to }) => { workspaces.move(id, Number(to) || 0); workspacesChanged(); });
+  ipcMain.on('ws:put-away', (_e, id) => {
+    const w = workspaces.get(id);
+    if (!w || w.putAway || workspaces.open().length < 2) return;
+    workspaces.putAway(id, stopSessions(id));
+    workspacesChanged();
+  });
+  ipcMain.on('ws:reopen', (_e, id) => {
+    const saved = workspaces.reopen(id);
+    if (!saved) return;
+    resumeSessions(id, saved);
+    workspacesChanged();
+  });
+  ipcMain.on('ws:close', (_e, id) => {
+    const w = workspaces.get(id);
+    if (!w || (!w.putAway && workspaces.open().length < 2)) return;
+    const rec = workspaces.remove(id, w.putAway ? null : stopSessions(id));
+    if (rec) closedWorkspaces.set(id, rec);
+    workspacesChanged();
+  });
+  ipcMain.on('ws:undo-close', (_e, id) => {
+    const rec = closedWorkspaces.get(id);
+    closedWorkspaces.delete(id);
+    if (!rec || !workspaces.restore(rec)) return;
+    resumeSessions(id, workspaces.reopen(id));
+    workspacesChanged();
+  });
+  // A tile header dropped on a pill: the session moves there and keeps running.
+  ipcMain.on('tile:to-ws', (_e, { id, ws }) => {
+    const s = find(id);
+    const w = workspaces.get(ws);
+    if (!s || !w || w.putAway || s.ws === ws) return;
+    s.ws = ws;
+    if (sessions.some((x) => x !== s && x.ws === ws && x.pinned)) s.pinned = false;
+    sessions.splice(sessions.indexOf(s), 1);
+    sessions.push(s);
+    workspacesChanged();
+  });
+}
+
 // ---------- IPC ----------
 
 const screenRequests = new Map();
@@ -741,18 +828,23 @@ function askScreen(id, lines) {
 }
 
 function wireIpc() {
+  wireWorkspaces();
   ipcMain.handle('init', () => state());
   ipcMain.handle('recent', () => recentProjects());
   ipcMain.handle('pick-folder', async () => {
     const r = await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'] });
     return r.canceled ? null : r.filePaths[0];
   });
-  ipcMain.handle('tile:create', (_e, { cwd, mode, sessionMode }) => {
+  ipcMain.handle('tile:create', (_e, { cwd, mode, sessionMode, ws }) => {
+    // A session starts in the given workspace (a folder dropped on its pill), else the current one,
+    // in that workspace's default mode unless the New dialog said 'none'.
+    const target = workspaces.get(ws) && !workspaces.get(ws).putAway ? ws : workspaces.active;
+    const smode = sessionMode === 'none' ? null : sessionMode || workspaces.get(target)?.defaultMode || null;
     // A plain terminal needs no folder: it opens in the home folder.
-    if (mode === 'shell' && !cwd) return addSession({ cwd: os.homedir(), kind: 'shell', name: uniqueName('Terminal') }, 'new').id;
+    if (mode === 'shell' && !cwd) return addSession({ cwd: os.homedir(), kind: 'shell', name: uniqueName('Terminal'), ws: target }, 'new').id;
     try { if (!fs.statSync(cwd).isDirectory()) return null; } catch { return null; }
-    if (mode === 'shell') return addSession({ cwd, kind: 'shell' }, 'new').id;
-    return addSession({ cwd, mode: sessionMode || null }, mode || 'new').id;
+    if (mode === 'shell') return addSession({ cwd, kind: 'shell', ws: target }, 'new').id;
+    return addSession({ cwd, mode: smode, ws: target }, mode || 'new').id;
   });
   ipcMain.on('tile:mode', (_e, { id, mode }) => find(id)?.setMode(mode));
   ipcMain.on('tile:fresh', (_e, id) => freshStart(find(id)));
@@ -802,8 +894,8 @@ function wireIpc() {
     if (!lastClosed || !fs.existsSync(lastClosed.cwd)) return;
     const { index, ...t } = lastClosed;
     lastClosed = null;
-    if (sessions.some((x) => x.pinned)) t.pinned = false;
     const s = addSession(t, 'restore');
+    if (sessions.some((x) => x !== s && x.pinned && x.ws === s.ws)) s.pinned = false;
     sessions.splice(sessions.indexOf(s), 1);
     sessions.splice(Math.min(index, sessions.length), 0, s);
     saveWorkspace(); broadcast();
@@ -820,14 +912,18 @@ function wireIpc() {
     if (s && name.trim()) { s.name = name.trim().slice(0, 40); saveWorkspace(); broadcast(); }
   });
   ipcMain.on('tile:pin', (_e, id) => {
-    for (const s of sessions) s.pinned = s.id === id ? !s.pinned : false;
+    const ws = find(id)?.ws;
+    for (const s of sessions) if (s.ws === ws) s.pinned = s.id === id ? !s.pinned : false;
     saveWorkspace(); broadcast();
   });
   ipcMain.on('tile:move', (_e, { id, to }) => {
     const s = find(id);
     if (!s) return;
+    // `to` is a place among the tiles of the session's own workspace.
+    const sibs = sessions.filter((x) => x.ws === s.ws && x !== s);
+    const before = sibs[Math.max(0, to)];
     sessions.splice(sessions.indexOf(s), 1);
-    sessions.splice(Math.max(0, Math.min(to, sessions.length)), 0, s);
+    if (before) sessions.splice(sessions.indexOf(before), 0, s); else sessions.push(s);
     saveWorkspace(); broadcast();
   });
   ipcMain.on('tile:timer', (_e, { id, minutes }) => {
@@ -840,6 +936,8 @@ function wireIpc() {
   ipcMain.on('tile:focus', (_e, id) => {
     focusedTile = id;
     const s = find(id);
+    const w = s && workspaces.get(s.ws);
+    if (w) w.focused = id;  // remembered per workspace
     if (s && s.status === 'done') s.setStatus('idle');
   });
   ipcMain.on('tile:dialog', (_e, { id, open }) => find(id)?.onDialog(open));
@@ -1018,11 +1116,8 @@ app.whenReady().then(async () => {
   win.webContents.on('did-finish-load', applyZoom);
   win.webContents.setVisualZoomLevelLimits(1, 1).catch(() => {});
   win.webContents.once('did-finish-load', () => {
-    const ws = loadJSON(paths.workspaceFile(), {});
-    for (const t of ws.tiles || []) {
-      if (!fs.existsSync(t.cwd)) continue;
-      addSession(t, 'restore');
-    }
+    // Every open workspace's sessions come back; put away ones wait until reopened.
+    for (const w of workspaces.open()) { const saved = w.tiles; w.tiles = []; resumeSessions(w.id, saved); }
     broadcast();
   });
   setInterval(pollLoop, 1000);

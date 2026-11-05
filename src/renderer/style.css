@@ -425,6 +425,30 @@ body.polish .tile .term { padding: 10px 8px 6px 14px; }
 body.polish #ov-term { margin: 4px 6px 0 14px; }
 @media (prefers-reduced-motion: reduce) { .spin { animation-duration: 2.4s; } }
 
+/* Workspaces: pills in the top bar (only with 2 or more), quiet until active */
+.ws-pills { display: flex; align-items: center; gap: 2px; -webkit-app-region: no-drag; min-width: 0; }
+.ws-pills .wp { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 9px; border-radius: 7px; border: 0; background: none; color: var(--faint); font-size: 12px; cursor: pointer; white-space: nowrap; }
+.ws-pills .wp .wn { max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+.ws-pills .wp:hover { color: var(--text); background: var(--hover); }
+.ws-pills .wp.on { color: var(--text); background: var(--panel); }
+.ws-pills .wp.colored::after { content: ""; position: absolute; left: 9px; right: 9px; bottom: 3px; height: 2px; border-radius: 1px; background: var(--wc); opacity: .55; }
+.ws-pills .wp.colored.on::after { opacity: 1; }
+.ws-pills .wp.drop { background: var(--hover); color: var(--text); box-shadow: inset 0 0 0 1px #3d4a66; }
+.wdot { width: 6px; height: 6px; border-radius: 50%; background: var(--needs); flex: none; }
+.ws-pills .wmore, .ws-pills .wadd { width: 26px; padding: 0; justify-content: center; }
+.ws-pills .wmore .wdot { position: absolute; top: 4px; right: 3px; }
+.ws-pills .wadd { opacity: 0; transition: opacity .12s; }
+.ws-pills:hover .wadd, .ws-pills .wadd:focus-visible { opacity: 1; }
+.ws-pills + .summary { margin-left: 4px; }
+.ws-menu .item .wn { flex: 1; }
+.ws-menu .item.away { color: var(--muted); }
+.ws-menu .item .ck { margin-left: auto; color: var(--accent); }
+.ws-menu .swatches { padding: 4px 8px 2px; }
+.tile.ws-off, .rz.ws-off { display: none !important; }
+#stage.ws-in .tile:not(.ws-off) { animation: ws-in .1s linear; }
+@keyframes ws-in { from { opacity: 0; } }
+.toast.ws-toast { position: fixed; top: calc(44px + 10px); right: 16px; z-index: 20; }
+
 /* Command palette and shortcut sheet (palette.js) */
 .pop.palette { left: 50%; top: 20%; transform: translateX(-50%); width: 560px; max-width: calc(100vw - 32px); min-width: 0; padding: 0; overflow: hidden; animation: pal-in .08s linear; }
 @keyframes pal-in { from { opacity: 0; } }

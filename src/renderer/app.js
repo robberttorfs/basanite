@@ -279,6 +279,7 @@ function createTile(snap) {
 
 function setFocus(id, moveKeyboard = true) {
   if (!tiles.has(id)) return;
+  if (window.HangarWs?.reveal(id)) return;  // in another workspace: that one comes up first
   if (zoomed && zoomed !== id) toggleZoom(zoomed);
   if (focused !== id) {
     focused = id;
@@ -393,7 +394,7 @@ function updateTile(tile, snap) {
   const el = tile.el;
   const shell = snap.kind === 'shell';
   el.className = `tile st-${snap.status}${shell ? ' shell' : ''}${focused === snap.id ? ' focused' : ''}${tile.sizeClass || ''}${snap.color ? ' colored' : ''}` +
-    `${tile.chat?.on ? ' chat-on' : ''}${el.classList.contains('term-forced') ? ' term-forced' : ''}${zoomed === snap.id ? ' zoomed' : ''}`;
+    `${tile.chat?.on ? ' chat-on' : ''}${el.classList.contains('term-forced') ? ' term-forced' : ''}${zoomed === snap.id ? ' zoomed' : ''}${snap.ws && snap.ws !== state.activeWs ? ' ws-off' : ''}`;
   el.style.setProperty('--tc', snap.color || 'transparent');
   $('.name', el).textContent = snap.name;
   $('.name', el).title = `${snap.cwd}\nDouble-click to rename`;
@@ -711,7 +712,9 @@ function resetSizes() {
 
 function render() {
   document.documentElement.style.setProperty("--zoom", String(state.settings?.uiZoom || 1));
-  const ids = new Set(state.tiles.map((t) => t.id));
+  // Tiles of hidden workspaces stay mounted (hidden), so switching back is instant.
+  const all = state.allTiles || state.tiles;
+  const ids = new Set(all.map((t) => t.id));
   for (const [id, t] of tiles) {
     if (!ids.has(id)) {
       t.dispose(); t.el.remove(); t.handles.r.remove(); t.handles.b.remove(); tiles.delete(id);
@@ -719,7 +722,7 @@ function render() {
       if (anchor.id === id) anchor = { id: null, rect: null, grow: false };
     }
   }
-  for (const snap of state.tiles) {
+  for (const snap of all) {
     const t = tiles.get(snap.id) || createTile(snap);
     updateTile(t, snap);
   }
@@ -727,13 +730,14 @@ function render() {
   renderBar();
   if (!state.tiles.length) renderRecent($('#empty-recent'), 6);
   if (!focused && state.tiles.length) setFocus(state.tiles[0].id);
+  window.HangarWs?.afterRender();
 }
 
 // ---------- top bar ----------
 
 function renderBar() {
   const c = { working: 0, needs_input: 0, done: 0 };
-  for (const t of state.tiles) if (t.status in c && t.kind !== 'shell') c[t.status]++;
+  for (const t of state.allTiles || state.tiles) if (t.status in c && t.kind !== 'shell') c[t.status]++;
   const parts = [];
   if (c.needs_input) parts.push(`<button class="s needs" data-act="next" title="Jump to it (${SHIFT_MOD}U)"><span class="dot"></span>${c.needs_input} need${c.needs_input > 1 ? '' : 's'} you</button>`);
   if (c.working) parts.push(`<span class="s working"><span class="dot"></span>${c.working} working</span>`);
@@ -758,6 +762,7 @@ function renderBar() {
 $('#summary').addEventListener('click', (e) => { if (e.target.closest('[data-act="next"]')) nextWaiting(); });
 
 function nextWaiting() {
+  if (window.HangarWs) return HangarWs.nextWaiting();  // hops workspaces when it has to
   const waiting = state.tiles.filter((t) => t.status === 'needs_input' || t.status === 'error');
   if (!waiting.length) return;
   const i = waiting.findIndex((t) => t.id === focused);
@@ -1205,7 +1210,7 @@ async function openNew() {
     <div class="foot"><button class="btn small np-mode" data-mode></button><div class="grow"></div>
       <button class="btn" data-pick>Choose folder…</button><button class="btn primary" data-home>${ICON.term}Open terminal</button></div>`;
   let kind = lastNewKind;
-  let mode = modeById(lastNewMode) && !modeById(lastNewMode).hidden ? lastNewMode : null;
+  let mode = window.HangarWs?.defaultMode() || (modeById(lastNewMode) && !modeById(lastNewMode).hidden ? lastNewMode : null);
   let sel = 0;
   const list = $('.recent-list', el);
   const modeBtn = $('[data-mode]', el);
@@ -1236,7 +1241,7 @@ async function openNew() {
     modeBtn.hidden = kind === 'shell';
     $('[data-home]', el).hidden = kind !== 'shell';
     drawMode();
-    await renderRecent(list, 8, () => closePop && closePop(), { terminal: () => kind === 'shell', mode: () => mode });
+    await renderRecent(list, 8, () => closePop && closePop(), { terminal: () => kind === 'shell', mode: () => mode || 'none' });
     sel = Math.min(sel, Math.max(0, list.children.length - 1));
     highlight();
   };
@@ -1251,14 +1256,14 @@ async function openNew() {
         e.preventDefault();
         const d = list.children[sel].dataset.dir;
         closePop();
-        start(d, kind === 'shell' ? 'shell' : e.shiftKey ? 'continue' : 'new', mode);
+        start(d, kind === 'shell' ? 'shell' : e.shiftKey ? 'continue' : 'new', mode || 'none');
       }
     },
   });
   await draw();
   $('[data-pick]', el).onclick = async () => {
     const dir = await hangar.pickFolder();
-    if (dir) { closePop?.(); start(dir, kind === 'shell' ? 'shell' : 'new', mode); }
+    if (dir) { closePop?.(); start(dir, kind === 'shell' ? 'shell' : 'new', mode || 'none'); }
   };
   $('[data-home]', el).onclick = () => { closePop(); start(null, 'shell'); };
 }
@@ -1405,7 +1410,7 @@ hangar.onState((s) => {
     // Keep the locks being dragged; the rest of the state is fresh.
     for (const t of s.tiles) { const cur = state.tiles.find((x) => x.id === t.id); if (cur) t.lock = cur.lock; }
   }
-  state = s;
+  state = window.HangarWs ? HangarWs.view(s) : s;
   const look = `${s.settings.polishTerm !== false}`;
   if (lastLook !== null && lastLook !== look) {
     for (const t of [...tiles.values(), ov].filter(Boolean)) { Object.assign(t.term.options, termLook(t.bg)); t.fit(); }
@@ -1471,7 +1476,7 @@ setInterval(() => {
 }, 1500);
 
 hangar.init().then((s) => {
-  state = s;
+  state = window.HangarWs ? HangarWs.view(s) : s;
   lastFont = s.settings.fontSize;
   lastLook = `${s.settings.polishTerm !== false}`;
   document.body.classList.toggle('polish', s.settings.polishTerm !== false);
