@@ -1178,7 +1178,7 @@ app.whenReady().then(async () => {
   wireIpc();
   ipcMain.on('update:action', () => updater?.act());
   require('./shellops').register({ ipcMain, shell });
-  data = dataIpc.register({ ipcMain, sessions, find, addSession, uniqueName, send, broadcast, defaultWs: () => workspaces.active });
+  data = dataIpc.register({ ipcMain, sessions, find, addSession, uniqueName, send, broadcast, defaultWs: () => workspaces.active, hasConversation: (s) => !!s.transcriptPath || transcriptExists(s) });
   updater = updaterMod.init({ app, onChange: (st) => { buildMenu(); send('update:state', st); }, confirmInstall: () => (quitConfirmed = confirmBusyQuit()) });
   pruneImages();
   buildMenu();

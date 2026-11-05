@@ -22,7 +22,7 @@ const { Usage } = require('./usage');
 const history = require('./history');
 const { services } = require('./session');
 
-function register({ ipcMain, sessions, find, addSession, uniqueName, send, broadcast, defaultWs }) {
+function register({ ipcMain, sessions, find, addSession, uniqueName, send, broadcast, defaultWs, hasConversation = (s) => !!s.transcriptPath }) {
   const git = new GitInfo();
   const usage = new Usage();
   const overlaps = new Overlaps({ isLive: (id) => { const s = find(id); return !!s && s.status !== 'exited' && !(s.kind === 'shell' && !s.hosted); } });
@@ -44,12 +44,16 @@ function register({ ipcMain, sessions, find, addSession, uniqueName, send, broad
   ipcMain.handle('history:open', (_e, cwd, sessionId) => {
     if (!/^[0-9a-f-]{36}$/i.test(String(sessionId))) return null;
     try { if (!fs.statSync(cwd).isDirectory()) return null; } catch { return null; }
+    // Already open in a tile: go there, never run two claude --resume on one transcript.
+    const open = sessions.find((x) => x.sessionId === sessionId && x.status !== 'exited');
+    if (open) return open.id;
     return addSession({ cwd, sessionId, ws: defaultWs() }, 'resume').id;
   });
   ipcMain.handle('tile:fork', (_e, id) => {
     const s = find(id);
-    if (!s || !s.sessionId || s.kind === 'shell' && !s.hosted) return null;
-    return addSession({ cwd: s.cwd, name: uniqueName(`${s.name} fork`), forkOf: s.sessionId, ws: s.ws, mode: s.mode }, 'fork').id;
+    if (!s || !s.sessionId || (s.kind === 'shell' && !s.hosted) || !hasConversation(s)) return null;
+    // The fork's history already holds the mode and add-on text, so they count as sent.
+    return addSession({ ...forkOpts(s), name: uniqueName(`${s.name} fork`) }, 'fork').id;
   });
   ipcMain.handle('tile:worktree', async (_e, cwd, name) => {
     const r = await git.createWorktree(cwd, name);
@@ -61,4 +65,9 @@ function register({ ipcMain, sessions, find, addSession, uniqueName, send, broad
   return { git, overlaps, usage, forget: (id) => overlaps.forget(id) };
 }
 
-module.exports = { register };
+/** What a fork carries over from its source tile. */
+function forkOpts(s) {
+  return { cwd: s.cwd, forkOf: s.sessionId, ws: s.ws, mode: s.mode, modeApplied: s.modeApplied, addons: [...(s.addons || [])], addonsApplied: [...(s.addonsApplied || [])] };
+}
+
+module.exports = { register, forkOpts };

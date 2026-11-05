@@ -126,7 +126,8 @@
   let editor = null;
   hangar.editorName?.().then((n) => { editor = n; C.changed(); }).catch(() => {});
   const revealLabel = isMac ? 'Reveal in Finder' : hangar.platform === 'win32' ? 'Reveal in Explorer' : 'Open folder';
-  const canFork = (s) => !!s && s.kind !== 'shell' && !!s.sessionId;
+  // Only once there is a conversation to branch (a new tile has an id before its first prompt).
+  const canFork = (s) => !!s && s.kind !== 'shell' && !!s.sessionId && !!s.lastResponseAt;
 
   function confirmFork(id) {
     const t = tiles.get(id);
@@ -219,7 +220,8 @@
     wt.el = el;
     wt.name = stamp();
     const box = h('label', 'own-branch');
-    box.hidden = true;
+    // The slot stays reserved so the footer never jumps: hidden for terminals, dimmed outside git.
+    const set = (vis, git) => { box.style.visibility = vis ? '' : 'hidden'; box.classList.toggle('off', !git); cb.disabled = !git; if (!git && cb.checked) { cb.checked = false; cb.onchange(); } };
     box.innerHTML = `<input type="checkbox" aria-label="Own branch">${SVG.branch}<span>Own branch</span><input class="field wt-name" type="text" aria-label="Branch name" spellcheck="false" hidden>`;
     const cb = box.querySelector('input[type=checkbox]');
     const name = box.querySelector('.wt-name');
@@ -231,9 +233,10 @@
     foot.insertBefore(box, foot.querySelector('.grow'));
     const check = async () => {
       const dir = list.querySelector('.recent-item.sel')?.dataset.dir;
-      if (!dir || kind() === 'shell') { box.hidden = true; return; }
+      if (kind() === 'shell') { set(false, false); return; }
+      if (!dir) { set(true, false); return; }
       if (!wt.git.has(dir)) wt.git.set(dir, await hangar.isGit(dir));
-      box.hidden = !wt.git.get(dir);
+      set(true, wt.git.get(dir));
     };
     new MutationObserver(check).observe(list, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
     el.addEventListener('click', () => setTimeout(check, 0));
@@ -267,6 +270,8 @@
     const slot = h('div', 'uh');
     el.appendChild(slot);
     // Painted right away from the cache (the popover may not be in the page yet), and again when fresh data lands.
+    // Until the history arrives, a quiet empty chart holds its place, so the popover never grows.
+    slot.innerHTML = `<h3 class="sub">Last 14 days</h3><div class="uh-read">&nbsp;</div><svg class="uh-chart" viewBox="0 0 344 64" preserveAspectRatio="none" aria-hidden="true"></svg>`;
     const paint = (late) => {
       if (!usage || (late && !slot.isConnected)) return;
       const days = usage.days || [];
@@ -281,12 +286,12 @@
           (bh ? `<path class="bar" d="M${x},${H} v${-(bh - 3)} q0,-3 3,-3 h${bw - 6} q3,0 3,3 v${bh - 3} z"/>` : `<rect class="zero" x="${x}" y="${H - 1}" width="${bw}" height="1"/>`) + '</g>';
       }).join('');
       const tot = usage.total || {};
-      const summary = `14 days  ${k(tokensOf(tot))} tokens  ≈${money(tot.costUSD || 0)}`;
+      const summary = `${k(tokensOf(tot))} tokens  ≈${money(tot.costUSD || 0)}`;
       const projects = (usage.projects || []).filter((p) => tokensOf(p)).slice(0, 5).map((p) =>
-        `<div class="ur"><span></span><span class="un" title="${esc(p.project)}">${esc(p.name)}</span><span class="uo">${k(tokensOf(p))}</span><span class="uc">≈${money(p.costUSD || 0)}</span></div>`).join('');
-      slot.innerHTML = `<h3 class="sub">Last 14 days</h3><div class="uh-read" aria-live="off">${esc(summary)}</div>
+        `<div class="ur"><span></span><span class="un" title="${esc(p.project)}">${esc(p.name)}</span><span class="uo">${k(tokensOf(p))}</span><span class="uc" title="Estimate at API prices">≈${money(p.costUSD || 0)}</span></div>`).join('');
+      slot.innerHTML = `<h3 class="sub">Last 14 days</h3><div class="uh-read" aria-live="off" title="≈ Estimate at API prices">${esc(summary)}</div>
         <svg class="uh-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Tokens per day, last 14 days">${bars}</svg>
-        ${projects ? `<div class="ut">${projects}</div>` : ''}<p class="hint">≈ estimate at API prices</p>`;
+        ${projects ? `<div class="ut">${projects}</div>` : ''}`;
       const read = $('.uh-read', slot);
       slot.querySelectorAll('g[data-label]').forEach((g) => {
         g.onmouseenter = () => { read.textContent = g.dataset.label; g.classList.add('on'); };
@@ -316,6 +321,9 @@
     { id: 'session.fork', label: 'Branch this session', group: 'Actions', aliases: ['fork', 'copy'],
       menu: { menu: 'Session', section: 'folder' }, when: (cx) => canFork(cx.snap) && cx.snap.status !== 'exited', run: (cx) => confirmFork(cx.id) },
   ]);
+
+  // Read the history once soon after start, so the first Usage open paints at full size.
+  setTimeout(() => { if (!usage && hangar.usageHistory) { usageAt = Date.now(); hangar.usageHistory(14).then((u) => { usage = u; }).catch(() => {}); } }, 4000);
 
   window.HangarExtras = { drawAll, moreItems, openHistory, openChanges, newPopover, wantsWorktree, startWorktree, usageSection, parseDiff, ago };
 })();
