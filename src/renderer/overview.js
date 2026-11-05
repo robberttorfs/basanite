@@ -49,7 +49,8 @@
     el.tabIndex = -1;
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-label', 'Overview');
-    el.innerHTML = `<div class="ovw-head"><div class="ovw-counts" aria-live="polite"></div><div class="grow"></div>
+    const grid = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1.2"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1.2"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1.2"/><rect x="9" y="9" width="4.5" height="4.5" rx="1.2"/></svg>';
+    el.innerHTML = `<div class="ovw-head"><span class="ovw-title">${grid}Overview</span><div class="ovw-counts" aria-live="polite"></div><div class="grow"></div>
         <button class="btn small ovw-close" aria-label="Close overview" title="Close (Esc)">Esc</button></div>
       <div class="ovw-body"><div class="ovw-list" role="listbox" aria-label="Sessions"></div><div class="ovw-preview"></div></div>`;
     $('#main').appendChild(el);

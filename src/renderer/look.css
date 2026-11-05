@@ -208,3 +208,14 @@ body.compact .gitchip { height: 18px; }
 @media (prefers-color-scheme: light) { .pop, .pop * { scrollbar-color: #c9ced7 transparent; } }
 /* Selected text stays readable in name fields. */
 ::selection { background: color-mix(in srgb, var(--accent) 35%, transparent); color: var(--text); }
+
+/* ---------- polish pass (helper ui, 5 Nov) ---------- */
+/* Usage: room between the chart and the project rows, and the rows line up with the headings. */
+.usage-pop .uh-chart + .ut { margin-top: 10px; }
+.usage-pop .uh-chart + .ut .ur { grid-template-columns: 1fr auto 56px; padding-left: 0; padding-right: 0; }
+.usage-pop .uh-chart + .ut .ur > span:first-child:empty { display: none; }
+/* Overview: a quiet title, so its bar isn't just an Esc key. */
+.ovw-title { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text); }
+.ovw-title svg { color: var(--muted); }
+/* One shortcut look in every menu: the tile ⋯ menu's keys as quiet keycaps, like the palette and the ☰ menu. */
+.pop .item .kb { padding: 1px 6px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--muted); font-size: 11px; line-height: 1.4; }
