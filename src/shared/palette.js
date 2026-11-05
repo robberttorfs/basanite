@@ -25,5 +25,5 @@
 
   const api = { PALETTE, migrate };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
-  else root.HangarPalette = api;
+  else root.HangarColors = api;
 })(typeof window !== 'undefined' ? window : globalThis);

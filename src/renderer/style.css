@@ -146,6 +146,8 @@ body.resizing .term { pointer-events: none; }
 .ticon { display: none; color: var(--faint); }
 .tile.shell .dot { display: none; }
 .tile.shell .ticon { display: inline-flex; }
+/* Pin is in ⋯, the menu and the palette; the header shows it only once a tile is pinned. */
+.head .hbtn.pin:not(.active) { display: none; }
 .tile.shell.st-exited .ticon { opacity: .5; }
 @keyframes pulse { 50% { opacity: .35; } }
 
@@ -490,7 +492,9 @@ body.polish #ov-term { margin: 4px 6px 0 14px; }
 .pal-kb kbd, .sk-row kbd { color: var(--muted); }
 .shortcut-sheet { width: 640px; }
 .pal-ic .mdot { margin: 0; }
-.sk-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; max-height: 60vh; overflow: auto; }
+.sk-grid { columns: 2; column-gap: 24px; max-height: 64vh; overflow: auto; }
+.sk-group { break-inside: avoid; margin-bottom: 12px; }
+.sk-h { padding: 4px 0 2px; font-size: 11.5px; font-weight: 500; color: var(--faint); }
 .sk-row span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sk-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 28px; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; }
 @media (prefers-reduced-motion: reduce) { .pop.palette { animation: none; } }

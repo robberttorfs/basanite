@@ -1,4 +1,4 @@
-/* global Terminal, FitAddon, Unicode11Addon, WebglAddon, HangarLayout, HangarChat, HangarPalette, hangar */
+/* global Terminal, FitAddon, Unicode11Addon, WebglAddon, HangarLayout, HangarChat, HangarColors, hangar */
 'use strict';
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -45,7 +45,7 @@ let state = { tiles: [], settings: { fontSize: 13 }, modes: [] };
 let focused = null;
 
 let GAP = 8;  // look.js makes it smaller in Compact density
-const SWATCHES = HangarPalette.PALETTE; // no status colours (src/shared/palette.js)
+const SWATCHES = HangarColors.PALETTE; // no status colours (src/shared/palette.js)
 
 const ICON = {
   pin: '<svg viewBox="0 0 16 16"><path d="M6 2.5h4M7 2.5v4L4.5 9h7L9 6.5v-4M8 9v4.5"/></svg>',
@@ -1139,7 +1139,10 @@ function folderLabels(dirs) {
 }
 
 async function renderRecent(container, limit, onPick, opts = {}) {
+  // Only the latest call draws, so two quick renders can't interleave and reorder the list.
+  const tok = (container.dataset.tok = String(Number(container.dataset.tok || 0) + 1));
   const all = await hangar.recent();
+  if (container.dataset.tok !== tok) return [];
   const labels = folderLabels(all);
   const q = (opts.filter?.() || '').trim().toLowerCase();
   const list = all.filter((d, i) => !q || labels[i].toLowerCase().includes(q) || d.toLowerCase().includes(q)).slice(0, limit);

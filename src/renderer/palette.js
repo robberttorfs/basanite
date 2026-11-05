@@ -189,10 +189,16 @@
     el.setAttribute('aria-label', 'Keyboard shortcuts');
     const list = [...shortcutCommands(), C.get('app.palette')].filter(Boolean);
     const one = C.shortcutLabel('window.session-1');
-    const rowsHtml = list.map((c) => `<div class="sk-row"><span>${esc(c.label)}</span>${keyHtml(c)}</div>`).join('') +
-      (one ? `<div class="sk-row"><span>Session 1–9</span><kbd>${esc(one.replace(/1$/, '1–9'))}</kbd></div>` : '');
-    el.innerHTML = `<h3>Keyboard shortcuts</h3><div class="sk-grid" role="list">${rowsHtml}</div>`;
-    el.querySelectorAll('.sk-row').forEach((r) => r.setAttribute('role', 'listitem'));
+    // Grouped: Session, Workspace, Modes, View, then the overview's own keys.
+    const GROUP = { Start: 'Session', Actions: 'Session', Workspaces: 'Workspace', Modes: 'Modes' };
+    const groups = { Session: [], Workspace: [], Modes: [], View: [] };
+    for (const c of list) groups[GROUP[c.group] || 'View'].push(`<div class="sk-row"><span>${esc(c.label)}</span>${keyHtml(c)}</div>`);
+    if (one) groups.Session.push(`<div class="sk-row"><span>Session 1–9</span><kbd>${esc(one.replace(/1$/, '1–9'))}</kbd></div>`);
+    groups.Overview = [['Move', '↑ ↓'], ['Open', '↩'], ['Snooze', 'H'], ['Mark seen', '⌫'], ['Answer', '1–9']]
+      .map(([l, k]) => `<div class="sk-row"><span>${l}</span><kbd>${k}</kbd></div>`);
+    const rowsHtml = Object.entries(groups).filter(([, r]) => r.length)
+      .map(([g, r]) => `<div class="sk-group" role="group" aria-label="${g}"><div class="sk-h">${g}</div>${r.join('')}</div>`).join('');
+    el.innerHTML = `<h3>Keyboard shortcuts</h3><div class="sk-grid">${rowsHtml}</div>`;
     el.tabIndex = -1;
     openPop(el, null);
     el.focus();
