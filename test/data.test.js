@@ -145,7 +145,9 @@ test('GitInfo: non-git folder is null; real repo gives branch, dirty, changes an
     const wt = await g2.createWorktree(repo, 'try it');
     assert.equal(wt.branch, 'hangar/try-it');
     assert.ok(fs.existsSync(path.join(wt.dir, 'a.txt')));
-    assert.equal(path.dirname(path.dirname(wt.dir)), path.dirname(repo), 'beside the repo, not inside it');
+    // realpath: CI temp folders use 8.3 short names (RUNNER~1) that git reports in long form.
+    const real = (p) => fs.realpathSync.native(p).toLowerCase();
+    assert.equal(real(path.dirname(path.dirname(wt.dir))), real(path.dirname(repo)), 'beside the repo, not inside it');
     assert.equal(path.basename(path.dirname(wt.dir)), '.' + path.basename(repo) + '-worktrees');
     assert.equal(path.basename(wt.dir), 'try-it');
     const again = await g2.createWorktree(repo, 'try it');
