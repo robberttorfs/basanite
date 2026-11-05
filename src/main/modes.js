@@ -283,13 +283,14 @@ const projectKey = (dir) => String(dir || '').replace(/\\/g, '/').replace(/\/+$/
 function projectDefault(dir) {
   const id = load().projects[projectKey(dir)];
   const m = get(id);
-  return m && !isAddon(m) && !m.hidden ? m.id : null;
+  return m && !isAddon(m) && !m.hidden && !m.goal ? m.id : null;
 }
 function setProjectDefault(dir, id) {
   const s = load();
   const key = projectKey(dir);
   if (!key) return;
   const m = get(id);
+  if (m?.goal) return; // Until done is never a folder default; the folder keeps its last pick
   if (m && !isAddon(m)) s.projects[key] = m.id; else delete s.projects[key];
   save();
 }

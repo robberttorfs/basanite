@@ -240,9 +240,10 @@ function addSession(opts, mode) {
     id: opts.id || crypto.randomBytes(4).toString('hex'),
     name: opts.name || uniqueName(path.basename(opts.cwd) || opts.cwd),
     cwd: opts.cwd, sessionId: opts.sessionId || null, pinned: !!opts.pinned,
-    mode: opts.mode || null, modeApplied: !!opts.modeApplied, addons: opts.addons || [], addonsApplied: opts.addonsApplied || [], color: opts.color || null, lock: opts.lock || null,
+    mode: opts.mode || null, modeApplied: !!opts.modeApplied, addons: opts.addons || [], addonsApplied: opts.addonsApplied || [], goalSet: !!opts.goalSet, color: opts.color || null, lock: opts.lock || null,
     kind: opts.kind === 'shell' ? 'shell' : 'claude',
   });
+  s.typeCommand = (text) => typeInto(s, text);
   s.forkOf = opts.forkOf || null;
   s.onChange = (ev) => onSessionChange(s, ev);
   const w = workspaces.get(opts.ws);
@@ -821,7 +822,11 @@ function wireWorkspaces() {
     workspacesChanged();
     return w.id;
   });
-  ipcMain.on('ws:update', (_e, { id, patch }) => { if (workspaces.update(id, patch)) workspacesChanged(); });
+  ipcMain.on('ws:update', (_e, { id, patch }) => {
+    // Until done needs a goal per session, so it is never a workspace default.
+    if (patch && modes.get(patch.defaultMode)?.goal) patch = { ...patch, defaultMode: null };
+    if (workspaces.update(id, patch)) workspacesChanged();
+  });
   ipcMain.on('ws:move', (_e, { id, to }) => { workspaces.move(id, Number(to) || 0); workspacesChanged(); });
   ipcMain.on('ws:put-away', (_e, id) => {
     const w = workspaces.get(id);

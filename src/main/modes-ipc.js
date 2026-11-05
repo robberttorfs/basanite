@@ -23,22 +23,20 @@ function startMode(sessionMode, cwd, wsDefault) {
   if (s === 'none') return null;
   if (s && !s.startsWith('default')) return s;
   // Left alone ('default:<what it showed>') or not asked at all: the folder's own mode wins.
-  const folder = modes.projectDefault(cwd);
+  // Until done is never a default: without its /goal it would run on by itself.
+  const ok = (id) => (id && id !== 'none' && !modes.get(id)?.goal ? id : null);
+  const folder = ok(modes.projectDefault(cwd));
   if (folder) return folder;
-  if (s.startsWith('default:')) { const shown = s.slice(8); return shown && shown !== 'none' ? shown : null; }
-  return wsDefault || null;
+  if (s.startsWith('default:')) return ok(s.slice(8));
+  return ok(wsDefault);
 }
 
 function wire({ ipcMain, dialog, getWin, find, typeInto, changed }) {
-  const leaveGoal = (s, next) => {
-    // Leaving Until done clears the /goal Hangar set, so the loop stops with the mode.
-    if (s.goalSet && !modes.get(next)?.goal) { typeInto(s, '/goal clear'); s.goalSet = false; }
-  };
-
+  // Leaving Until done (here, by exit phrase, hangarctl or a deleted mode) sends
+  // /goal clear from Session.setMode / clearGoal.
   ipcMain.on('tile:mode', (_e, { id, mode }) => {
     const s = find(id);
     if (!s) return;
-    leaveGoal(s, mode);
     s.setMode(mode);
     if (s.kind !== 'shell') modes.setProjectDefault(s.cwd, mode);
   });
@@ -49,7 +47,6 @@ function wire({ ipcMain, dialog, getWin, find, typeInto, changed }) {
     const goal = modes.list().find((m) => m.goal);
     if (!s || !text || !goal) return false;
     s.setMode(goal.id);
-    modes.setProjectDefault(s.cwd, goal.id);
     s.goalSet = true;
     return typeInto(s, text);
   });

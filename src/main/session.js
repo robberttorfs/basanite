@@ -19,7 +19,7 @@ const NEEDS_INPUT_NOTIFICATIONS = new Set(['permission_prompt', 'elicitation_dia
 const ASKS_USER = new Set(['AskUserQuestion', 'ExitPlanMode']);
 
 class Session {
-  constructor({ id, name, cwd, sessionId = null, pinned = false, timer: t = null, mode = null, modeApplied = false, addons = [], addonsApplied = [], color = null, lock = null, kind = 'claude' }) {
+  constructor({ id, name, cwd, sessionId = null, pinned = false, timer: t = null, mode = null, modeApplied = false, addons = [], addonsApplied = [], goalSet = false, color = null, lock = null, kind = 'claude' }) {
     this.id = id;
     this.name = name;
     this.cwd = cwd;
@@ -32,6 +32,8 @@ class Session {
     this.addons = [...addons];      // add-on ids, stacked on top of the mode
     this.addonsApplied = addonsApplied.filter((a) => this.addons.includes(a)); // reached Claude
     this.addonsOff = [];            // names turned off since the last prompt, so Claude is told once
+    this.goalSet = !!goalSet;       // Hangar typed a /goal for Until done that is still running
+    this.typeCommand = null;        // (text) => types a command into the tile; set by main
     this.color = migrateColor(color); // old amber/green/red/purple picks move to an allowed colour
     this.lock = lock;               // { w, h } as fractions of the stage, set by dragging an edge
     this.kind = kind;               // 'claude' or 'shell' (a plain terminal)
@@ -85,11 +87,20 @@ class Session {
   setMode(id) {
     id = id || null;
     if (id === this.mode) return;
+    if (!modes.get(id)?.goal) this.clearGoal();
     const cur = modes.get(this.mode);
     if (cur && this.modeApplied) this.modeFrom = { id: cur.id, name: cur.name };
     this.mode = id;
     this.modeApplied = false;
     if (this.modeFrom?.id === id) { this.modeApplied = true; this.modeFrom = null; }
+    this.onChange({ type: 'mode' });
+  }
+
+  /** Ends the /goal Hangar set for Until done, whichever way the mode ended. */
+  clearGoal() {
+    if (!this.goalSet) return;
+    this.goalSet = false;
+    this.typeCommand?.('/goal clear');
     this.onChange({ type: 'mode' });
   }
 
@@ -139,7 +150,7 @@ class Session {
   modeContext(prompt) {
     const out = [];
     let mode = modes.get(this.mode);
-    if (this.mode && !mode) { this.mode = null; this.modeApplied = false; out.push('[Hangar mode] The session\'s mode was deleted. Its rules no longer apply.'); }
+    if (this.mode && !mode) { this.mode = null; this.modeApplied = false; this.clearGoal(); out.push('[Hangar mode] The session\'s mode was deleted. Its rules no longer apply.'); }
     if (mode && this.modeApplied) {
       const said = modes.exitPhraseIn(prompt, mode.exitPhrases);
       if (said) {
@@ -147,6 +158,7 @@ class Session {
         const next = modes.get(mode.exitTo);
         this.mode = next?.id || null;
         this.modeApplied = false;
+        if (!next?.goal) this.clearGoal();
         this.onChange({ type: 'mode', ended: { id: mode.id, name: mode.name, said } });
         mode = next;
       }
@@ -195,6 +207,7 @@ class Session {
     this.modeFrom = null;
     this.addonsApplied = [];
     this.addonsOff = [];
+    this.goalSet = false; // a new conversation has no /goal
   }
 
   /** Handles a hook event. Returns the JSON body to send back to Claude Code, or null. */
@@ -476,7 +489,7 @@ class Session {
   persisted() {
     return {
       id: this.id, name: this.name, cwd: this.cwd, sessionId: this.sessionId, pinned: this.pinned,
-      mode: this.mode, modeApplied: this.modeApplied, addons: this.addons, addonsApplied: this.addonsApplied, color: this.color, lock: this.lock, kind: this.kind,
+      mode: this.mode, modeApplied: this.modeApplied, addons: this.addons, addonsApplied: this.addonsApplied, goalSet: this.goalSet, color: this.color, lock: this.lock, kind: this.kind,
     };
   }
 }

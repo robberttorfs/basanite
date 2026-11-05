@@ -161,3 +161,42 @@ test('PreToolUse for Bash does not take its description as a subagent name', () 
   s.onHook({ hook_event_name: 'PreToolUse', tool_name: 'Agent', tool_input: { description: 'Find the bug' } });
   assert.deepEqual(s.pendingDescs, ['Find the bug']);
 });
+
+test('Until done: /goal clear is sent however the mode ends, and goalSet is saved', () => {
+  const typed = [];
+  const mk = (extra = {}) => { const s = new Session({ id: 'u', name: 'x', cwd: '/p', ...extra }); s.onChange = () => {}; s.typeCommand = (t) => typed.push(t); return s; };
+  const s = mk();
+  s.setMode('until-done'); s.goalSet = true;
+  assert.equal(s.persisted().goalSet, true);
+  s.setMode('build');
+  assert.deepEqual(typed, ['/goal clear'], 'switching mode');
+  s.setMode(null);
+  assert.equal(typed.length, 1, 'only once');
+  // After a restart (goalSet persisted), turning the mode off still clears it.
+  const back = mk({ mode: 'until-done', modeApplied: true, goalSet: true });
+  back.setMode(null);
+  assert.equal(typed.length, 2);
+  // Exit phrase.
+  modes.upsert({ ...modes.get('until-done'), exitPhrases: ['stop now'] });
+  assert.ok(modes.get('until-done').goal);
+  try {
+    const e = mk({ mode: 'until-done', modeApplied: true, goalSet: true });
+    e.modeContext('ok stop now');
+    assert.equal(e.mode, null);
+    assert.equal(typed.length, 3);
+    assert.equal(e.goalSet, false);
+  } finally { modes.reset('until-done'); }
+  // A new conversation has no /goal.
+  const r = mk({ mode: 'until-done', goalSet: true });
+  r.resetClaude();
+  assert.equal(r.goalSet, false);
+});
+
+test('Until done is never a folder or workspace default', () => {
+  modes.setProjectDefault('c:/work/goal', 'review');
+  modes.setProjectDefault('c:/work/goal', 'until-done');
+  assert.equal(modes.projectDefault('c:/work/goal'), 'review', 'the folder keeps its last real pick');
+  assert.equal(startMode(undefined, '/nowhere', 'until-done'), null);
+  assert.equal(startMode('default:until-done', '/nowhere', null), null);
+  assert.equal(startMode('until-done', '/nowhere', null), 'until-done', 'an explicit pick in New still works');
+});

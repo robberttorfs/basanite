@@ -104,8 +104,9 @@
     const cur = snap.mode?.id || null;
     const on = new Set((snap.mode?.addons || []).map((a) => a.id));
     const el = h('div', 'pop menu modes-menu mm2');
-    const DEFAULT_HINT = 'Claude gets the mode with your next message.';
+    const DEFAULT_HINT = '';
     const hint = h('p', 'hint mm-desc', DEFAULT_HINT);
+    let query = '';
     const row = (m) => {
       const b = h('button', `item${m && rest(modesOnly()).includes(m) ? ' mm-rest' : ''}`,
         `<span class="mi" style="--c:${m ? m.color : 'var(--faint)'}">${m ? icon(m) : ''}</span><span class="mn">${esc(m ? m.name : 'No mode')}</span>` +
@@ -160,13 +161,26 @@
     }
     el.appendChild(hint);
     // The description shows in a fixed footer, so rows never change height under the mouse.
-    const show = (b) => { hint.textContent = b?.dataset?.desc || DEFAULT_HINT; };
+    const show = (b) => { hint.textContent = b?.dataset?.desc || DEFAULT_HINT; hint.classList.toggle('mm-q', false); if (query && !b?.dataset?.desc) { hint.textContent = query; hint.classList.add('mm-q'); } };
+    // Type to filter: rows that don't match hide, More opens, the footer shows the query.
+    const filter = (q) => {
+      query = q.trim().toLowerCase();
+      el.querySelectorAll('.item').forEach((b) => {
+        if (b.classList.contains('mm-more')) { b.hidden = !!query; return; }
+        b.hidden = !!query && !b.textContent.toLowerCase().includes(query);
+      });
+      el.querySelectorAll('.sep').forEach((x) => { x.hidden = !!query; });
+      const box = el.querySelector('.mm-rest-box');
+      if (box) box.hidden = query ? false : el.querySelector('.mm-more')?.getAttribute('aria-expanded') !== 'true';
+      show(null);
+    };
     el.querySelectorAll('.item').forEach((b) => {
       b.addEventListener('mouseenter', () => show(b));
       b.addEventListener('focus', () => show(b));
     });
     el.addEventListener('mouseleave', () => show(el.contains(document.activeElement) ? document.activeElement : null));
-    openPop(el, anchorEl, { alignLeft: true, onKey: arrowNav(el) });
+    openPop(el, anchorEl, { alignLeft: true, onKey: arrowNav(el, { filter }) });
+    el.style.minHeight = `${el.offsetHeight}px`;  // filtering never shrinks it under the mouse
     ([...el.querySelectorAll('.item')].find((b) => b.querySelector('.ck svg')) || el.querySelector('.item')).focus();
   }
 
@@ -406,7 +420,8 @@
       menu: { menu: 'Modes', section: 'list' }, when: claude,
       run: (cx) => pick(cx.id, m.id),
       // ⌘↩ puts every Claude session in this mode.
-      secondary: () => { for (const t of state.tiles) if (t.kind !== 'shell') pick(t.id, m.goal ? null : m.id); },
+      // Not for Until done: its goal is asked per session.
+      secondary: m.goal ? undefined : () => { for (const t of state.tiles) if (t.kind !== 'shell') pick(t.id, m.id); },
     })),
     { id: 'mode.none', label: 'No mode', group: 'Modes', menu: { menu: 'Modes', section: 'list' }, when: claude, run: (cx) => hangar.setMode(cx.id, null) },
     ...addons().map((a) => ({
