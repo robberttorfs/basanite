@@ -751,7 +751,7 @@ function buildMenu() {
     { label: 'Window', submenu: [
       ...withSep(items('Window')),
       // Not Ctrl+M on Windows: in a terminal that is Enter.
-      { role: 'minimize', ...(isMac ? {} : { registerAccelerator: false, accelerator: undefined }) }, ...(isMac ? [{ role: 'zoom', label: 'Fill Screen' }] : [{ label: 'Maximize', click: () => (win.isMaximized() ? win.unmaximize() : win.maximize()) }]),
+      (isMac ? { role: 'minimize' } : { label: 'Minimize', click: () => win.minimize() }), ...(isMac ? [{ role: 'zoom', label: 'Fill Screen' }] : [{ label: 'Maximize', click: () => (win.isMaximized() ? win.unmaximize() : win.maximize()) }]),
     ] },
     ...(items('Help').length ? [{ role: 'help', submenu: items('Help') }] : []),
   ];
