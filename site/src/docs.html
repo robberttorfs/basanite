@@ -6,24 +6,32 @@
 <title>Docs: {{name}}</title>
 <meta name="description" content="How to install and use {{name}}: sessions, workspaces, the overview, modes, the overseer, time budgets, usage and privacy.">
 <meta name="color-scheme" content="dark light">
-<meta name="theme-color" content="#0e0f12" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0b0a">
+<meta property="og:title" content="{{name}}">
+<meta property="og:description" content="All your Claude Code sessions on one screen. The one waiting on you grows and turns amber. Free, for Mac and Windows.">
+<meta property="og:image" content="/shots/wall-dark-1400.webp">
 <link rel="icon" href="/favicon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="/icon-180.png">
+<script>try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="/style.css">
+<script src="/palette.js" defer></script>
+<script src="/site.js" defer></script>
 </head>
-<body>
+<body id="top" class="docs-page">
 <a class="skip" href="#main">Skip to content</a>
 <header class="nav">
-  <div class="wrap">
-    <a class="logo" href="/"><img src="/icon-64.png" alt="" width="26" height="26">{{name}}</a>
-    <a class="link" href="/docs" aria-current="page">Docs</a>
-    <a class="link" href="{{github}}">GitHub</a>
-    <a class="btn small solid" href="/#download">Download</a>
-  </div>
+  <a class="logo" href="/"><img src="/icon-64.png" alt="" width="22" height="22"><span>{{name}}</span></a>
+  <a class="link" href="/docs" aria-current="page">Docs</a>
+  <a class="link" href="{{github}}">GitHub</a>
+  <a class="link" href="/#download">Download</a>
+  <button class="ib" type="button" data-palette aria-label="Command palette" title="Command palette"><span class="key"><span data-mod>⌘</span> K</span></button>
+  <button class="ib" type="button" data-theme-btn aria-label="Theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg></button>
 </header>
 
-<div class="wrap docs">
+<div class="docs">
   <details class="toc" id="toc" open>
     <summary>Contents</summary>
     <nav aria-label="Contents">
@@ -48,7 +56,6 @@
 
   <main class="doc" id="main">
     <h1>Docs</h1>
-    <p class="intro">{{name}} runs your Claude Code sessions side by side as tiles. This page covers installing it and everything it does.</p>
 
     <h2 id="install">Install</h2>
     <p>You need <a href="{{claudeCode}}">Claude Code</a> installed and logged in. Check that <code>claude --version</code> works in a normal terminal first.</p>
@@ -89,7 +96,7 @@
     <h2 id="workspaces">Workspaces</h2>
     <p>A workspace is a named set of sessions with their layout, modes and pins, such as "School" or "Website". With only one, you never see them. Make a second from the palette (<strong>New workspace</strong>) and pills appear in the top bar.</p>
     <ul>
-      <li>Switch with the pills, <kbd>⌃⌘←</kbd> / <kbd>⌃⌘→</kbd> (<kbd>Ctrl+Alt+←</kbd> / <kbd>Ctrl+Alt+→</kbd>), or <kbd>⌥⌘1</kbd> to <kbd>⌥⌘9</kbd> (<kbd>Ctrl+Shift+1</kbd> to <kbd>9</kbd>). Sessions in other workspaces keep running.</li>
+      <li>Switch with the pills, <kbd>⌃⌘←</kbd> / <kbd>⌃⌘→</kbd> (<kbd>Ctrl+Shift+PageUp</kbd> / <kbd>PageDown</kbd>), or <kbd>⌥⌘1</kbd> to <kbd>⌥⌘9</kbd> (<kbd>Ctrl+Shift+1</kbd> to <kbd>9</kbd>). Sessions in other workspaces keep running.</li>
       <li>A workspace with a session that needs you gets an amber dot on its pill.</li>
       <li><strong>Put away</strong> stops its sessions; reopen it later and they come back with their modes.</li>
       <li>Drag a tile onto a pill to move it there. Drop a folder on a pill to start a session in it.</li>
@@ -119,7 +126,7 @@
           <tr><td>Next session that needs you</td><td><kbd>⇧⌘U</kbd></td><td><kbd>Ctrl+Shift+U</kbd></td></tr>
           <tr><td>Jump to session 1 to 9</td><td><kbd>⌘1</kbd> … <kbd>⌘9</kbd></td><td><kbd>Ctrl+1</kbd> … <kbd>Ctrl+9</kbd></td></tr>
           <tr><td>Workspace 1 to 9</td><td><kbd>⌥⌘1</kbd> … <kbd>⌥⌘9</kbd></td><td><kbd>Ctrl+Shift+1</kbd> … <kbd>9</kbd></td></tr>
-          <tr><td>Next / previous workspace</td><td><kbd>⌃⌘→</kbd> / <kbd>⌃⌘←</kbd></td><td><kbd>Ctrl+Alt+→</kbd> / <kbd>←</kbd></td></tr>
+          <tr><td>Next / previous workspace</td><td><kbd>⌃⌘→</kbd> / <kbd>⌃⌘←</kbd></td><td><kbd>Ctrl+Shift+PageDown</kbd> / <kbd>PageUp</kbd></td></tr>
           <tr><td>Mode</td><td><kbd>⇧⌘M</kbd></td><td><kbd>Ctrl+Shift+M</kbd></td></tr>
           <tr><td>Time budget</td><td><kbd>⌘T</kbd></td><td><kbd>Ctrl+Shift+T</kbd></td></tr>
           <tr><td>Pin focused session</td><td><kbd>⇧⌘P</kbd></td><td><kbd>Ctrl+Shift+P</kbd></td></tr>
@@ -194,20 +201,36 @@
 </div>
 
 <footer>
-  <div class="wrap">
-    <span>{{name}}, MIT licence</span>
-    <nav aria-label="Footer">
-      <a href="/">Home</a>
-      <a href="{{github}}">GitHub</a>
-      <a href="{{releases}}">Releases</a>
-      <a href="{{github}}/issues">Report a problem</a>
-    </nav>
-    <p class="fine">Not made by Anthropic. Claude and Claude Code are trademarks of Anthropic.</p>
-  </div>
+  <span>{{name}}, MIT licence</span>
+  <nav aria-label="Footer">
+    <a href="/">Home</a>
+    <a href="{{github}}">GitHub</a>
+    <a href="{{releases}}">Releases</a>
+    <a href="{{github}}/issues">Report a problem</a>
+  </nav>
+  <p class="fine">Not made by or affiliated with Anthropic. Claude and Claude Code are trademarks of Anthropic.</p>
 </footer>
+
+<dialog class="pal" id="cmdk" aria-label="Command palette">
+  <input type="text" placeholder="Search" aria-label="Search commands" autocomplete="off" spellcheck="false" role="combobox" aria-controls="pal-rows" aria-expanded="true">
+  <div class="rows" id="pal-rows" role="listbox"></div>
+  <p class="none" hidden>Nothing matches.</p>
+</dialog>
+<template id="cmds">
+    <a href="{{dl.macArm}}" data-also="download dmg m1 m2 m3 m4"><span class="g">↓</span>Download for Mac, Apple silicon</a>
+  <a href="{{dl.macIntel}}" data-also="download dmg x64"><span class="g">↓</span>Download for Mac, Intel</a>
+  <a href="{{dl.win}}" data-also="download exe installer"><span class="g">↓</span>Download for Windows x64</a>
+  <a href="{{dl.winArm}}" data-also="download exe installer snapdragon"><span class="g">↓</span>Download for Windows on ARM</a>
+  <a href="/#download" data-also="unsigned warning xattr smartscreen"><span class="g">→</span>Install notes</a>
+  <a href="/" data-also="home landing"><span class="g">→</span>Home</a>
+  <a href="#palette" data-also="keys keyboard"><span class="g">→</span>Keyboard shortcuts</a>
+  <a href="{{github}}" data-also="source code repo"><span class="g">→</span>Source on GitHub</a>
+  <button type="button" data-act="theme" data-also="dark light mode"><span class="g">◐</span>Switch light and dark</button>
+  <a href="#top" data-also="home start"><span class="g">↑</span>Back to top</a>
+</template>
 <script>
   // Contents start folded on narrow screens.
-  if (matchMedia('(max-width: 860px)').matches) document.getElementById('toc').open = false;
+  if (matchMedia("(max-width: 860px)").matches) document.getElementById("toc").open = false;
 </script>
 </body>
 </html>

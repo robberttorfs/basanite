@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{name}}: your Claude Code sessions on one calm screen</title>
+<meta name="description" content="A free, open-source desktop app for Mac and Windows. Every tile is a real Claude Code terminal, and the session that needs you grows and turns amber.">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0e0f12" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+<meta property="og:title" content="{{name}}">
+<meta property="og:description" content="Your Claude Code sessions on one calm screen. Free and open source, for Mac and Windows.">
+<meta property="og:image" content="/shots/wall-dark-1400.webp">
+<link rel="icon" href="/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="stylesheet" href="/style.css">
+<script src="/wall.js" defer></script>
+<script src="/download.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav">
+  <div class="wrap">
+    <a class="logo" href="/"><img src="/icon-64.png" alt="" width="26" height="26">{{name}}</a>
+    <a class="link" href="/docs">Docs</a>
+    <a class="link" href="{{github}}">GitHub</a>
+    <a class="btn small solid" href="#download">Download</a>
+  </div>
+</header>
+
+<main id="main">
+  <div class="hero wrap">
+    <h1>See which Claude Code session needs you.</h1>
+    <p class="lede">{{name}} puts all your Claude Code sessions on one screen. Every tile is a real terminal, and the one that's waiting on you <strong>grows and turns amber</strong> while the rest stay quiet. Free and open source, for Mac and Windows.</p>
+    <div class="cta">
+      <a class="btn solid" id="dl-main" href="#download"
+        data-mac-arm="{{dl.macArm}}" data-mac-intel="{{dl.macIntel}}" data-win="{{dl.win}}" data-win-arm="{{dl.winArm}}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg>
+        <span>Download</span>
+      </a>
+      <a class="btn" href="{{github}}">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.5 2 2 6.6 2 12.2c0 4.5 2.9 8.3 6.8 9.7.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.4-3.4-1.4-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.3 4.7-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10.2 10.2 0 0 0 22 12.2C22 6.6 17.5 2 12 2z"/></svg>
+        <span>Source on GitHub</span>
+      </a>
+    </div>
+    <p class="also" id="dl-also">Builds for <a href="{{dl.macArm}}">Mac with Apple silicon</a>, <a href="{{dl.macIntel}}">Mac with Intel</a>, <a href="{{dl.win}}">Windows</a> and <a href="{{dl.winArm}}">Windows on ARM</a>. You need <a href="{{claudeCode}}">Claude Code</a> installed.</p>
+
+    <div class="stage">
+      <div class="win" id="wall" role="img" aria-label="The {{name}} window: four Claude Code sessions as tiles. One asks for permission, turns amber and grows; the others keep working or finish.">
+        <div class="wbar" aria-hidden="true">
+          <span class="lights"><i></i><i></i><i></i></span>
+          <span class="sum">
+            <span class="n-needs s-needs" hidden><span class="sh"></span> 0 needs you</span>
+            <span class="n-working s-working"><span class="sh"></span> 0 working</span>
+            <span class="n-done s-done"><span class="sh"></span> 0 done</span>
+          </span>
+          <span class="meters">
+            <span class="u">5h <span class="m"><i style="width:34%"></i></span> 34%</span>
+            <span class="u">week <span class="m"><i style="width:52%"></i></span> 52%</span>
+          </span>
+        </div>
+        <div class="grid-slot grid" aria-hidden="true"></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="wrap" id="what">
+    <h2 class="kicker">It's the Claude Code you already use.</h2>
+    <p class="lead">Each session is the real <code>claude</code> command with your own login, so your settings, skills and slash commands all still work. {{name}} gives each one a tile, listens to Claude Code's hooks to know what it's doing, and points you at the one that's waiting.</p>
+    <div class="three">
+      <div>
+        <h3>Calm</h3>
+        <p>The tile you're typing in never moves. Others grow and shrink around it. Nothing pops up and disappears on a timer.</p>
+      </div>
+      <div>
+        <h3>No extra tokens</h3>
+        <p>The hooks reply with nothing and the counters are read from local files. The few things that do cost tokens are ones you start yourself.</p>
+      </div>
+      <div>
+        <h3>Mac and Windows</h3>
+        <p>One app for both, with the right shortcuts on each. Works on any folder, git or not.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" id="features">
+    <h2 class="kicker">Built around one question: what needs me?</h2>
+
+    <div class="feature">
+      <div class="copy">
+        <h3>Every session at a glance</h3>
+        <p>Each tile shows a status you can read without colour: ○ idle, ● working, ◆ needs you, ✓ done. The top bar counts them, and a notification tells you when a session waits on you or finishes something long.</p>
+        <p>Drag tiles to swap them, drag an edge to resize, or pin one to keep it big.</p>
+      </div>
+      <figure class="shot" style="margin:0">
+        <picture>
+          <source media="(prefers-color-scheme: light)" type="image/webp" srcset="/shots/wall-light-640.webp 640w, /shots/wall-light-1100.webp 1100w, /shots/wall-light-1400.webp 1400w" sizes="(max-width: 860px) 100vw, 700px" width="1400" height="900">
+          <img src="/shots/wall-dark-1100.webp" srcset="/shots/wall-dark-640.webp 640w, /shots/wall-dark-1100.webp 1100w, /shots/wall-dark-1400.webp 1400w" sizes="(max-width: 860px) 100vw, 700px" width="1400" height="900" loading="lazy" decoding="async" alt="Four session tiles. web-app is outlined in amber and says Needs you.">
+        </picture>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="copy">
+        <h3>The overview</h3>
+        <p>Press <kbd>⇧⌘A</kbd> (<kbd>Ctrl+Shift+A</kbd> on Windows) for one list of every session, sorted by what needs you first. The side pane shows the end of the conversation, and you can <strong>answer a permission prompt with a number key</strong> without leaving the list.</p>
+        <p>Snooze a session that keeps asking. Done stays green until you've looked at it.</p>
+      </div>
+      <figure class="shot" style="margin:0">
+        <picture>
+          <source media="(max-width: 640px) and (prefers-color-scheme: light)" type="image/webp" srcset="/shots/overview-light-crop.webp" width="760" height="480">
+          <source media="(max-width: 640px)" type="image/webp" srcset="/shots/overview-dark-crop.webp" width="760" height="480">
+          <source media="(prefers-color-scheme: light)" type="image/webp" srcset="/shots/overview-light-640.webp 640w, /shots/overview-light-1100.webp 1100w, /shots/overview-light-1400.webp 1400w" sizes="(max-width: 860px) 100vw, 700px" width="1400" height="900">
+          <img src="/shots/overview-dark-1100.webp" srcset="/shots/overview-dark-640.webp 640w, /shots/overview-dark-1100.webp 1100w, /shots/overview-dark-1400.webp 1400w" sizes="(max-width: 860px) 100vw, 700px" width="1400" height="900" loading="lazy" decoding="async" alt="The overview: sessions grouped under Needs you, Done and Idle, with a preview pane.">
+        </picture>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="copy">
+        <h3>Modes</h3>
+        <p>Tell a session how to work with one click: Notes, Plan, Build, Review, Careful, Until done and more, or write your own. Add-ons like <em>Verify at end</em> or <em>Quiet</em> stack on top.</p>
+        <p><strong>Some modes have real limits.</strong> In Plan and Review, Claude can't edit files. In Careful, it can't push or deploy. A hook blocks the tool call, so it doesn't rely on Claude reading the instructions.</p>
+      </div>
+      <figure class="shot" style="margin:0">
+        <picture>
+          <source media="(max-width: 640px) and (prefers-color-scheme: light)" type="image/webp" srcset="/shots/modes-light-crop.webp" width="560" height="540">
+          <source media="(max-width: 640px)" type="image/webp" srcset="/shots/modes-dark-crop.webp" width="560" height="540">
+          <source media="(prefers-color-scheme: light)" type="image/webp" srcset="/shots/modes-light-640.webp 640w, /shots/modes-light-1100.webp 1100w, /shots/modes-light-1400.webp 1400w" sizes="(max-width: 860px) 100vw, 700px" width="1400" height="900">
+          <img src="/shots/modes-dark-1100.webp" srcset="/shots/modes-dark-640.webp 640w, /shots/modes-dark-1100.webp 1100w, /shots/modes-dark-1400.webp 1400w" sizes="(max-width: 860px) 100vw, 700px" width="1400" height="900" loading="lazy" decoding="async" alt="The mode menu on a tile: Notes, Plan, Build, Overnight, Review, Careful, Until done, with add-ons below.">
+        </picture>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="copy">
+        <h3>Command palette</h3>
+        <p><kbd>⌘K</kbd> on Mac, <kbd>Ctrl+Shift+K</kbd> on Windows. Jump to a session, switch workspace, set a mode, start a recent folder. Rows show their shortcuts, so you pick them up as you go.</p>
+      </div>
+      <figure class="shot" style="margin:0">
+        <picture>
+          <source media="(max-width: 640px) and (prefers-color-scheme: light)" type="image/webp" srcset="/shots/palette-light-crop.webp" width="600" height="360">
+          <source media="(max-width: 640px)" type="image/webp" srcset="/shots/palette-dark-crop.webp" width="600" height="360">
+          <source media="(prefers-color-scheme: light)" type="image/webp" srcset="/shots/palette-light-640.webp 640w, /shots/palette-light-1100.webp 1100w, /shots/palette-light-1400.webp 1400w" sizes="(max-width: 860px) 100vw, 700px" width="1400" height="900">
+          <img src="/shots/palette-dark-1100.webp" srcset="/shots/palette-dark-640.webp 640w, /shots/palette-dark-1100.webp 1100w, /shots/palette-dark-1400.webp 1400w" sizes="(max-width: 860px) 100vw, 700px" width="1400" height="900" loading="lazy" decoding="async" alt="The command palette over the tiles, listing sessions and actions with their shortcuts.">
+        </picture>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="copy">
+        <h3>Usage you can see</h3>
+        <p>Your plan's 5-hour and weekly limits sit in the top bar, with when they reset. Open them for what each session has used, and the last 14 days by day and by project.</p>
+        <p>All of it comes from files Claude Code already writes. No API calls.</p>
+      </div>
+      <figure class="shot" style="margin:0">
+        <picture>
+          <source media="(max-width: 640px) and (prefers-color-scheme: light)" type="image/webp" srcset="/shots/usage-light-crop.webp" width="400" height="676">
+          <source media="(max-width: 640px)" type="image/webp" srcset="/shots/usage-dark-crop.webp" width="400" height="676">
+          <source media="(prefers-color-scheme: light)" type="image/webp" srcset="/shots/usage-light-640.webp 640w, /shots/usage-light-1100.webp 1100w, /shots/usage-light-1400.webp 1400w" sizes="(max-width: 860px) 100vw, 700px" width="1400" height="900">
+          <img src="/shots/usage-dark-1100.webp" srcset="/shots/usage-dark-640.webp 640w, /shots/usage-dark-1100.webp 1100w, /shots/usage-dark-1400.webp 1400w" sizes="(max-width: 860px) 100vw, 700px" width="1400" height="900" loading="lazy" decoding="async" alt="The usage panel with plan limits and per-session token counts.">
+        </picture>
+      </figure>
+    </div>
+
+    <div class="more">
+      <div><h3>Workspaces</h3><p>Group sessions by project and switch between them. Put one away and reopen it later with its sessions and modes. With one workspace you never see them.</p></div>
+      <div><h3>The overseer</h3><p>A side panel with its own small Claude that can see every session. Ask "anything waiting on me?" It only types into a session when you tell it to.</p></div>
+      <div><h3>Time budgets</h3><p>Give a session 30 minutes. Claude gets a short note to plan for it, a nudge at 80% and a "finish now" at the end. Nothing is ever killed.</p></div>
+      <div><h3>Fresh start</h3><p>When the context fills up, Claude writes a handover, the context is cleared, and the session carries on from the handover.</p></div>
+      <div><h3>Clean view</h3><p>Flip any tile to a tidy chat: your messages, Claude's replies, and tool calls folded into one line. It types into the same real session.</p></div>
+      <div><h3>Agents you can see</h3><p>Subagents show up under their tile with their job, how long they've run and the tokens they've used.</p></div>
+      <div><h3>History and branches</h3><p>Search past conversations per folder and resume one in a tile. Fork a session into a second tile, or start one on its own git branch.</p></div>
+      <div><h3>Light and dark</h3><p>Follows your system, with a high contrast option and a compact density.</p></div>
+    </div>
+  </section>
+
+  <section class="wrap" id="private">
+    <h2 class="kicker">Free, open source and private.</h2>
+    <div class="three">
+      <div>
+        <h3>No account, no telemetry</h3>
+        <p>There's no server to sign in to and nothing is tracked. The only request the app makes by itself is checking GitHub for updates.</p>
+      </div>
+      <div>
+        <h3>Tokens only when you ask</h3>
+        <p>Watching sessions costs nothing. The overseer, Fresh start, modes and time budgets do use tokens, and you start each of them yourself.</p>
+      </div>
+      <div>
+        <h3>MIT licence</h3>
+        <p>Read the code, change it, build it yourself. <a href="{{github}}">It's all on GitHub.</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" id="download">
+    <h2 class="kicker">Download</h2>
+    <p class="lead">The builds aren't signed by Apple or Microsoft yet, so the first launch needs one extra step. It's below each download.</p>
+    <div class="dl">
+      <div class="os" id="os-mac">
+        <h3>Mac</h3>
+        <div class="btns">
+          <a class="btn solid" href="{{dl.macArm}}">Apple silicon</a>
+          <a class="btn" href="{{dl.macIntel}}">Intel</a>
+        </div>
+        <ol>
+          <li>Open the <code>.dmg</code> and drag {{name}} into Applications.</li>
+          <li>In Terminal, run this once:
+            <pre><code>xattr -cr "/Applications/{{name}}.app"</code></pre>
+            Or right-click the app, choose Open, then Open again.</li>
+          <li>Open it and allow notifications.</li>
+        </ol>
+      </div>
+      <div class="os" id="os-win">
+        <h3>Windows</h3>
+        <div class="btns">
+          <a class="btn solid" href="{{dl.win}}">Windows x64</a>
+          <a class="btn" href="{{dl.winArm}}">Windows on ARM</a>
+        </div>
+        <ol>
+          <li>Run the installer.</li>
+          <li>If SmartScreen says it doesn't recognise the app, click More info, then Run anyway.</li>
+          <li>Make sure <code>claude</code> works in PowerShell.</li>
+        </ol>
+      </div>
+    </div>
+    <p class="req">You need <a href="{{claudeCode}}">Claude Code</a> installed and logged in. Check that <code>claude</code> runs in a normal terminal first. <a href="/docs#install">Full install notes</a>, or <a href="{{releases}}">all releases</a>.</p>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>{{name}}, MIT licence</span>
+    <nav aria-label="Footer">
+      <a href="/docs">Docs</a>
+      <a href="{{github}}">GitHub</a>
+      <a href="{{releases}}">Releases</a>
+      <a href="{{github}}/issues">Report a problem</a>
+    </nav>
+    <p class="fine">Not made by Anthropic. Claude and Claude Code are trademarks of Anthropic.</p>
+  </div>
+</footer>
+</body>
+</html>

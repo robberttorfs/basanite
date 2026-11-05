@@ -1,148 +1,192 @@
-// The hero's live tile wall: a calm mock of the app. The left tile is "yours" and never
-// moves; on the right, sessions work, finish and ask, and the one that needs you grows.
-// Reduced motion shows one still frame. It pauses when off screen or in a hidden tab.
+// The live tile wall. A small, honest mock of the app: sessions work, finish and ask.
+// The one that asks grows and turns amber, and it waits until you answer it, like the
+// real thing. The tile marked .mine is yours: the script never touches it, so it never moves.
+//
+// Markup it needs: <div data-wall> with an optional .mine tile and an empty .col inside.
+// Optional counters anywhere in the page: [data-count="needs|working|done"].
+// Motion is CSS transitions (time-based). Timers pause off screen and in hidden tabs.
+// Reduced motion: one still frame, answering still works.
 (function () {
   'use strict';
-  const root = document.getElementById('wall');
+  const root = document.querySelector('[data-wall]');
   if (!root) return;
+  const col = root.querySelector('.col');
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const WORD = { working: 'Working', needs: 'Needs you', done: 'Done', idle: '' };
+  const SPIN = ['·', '✢', '✳', '✶', '✻', '✽', '✻', '✶', '✳', '✢'];
+  const WORD = { working: 'Working', needs: 'Needs you', done: 'Done', idle: 'Idle' };
+  const SHAPE = { working: '●', needs: '◆', done: '✓', idle: '○' };
 
-  // Each tile: name, branch, mode, and a script of terminal lines it plays while working.
-  const tiles = {
-    you: { name: 'portfolio', br: 'main', mode: 'Build', state: 'working', lines: [
-      ['you', 'make the projects grid two columns on tablets'],
-      ['tool', 'Read src/styles/grid.css'],
-      ['tool', 'Edit src/styles/grid.css'],
-      ['', '  Added a 768px breakpoint with two columns.'],
-      ['tool', 'Bash npm run build'],
-      ['ok', '  Built in 2.1s'],
-    ], doing: 'Editing grid.css' },
-    api: { name: 'api-server', br: 'rate-limit', mode: 'Review', state: 'working', lines: [
-      ['you', 'review the login route before I ship it'],
-      ['tool', 'Read src/routes/login.ts'],
-      ['tool', 'Grep "session" src/'],
-      ['tool', 'Read src/auth/limits.ts'],
-    ], doing: 'Reading limits.ts' },
-    web: { name: 'web-app', br: 'main', mode: null, state: 'working', lines: [
-      ['you', 'update the date picker to the new API'],
-      ['tool', 'Read src/components/DatePicker.tsx'],
-      ['tool', 'Bash npm test -- DatePicker'],
-    ], doing: 'Running tests' },
-    notes: { name: 'settings', br: 'main', mode: 'Plan', state: 'idle', lines: [
-      ['you', 'how should we split the settings page?'],
-      ['', '  Three options above. Nothing changed yet.'],
-    ], doing: '' },
-  };
-  const ASK = [
-    ['ask', 'Do you want to make this edit to package.json?'],
-    ['opt sel', '❯ 1. Yes'],
-    ['opt', '  2. Yes, and don\'t ask again this session'],
-    ['opt', '  3. No, and tell Claude what to do differently'],
+  // Each session loops through jobs. A job is a prompt, some steps, maybe one question,
+  // and a result. Steps: [kind, text]. 'ask' pauses the session until someone answers.
+  const SESSIONS = [
+    { name: 'api-server', branch: 'rate-limit', mode: 'Review', jobs: [
+      { you: 'review the login route before I ship it', steps: [
+        ['tool', 'Read src/routes/login.ts'], ['tool', 'Grep "session" src/'], ['tool', 'Read src/auth/limits.ts'],
+      ], done: 'Two findings, both small. No edits made.' },
+      { you: 'and the signup route?', steps: [
+        ['tool', 'Read src/routes/signup.ts'], ['tool', 'Read src/auth/hash.ts'],
+      ], done: 'Looks fine. One missing rate limit.' },
+    ] },
+    { name: 'web-app', branch: 'main', mode: null, jobs: [
+      { you: 'move the date picker to the new API', steps: [
+        ['tool', 'Read src/components/DatePicker.tsx'],
+        ['ask', 'Edit package.json'],
+        ['tool', 'Edit src/components/DatePicker.tsx'], ['tool', 'Bash npm test -- DatePicker'],
+      ], done: '12 tests passed.' },
+      { you: 'now the range picker', steps: [
+        ['tool', 'Read src/components/RangePicker.tsx'], ['tool', 'Edit src/components/RangePicker.tsx'],
+        ['ask', 'Bash npm install date-fns@4'],
+        ['tool', 'Bash npm test'],
+      ], done: 'All 48 tests passed.' },
+    ] },
+    { name: 'scraper', branch: 'fix-timeouts', mode: 'Debug', jobs: [
+      { you: 'why does the crawl stall after 200 pages?', steps: [
+        ['tool', 'Read src/queue.py'], ['tool', 'Bash pytest -k stall'], ['tool', 'Read src/fetch.py'],
+        ['ask', 'Edit src/fetch.py'],
+        ['tool', 'Bash pytest'],
+      ], done: 'The pool never released sockets. Fixed.' },
+    ] },
   ];
+  const ASK = (what) => [`Allow ${what.split(' ')[0]}?`, what.slice(what.indexOf(' ') + 1)];
+  const OPTS = ['Yes', 'Yes, and don’t ask again', 'No, tell Claude what to do'];
 
-  // The loop. Each step changes one thing, a few seconds apart.
-  const STEPS = [
-    () => { set('web', 'needs'); },
-    () => { push('you'); push('api'); },
-    () => { set('api', 'done', [['', '  Two findings, both small. Details above.']]); },
-    () => { push('you'); },
-    () => { answer('web'); },
-    () => { push('web'); push('you'); },
-    () => { set('web', 'done', [['ok', '  12 tests passed']]); },
-    () => { reset(); },
-  ];
+  const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const S = SESSIONS.map((s, i) => ({ ...s, i, job: 0, step: -1, state: 'working', lines: [], spin: 0, wait: 0 }));
 
-  const el = {};
-  const shown = {};   // how many script lines each tile shows
-  const extra = {};   // lines added by state changes
-
-  function chip(mode) {
-    if (!mode) return '';
-    return `<span class="chip m-${mode.toLowerCase()}">${mode}</span>`;
+  function build(s) {
+    const n = document.createElement('div');
+    n.className = 'tile';
+    n.innerHTML =
+      `<div class="th"><span class="sh" aria-hidden="true"></span><span class="nm">${s.name}</span>` +
+      (s.mode ? `<span class="md">${s.mode}</span>` : '') +
+      `<span class="st"></span><span class="br" aria-hidden="true">${s.branch}</span></div>` +
+      `<div class="tb" aria-hidden="true"></div><div class="ask" hidden></div>`;
+    s.el = n; s.tb = n.querySelector('.tb'); s.ask = n.querySelector('.ask');
+    s.ask.addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (b) answer(s, Number(b.dataset.n));
+    });
+    col.appendChild(n);
   }
-  function build() {
-    const grid = document.createElement('div');
-    grid.className = 'grid';
-    const col = document.createElement('div');
-    col.className = 'col';
-    for (const id of Object.keys(tiles)) {
-      const t = tiles[id];
-      const n = document.createElement('div');
-      n.className = 'tile' + (id === 'you' ? ' focused' : '');
-      n.innerHTML = `<div class="head"><span class="sh"></span><span class="nm">${t.name}</span>${chip(t.mode)}<span class="st"></span>${t.br ? `<span class="br">${t.br}</span>` : ''}</div><div class="term"></div><div class="doing"></div>`;
-      el[id] = n;
-      (id === 'you' ? grid : col).appendChild(n);
+
+  function line(kind, text) {
+    if (kind === 'you') return `<div class="l you"><b>&gt;</b> ${esc(text)}</div>`;
+    if (kind === 'tool') {
+      const sp = text.indexOf(' ');
+      return `<div class="l tool"><b>⏺</b> <i>${esc(text.slice(0, sp))}</i>(${esc(text.slice(sp + 1))})</div>`;
     }
-    grid.appendChild(col);
-    root.querySelector('.grid-slot').replaceWith(grid);
+    if (kind === 'ok') return `<div class="l ok"><b>⎿</b> ${esc(text)}</div>`;
+    return `<div class="l">${esc(text)}</div>`;
   }
 
-  function draw(id) {
-    const t = tiles[id], n = el[id];
-    n.className = `tile s-${t.state}${id === 'you' ? ' focused' : ''}${t.state === 'needs' ? ' needs' : ''}`;
-    n.querySelector('.st').textContent = WORD[t.state];
-    const lines = t.lines.slice(0, shown[id]).concat(extra[id] || []);
-    const term = n.querySelector('.term');
-    term.innerHTML = lines.slice(-9).map(([c, s]) => `<div class="${c}">${esc(s)}</div>`).join('');
-    keepBottom();
-    const doing = n.querySelector('.doing');
-    doing.textContent = t.state === 'working' ? t.doing : '';
-    doing.hidden = !doing.textContent;
-  }
-  // Like a terminal: when lines don't fit, the newest stay in view. Again after tiles resize.
-  let settle = null;
-  function keepBottom() {
-    const all = () => root.querySelectorAll('.term').forEach((t) => { t.scrollTop = t.scrollHeight; });
-    all(); clearTimeout(settle); settle = setTimeout(all, 320);
-  }
-  function counts() {
-    const all = Object.values(tiles);
-    const c = (s) => all.filter((t) => t.state === s).length;
-    const needs = root.querySelector('.n-needs');
-    needs.hidden = !c('needs');
-    needs.lastChild.textContent = ` ${c('needs')} needs you`;
-    root.querySelector('.n-working').lastChild.textContent = ` ${c('working')} working`;
-    root.querySelector('.n-done').lastChild.textContent = ` ${c('done')} done`;
-  }
-  const esc = (s) => s.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
-
-  function set(id, state, add) {
-    tiles[id].state = state;
-    if (state === 'needs') extra[id] = ASK.slice();
-    else if (add) extra[id] = (extra[id] || []).concat(add);
-    draw(id); counts();
-  }
-  function push(id) {
-    const t = tiles[id];
-    if (shown[id] < t.lines.length) { shown[id]++; draw(id); }
-  }
-  function answer(id) {
-    extra[id] = [['you', '1'], ['tool', 'Edit package.json']];
-    set(id, 'working');
-  }
-  function reset() {
-    const start = { you: 3, api: 2, web: 2, notes: 2 };
-    for (const id of Object.keys(tiles)) {
-      tiles[id].state = id === 'notes' ? 'idle' : 'working';
-      shown[id] = start[id];
-      extra[id] = [];
-      draw(id);
+  function draw(s) {
+    const n = s.el;
+    n.dataset.state = s.state;
+    n.querySelector('.sh').textContent = SHAPE[s.state];
+    n.querySelector('.st').textContent = WORD[s.state];
+    let html = s.lines.slice(-7).map(([k, t]) => line(k, t)).join('');
+    if (s.state === 'working') html += `<div class="l spin"><b>${SPIN[s.spin % SPIN.length]}</b> ${s.thinking || 'Working'}…</div>`;
+    s.tb.innerHTML = html;
+    s.spinEl = s.tb.querySelector('.spin b');
+    if (s.state === 'needs') {
+      const [q, what] = ASK(s.asking);
+      s.ask.innerHTML = `<p class="q">${esc(q)} <code>${esc(what)}</code></p>` +
+        OPTS.map((o, k) => `<button type="button" data-n="${k + 1}" aria-label="${esc(s.name)}: ${esc(o)}"><span class="k">${k + 1}</span>${esc(o)}</button>`).join('');
+      s.ask.hidden = false;
+    } else if (!s.ask.hidden) {
+      s.ask.hidden = true; s.ask.innerHTML = '';
     }
     counts();
   }
 
-  build();
-  reset();
+  function counts() {
+    for (const c of document.querySelectorAll('[data-count]')) {
+      const k = c.dataset.count;
+      const v = S.filter((s) => s.state === k).length;
+      const num = c.querySelector('.n') || c;
+      num.textContent = v;
+      c.toggleAttribute('data-zero', v === 0);
+    }
+    root.toggleAttribute('data-waiting', S.some((s) => s.state === 'needs'));
+  }
 
-  const still = matchMedia('(prefers-reduced-motion: reduce)');
-  if (still.matches) { set('web', 'needs'); set('api', 'done', [['', '  Two findings, both small.']]); return; }
+  const THINK = ['Reading', 'Pondering', 'Checking', 'Tracing', 'Working'];
+  // Advance one session by one step.
+  function advance(s) {
+    if (s.state === 'needs') return;           // it waits for you, however long that takes
+    const job = s.jobs[s.job];
+    if (s.state === 'done' || s.state === 'idle') {
+      if (--s.wait > 0) return;
+      s.job = (s.job + 1) % s.jobs.length; s.step = -1; s.state = 'working';
+      s.lines.push(['you', s.jobs[s.job].you]);
+      return draw(s);
+    }
+    s.step++;
+    if (s.step === 0 && !s.lines.length) s.lines.push(['you', job.you]);
+    const st = job.steps[s.step];
+    if (!st) {
+      s.lines.push(['ok', job.done]);
+      s.state = 'done'; s.wait = 3 + s.i;
+      return draw(s);
+    }
+    if (st[0] === 'ask') { s.asking = st[1]; s.state = 'needs'; return draw(s); }
+    s.lines.push(st);
+    s.thinking = THINK[(s.step + s.i) % THINK.length];
+    draw(s);
+  }
 
-  let step = 0, timer = null, visible = false;
-  const tick = () => { STEPS[step](); step = (step + 1) % STEPS.length; };
-  const play = () => { if (!timer && visible && !document.hidden) timer = setInterval(tick, 2600); };
-  const pause = () => { clearInterval(timer); timer = null; };
-  new IntersectionObserver(([e]) => { visible = e.isIntersecting; visible ? play() : pause(); }, { threshold: 0.2 }).observe(root);
+  function answer(s, n) {
+    if (s.state !== 'needs') return;
+    if (n === 3) {
+      s.lines.push(['', '  No changes. Tell me what to do instead.']);
+      s.state = 'idle'; s.wait = 4;
+    } else {
+      s.lines.push(['tool', s.asking]);
+      s.lines.push(['ok', n === 2 ? 'Allowed for this session.' : 'Done.']);
+      s.state = 'working';
+    }
+    draw(s);
+    root.dispatchEvent(new CustomEvent('wall:answered', { bubbles: true }));
+  }
+  // For the page palette and the number keys.
+  root.answerFirst = (n = 1) => { const s = S.find((x) => x.state === 'needs'); if (s) answer(s, n); return !!s; };
+  root.waiting = () => S.some((s) => s.state === 'needs');
+
+  S.forEach(build);
+  // A starting frame that already has a little history in it.
+  S[0].lines.push(['you', S[0].jobs[0].you], S[0].jobs[0].steps[0]); S[0].step = 0;
+  S[1].lines.push(['you', S[1].jobs[0].you], S[1].jobs[0].steps[0]); S[1].step = 0;
+  S[2].lines.push(['you', S[2].jobs[0].you]); S[2].step = -1;
+  S.forEach(draw);
+
+  // Number keys answer the waiting session while the wall is on screen.
+  let onScreen = false;
+  document.addEventListener('keydown', (e) => {
+    if (!onScreen || e.metaKey || e.ctrlKey || e.altKey || !/^[123]$/.test(e.key)) return;
+    if (e.target.closest && e.target.closest('input, textarea, [contenteditable], dialog[open]')) return;
+    if (root.answerFirst(Number(e.key))) e.preventDefault();
+  });
+
+  if (still) {
+    // One still frame: web-app is asking, the others are mid-work.
+    S[1].asking = 'Edit package.json'; S[1].state = 'needs'; S[1].step = 1;
+    S[0].lines.push(S[0].jobs[0].steps[1]);
+    S.forEach(draw);
+    new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; }).observe(root);
+    return;
+  }
+
+  // The clock. One step every 1.1 s, sessions take turns, so the wall changes about
+  // once a second and never in a burst. The spinner glyph turns every 120 ms.
+  let order = [1, 0, 2, 0, 2, 1, 0, 1, 2, 2, 0, 1], k = 0, stepT = null, spinT = null;
+  function tick() { advance(S[order[k++ % order.length]]); }
+  function spin() { for (const s of S) if (s.state === 'working' && s.spinEl) s.spinEl.textContent = SPIN[++s.spin % SPIN.length]; }
+  function play() {
+    if (stepT || !onScreen || document.hidden) return;
+    stepT = setInterval(tick, 1100); spinT = setInterval(spin, 120);
+  }
+  function pause() { clearInterval(stepT); clearInterval(spinT); stepT = spinT = null; }
+  new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; onScreen ? play() : pause(); }, { threshold: 0.05 }).observe(root);
   document.addEventListener('visibilitychange', () => (document.hidden ? pause() : play()));
-  still.addEventListener?.('change', (e) => { if (e.matches) pause(); });
 })();
