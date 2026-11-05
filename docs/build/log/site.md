@@ -11,3 +11,9 @@
 21:04 fixes: section/hero padding (wrap shorthand clash), phone overflow in download, terminal lines
 21:06 site-shots: sample meters, palette query; re-running
 21:17 shots: clean devdata each run, sample meters, usage chart names swapped (real chart showed this PC's projects), palette query 'session', phone crops + <source> per width; checked 360-1440 dark/light, no overflow
+21:17 checked wall loop in headless Edge (focused tile fixed at 544px, needs tile grows, no JS errors); stopped preview, Edge, dev instance. Done.
+## Left over
+- Overview shot preview pane says 'No messages yet' (no prompts sent); re-run when a demo transcript is possible.
+- Terminal tiles in shots show this PC's demo path (E:\AI\Claude\hangar-open-source\.devdata\site-demo\...).
+- No workspace pills or overseer shot yet.
+- config.mjs owner/repo are placeholders (robberttorfs/hangar-oss).
