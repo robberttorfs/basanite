@@ -44,4 +44,4 @@ Everything in PLAN.md rounds 1 to 5 is built, reviewed (code and UX), and fixed.
   - E:\demo (4 tiny demo repos used for screenshots) must be deleted by hand, because the tool's safety check blocks it.
 
 ## Website v4 (6 Nov)
-Full rebuild after the owner called v3 "meh": see site/DESIGN.md and site/RESEARCH-v4.md. Download buttons 404 until the repo is public and has a release.
+Full rebuild after the owner called v3 "meh", then v5 the same day: only the first screen is the stone, everything below is a plain scrolling product page. See site/DESIGN.md, site/RESEARCH-v4.md and site/RESEARCH-v5.md. Download buttons 404 until the repo is public and has a release.

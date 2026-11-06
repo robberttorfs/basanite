@@ -1,28 +1,16 @@
-# Site design (v4, 6 Nov 2026)
+# Site design (v5, 6 Nov 2026)
 
-v1 to v3 are in `versions/`. Research for this round: `RESEARCH-v4.md`. Logo options: `directions/logos.html` (F was picked).
+v1 to v3 are in `versions/`. Research: `RESEARCH-v4.md` (effects), `RESEARCH-v5.md` (words and order). Logo options: `directions/logos.html` (F was picked).
 
 ## The idea
-Basanite is the black stone goldsmiths rubbed gold on to test it. One streak of gold on black, which is also what the app does: quiet sessions, and the one that needs you lights up.
+Basanite is the black stone goldsmiths rubbed gold on to test it. The first screen is one full-screen 3D field of black stone columns (`src/stone.js`, plain WebGL2). One column has gold veins; click it and it settles, and later another asks. The cursor is a warm light on the stone.
 
-The page is one full-screen 3D field of black stone columns (`src/stone.js`, plain WebGL2). Each column is a session. One has gold veins running through it. Answer it (click) and it settles, and later another one asks. The cursor is a warm light moving over the stone.
-
-## Structure
-A pinned story, then a normal page. Times are in screens of scroll, set in `data-at` on each scene (`in start, in end, out start, out end`):
-1. Name, edge to edge, with the one line and the download.
-2. "Most of them are fine." All dark.
-3. "One needs you." The camera comes in on the gold column.
-4. "The one you're typing in stays put."
-5. "The real claude, in real terminals." The real screenshot rises, then dims except the waiting tile.
-6. Three features: huge title bottom left, big tilted screenshot on the right.
-7. Three promises as hover rows, then the download rows, questions and footer.
+Everything below is a normal page on the same black. What to write and what to show comes from `RESEARCH-v5.md`: headings are feature names, the text is plain fact, the app is the picture.
 
 ## Motion
-One ticker (`src/home.js`): Lenis, the scenes, the name and the stone update in the same frame, all time-based. Scenes read the real scroll position, so they still work with Lenis off. Magnetic edges are the owner-approved spec from the portfolio's `smooth.ts`. Screenshots are planes on the canvas synced to their `<img>`: they bend with scroll speed, sit slightly tilted and straighten towards the cursor. Letters rise on load, sink when the hero leaves, lift a little near the cursor and catch gold.
+One ticker (`src/home.js`): Lenis, the name and the canvas update in the same frame, time-based. Below the first screen: smooth scroll, text that rises once, screenshots drawn on the canvas synced to their `<img>` (rise in, bend with scroll speed, lean towards the cursor), the wall dims except the waiting tile, hover rows. No pinning.
 
-Idle pages draw at 24 fps; hidden tabs stop; resolution steps down on slow machines.
-
-Phones, touch and reduced motion get `html.flow`: the same content as a plain stacked page with real `<img>`s. No WebGL: `stone.webp`.
+The canvas stops drawing when the stone has faded and no screenshot is on screen; a still page draws at 24 fps; hidden tabs stop. Phones, touch and reduced motion get `html.plain` with real `<img>`s. No WebGL: `stone.webp`.
 
 ## Colour and type
 Dark only on the landing page. `#08090B` black, `#EFECE5` bone, `#F5B545` gold (the app's own "needs you"). Gold is only for what needs you and for download.

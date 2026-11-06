@@ -1,9 +1,10 @@
-// The page's motion: one ticker for Lenis, the pinned story and the stone. Everything reads the real
-// scroll position, so it all still works when Lenis is off (Opera GX's own smooth scrolling, keys, scrollbar drags).
+// The page's motion: one ticker for Lenis, the name and the stone. Below the first screen it's a normal
+// page with smooth scroll; screenshots rise in, bend with scroll speed and lean towards the cursor.
+// Everything reads the real scroll position, so it still works with Lenis off (Opera GX's own smooth scrolling).
 (function () {
   'use strict';
   const root = document.documentElement;
-  const pinned = root.classList.contains('pin');
+  const fx = root.classList.contains('fx');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
   const ease = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
@@ -11,276 +12,138 @@
   const lerp = (a, b, t) => a + (b - a) * t;
   const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
 
-  /* ---------- the name fills the window, edge to edge ---------- */
-  function fitMarks() {
-    for (const m of document.querySelectorAll('[data-mark]')) {
-      const base = m.querySelector('.base');
-      const prev = base.style.display;
-      base.style.display = 'inline-block';
-      m.style.fontSize = '100px';
-      const w = base.getBoundingClientRect().width;
-      base.style.display = prev;
-      const avail = m.clientWidth || innerWidth;
-      // Fills the width; on a very wide window it stops growing at 44% of the height and spreads out instead.
-      let size = 100 * (avail - 2) / w;
-      const cap = innerHeight * 0.44 / 0.8;
-      m.style.letterSpacing = '';
-      if (size > cap && innerWidth > 760) {
-        const em = (avail - 2 - (w / 100) * cap) / 7 / cap;
-        m.style.letterSpacing = `calc(.022em + ${em.toFixed(4)}em)`;
-        size = cap;
-      }
-      m.style.fontSize = size + 'px';
-    }
+  /* ---------- the name fills its box ---------- */
+  const mark = document.querySelector('.mark');
+  function fitMark() {
+    const base = mark.querySelector('.base');
+    mark.style.fontSize = '100px';
+    const w = base.getBoundingClientRect().width;
+    mark.style.fontSize = (100 * (mark.clientWidth - 1) / w) + 'px';
   }
-  const lettersOf = (m) => [m.querySelectorAll('.base i'), m.querySelectorAll('.glow i')];
-  const heroMark = document.querySelector('.mark');
-  const footMark = document.querySelector('.foot-mark');
-
-  /* ---------- story timeline, in screen heights of scroll ---------- */
-  const scenes = [...document.querySelectorAll('.sc')].map((el) => {
-    const at = el.dataset.at.split(',').map(Number);
-    const lines = [...el.querySelectorAll('.ln > span')].filter((s) => !s.closest('[data-at]:not(.sc)'));
-    return { el, at, lines, shown: null };
-  });
-  // Pieces with their own timing inside a scene.
-  const parts = [...document.querySelectorAll('.sc [data-at]')].map((el) => ({
-    el, at: el.dataset.at.split(',').map(Number), lines: [...el.querySelectorAll('.ln > span')], shot: el.classList.contains('shot'),
-  }));
-
-  // Camera, by the same unit. gold = positions relative to the lit column.
-  const G = { x: 4.4, z: -7.2 };
-  const keys = [
-    { at: 0.00, eye: [0, 11.5, 12.5], look: [0, 0.2, -4.2], fov: 38 },
-    { at: 0.62, eye: [-3.4, 10, 10], look: [-0.8, 0.3, -5.5], fov: 38 },
-    { at: 1.24, gold: 1, eye: [-3.4, 3.5, 6.8], look: [-2.2, 1.7, 0], fov: 38 },
-    { at: 1.56, gold: 1, eye: [-2.8, 3.3, 6.1], look: [-1.9, 1.8, 0], fov: 38 },
-    { at: 2.16, eye: [6, 9, 10], look: [3, 0.4, -4], fov: 42 },
-    { at: 3.0, eye: [1, 16, 11], look: [1, 0, -2], fov: 42 },
-    { at: 6.74, eye: [9, 13, 11], look: [8, 0, -3], fov: 42 },
-    { at: 7.8, eye: [2, 4.8, 14], look: [0, 1.0, -4], fov: 42 },
-    { at: 9.6, eye: [0, 7, 15], look: [0, 0.6, -3], fov: 40 },
-  ];
-  const dimKeys = [[0, 1], [0.5, 0.82], [2.5, 0.92], [2.9, 0.26], [6.8, 0.2], [7.3, 0.3], [9, 0.5], [99, 0.5]];
-  const goldKeys = [[0, 1], [0.34, 1], [0.62, 0], [1.0, 0], [1.26, 1], [2.3, 1], [2.7, 0], [7.9, 0], [8.4, 1], [99, 1]];
-  const curve = (ks, u) => {
-    for (let i = 1; i < ks.length; i++) if (u <= ks[i][0]) return lerp(ks[i - 1][1], ks[i][1], ease((u - ks[i - 1][0]) / (ks[i][0] - ks[i - 1][0])));
-    return ks[ks.length - 1][1];
-  };
-
-  function camAt(u, litP, stone) {
-    const pos = (k, f) => {
-      const v = k[f].slice();
-      if (k.gold && litP) { v[0] += litP[0]; v[2] += litP[2]; }
-      return v;
-    };
-    let a = keys[0], b = keys[keys.length - 1], t = 0;
-    for (let i = 1; i < keys.length; i++) if (u <= keys[i].at) { a = keys[i - 1]; b = keys[i]; t = ease((u - a.at) / (b.at - a.at)); break; }
-    if (u > keys[keys.length - 1].at) { a = b; t = 1; }
-    const ea = pos(a, 'eye'), eb = pos(b, 'eye'), la = pos(a, 'look'), lb = pos(b, 'look');
-    return {
-      eye: [lerp(ea[0], eb[0], t), lerp(ea[1], eb[1], t), lerp(ea[2], eb[2], t)],
-      at: [lerp(la[0], lb[0], t), lerp(la[1], lb[1], t), lerp(la[2], lb[2], t)],
-      fov: lerp(a.fov, b.fov, t) * Math.PI / 180,
-    };
-  }
-
-  /* ---------- scenes follow the scroll ---------- */
-  let spotted = [];
-  function setLines(lines, e, o) {
-    for (let i = 0; i < lines.length; i++) {
-      const s = lines[i], stag = i * 0.12;
-      const inn = out3((e - stag) / (1 - stag));
-      const off = ease(o);
-      const y = (1 - inn) * 106 - off * 106;
-      const next = (inn === 1 && off === 0) ? '' : `translateY(${y.toFixed(2)}%)`;
-      if (s.style.transform !== next) s.style.transform = next;
-    }
-  }
-  function updateScenes(u, intro) {
-    for (const s of scenes) {
-      const [a, b, c, d] = s.at;
-      const on = u >= a && u <= d;
-      if (s.shown !== on) { s.el.style.visibility = on ? 'visible' : 'hidden'; s.shown = on; }
-      if (!on) continue;
-      const e = a < 0 ? intro : (u - a) / (b - a), o = (u - c) / (d - c);
-      setLines(s.lines, clamp(e), clamp(o));
-    }
-    for (const p of parts) {
-      const [a, b, c, d] = p.at;
-      const e = clamp((u - a) / (b - a)), o = clamp((u - c) / (d - c));
-      if (p.lines.length) setLines(p.lines, e, o);
-      if (p.shot) {
-        const y = (1 - out3(e)) * 62 + -ease(o) * 8;
-        const next = y === 0 ? '' : `translateY(${y.toFixed(3)}vh)`;
-        if (p.el.style.transform !== next) p.el.style.transform = next;
-        p.alpha = ease(e * 3) * (1 - ease(o));
-      }
-    }
-    // feature shots live on their scene's timing
-    for (const f of shotsOwn) {
-      const [a, b, c, d] = f.at;
-      const e = clamp((u - a) / (b - a)), o = clamp((u - c) / (d - c));
-      const x = (1 - out3(e)) * 14 - ease(o) * 5;
-      const y = (1 - out3(e)) * 24 - ease(o) * 18;
-      const next = (x === 0 && y === 0) ? '' : `translate(${x.toFixed(3)}vw, ${y.toFixed(3)}vh)`;
-      if (f.el.style.transform !== next) f.el.style.transform = next;
-      f.alpha = ease(e * 1.6) * (1 - ease(o));
-    }
-  }
-
-  /* ---------- hero name: letters rise in, sink out, and lean up towards the cursor ---------- */
-  const heroL = heroMark ? lettersOf(heroMark) : null;
-  const footL = footMark ? lettersOf(footMark) : null;
-  const lean = new Float32Array(8), footLean = new Float32Array(8);
-  function setLetters(L, offs) {
+  const letters = [mark.querySelectorAll('.base i'), mark.querySelectorAll('.glow i')];
+  const lean = new Float32Array(8);
+  function setLetters(offs) {
     for (let i = 0; i < 8; i++) {
       const v = offs[i].toFixed(2) + '%';
-      if (L[0][i]) L[0][i].style.setProperty('--ly', v);
-      if (L[1][i]) L[1][i].style.setProperty('--ly', v);
+      letters[0][i].style.setProperty('--ly', v);
+      letters[1][i].style.setProperty('--ly', v);
     }
   }
 
-  /* ---------- start ---------- */
+  /* ---------- the stone ---------- */
   const canvas = document.getElementById('stone');
   let stone = null;
-  const still = reduced || !matchMedia('(hover:hover)').matches;
   try { stone = window.Stone && Stone.create(canvas, { small: innerWidth < 761 || !matchMedia('(pointer:fine)').matches, still: reduced }); } catch (e) { console.error(e); }
   if (!stone) root.classList.add('nogl');
 
-  // Screenshots go on the canvas only on the pinned page; plain pages keep their <img>.
-  const shotsOwn = [];
-  if (pinned && stone) {
+  // First screen, then the camera eases forward as the stone fades out behind the page.
+  const camFor = (u) => {
+    const t = ease(u);
+    return {
+      eye: [lerp(0, -1.2, t), lerp(11.5, 8.6, t), lerp(12.5, 9.5, t)],
+      at: [lerp(0, 0.4, t), 0.2, lerp(-4.2, -6, t)],
+      fov: 38 * Math.PI / 180,
+    };
+  };
+
+  /* ---------- screenshots on the canvas ---------- */
+  const shots = [];
+  if (fx && stone) {
     for (const fig of document.querySelectorAll('[data-shot]')) {
-      const part = parts.find((p) => p.el === fig);
-      const tilt = (fig.dataset.tilt || '0,0').split(',').map(Number);
-      const pl = stone.addPlane(fig, fig.dataset.shot, { base: tilt, r: Number(fig.dataset.r) || 8 });
-      if (fig.dataset.spotBox) { pl.box = fig.dataset.spotBox.split(',').map(Number); pl.spotAt = fig.dataset.spotAt.split(',').map(Number); }
-      if (part) part.plane = pl;
-      else {
-        const sc = fig.closest('.sc');
-        shotsOwn.push({ el: fig, at: sc.dataset.at.split(',').map(Number), plane: pl, alpha: 0 });
+      const pl = stone.addPlane(fig, fig.dataset.shot, { base: (fig.dataset.tilt || '0,0').split(',').map(Number), r: Number(fig.dataset.r) || 8, alpha: 0 });
+      if (fig.dataset.spotBox) pl.box = fig.dataset.spotBox.split(',').map(Number);
+      shots.push({ fig, pl, inView: false, shown: false, t: 0, spotOn: !!fig.dataset.spotBox });
+    }
+    const io = new IntersectionObserver((ens) => {
+      for (const e of ens) {
+        const s = shots.find((x) => x.fig === e.target);
+        s.inView = e.isIntersecting;
+        if (e.isIntersecting) s.shown = true;
+      }
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.02 });
+    shots.forEach((s) => io.observe(s.fig));
+  }
+  function updateShots(dt) {
+    for (const s of shots) {
+      if (s.shown && s.t < 1) s.t = Math.min(1, s.t + dt / 1.1);
+      const y = (1 - out3(s.t)) * 70;
+      const next = y < 0.02 ? '' : `translateY(${y.toFixed(2)}px)`;
+      if (s.fig.style.transform !== next) s.fig.style.transform = next;
+      s.pl.alpha = s.t ? ease(s.t * 2.2) : 0;
+      if (s.spotOn) {
+        // The wall dims except the tile that needs you, once it's on screen; point at it to see all of it.
+        const r = s.fig.getBoundingClientRect();
+        const mid = (r.top + r.height / 2) / innerHeight;
+        const goal = s.pl.hovOn ? 0 : (mid > 0.2 && mid < 0.72 ? 1 : 0);
+        s.pl.spot = damp(s.pl.spot, goal, 3, dt);
       }
     }
   }
 
-  // Lenis + magnetic section edges (owner-approved spec, from the portfolio's smooth.ts): the wheel's
-  // destination bends onto a resting place while the input is still happening, so it reads as one movement.
-  let lenis = null, raw = null, lastInput = 0, endTimer = 0;
-  const vh = () => innerHeight;
-  // Where the story rests, in screens: each scene's plateau.
-  function spans() {
-    const H = vh();
-    const out = [[0, Math.round(0.1 * H)]];
-    for (const s of scenes) if (s.at[0] >= 0) out.push([Math.round(s.at[1] * H), Math.round(s.at[2] * H)]);
-    const story = document.querySelector('.story');
-    for (const el of document.querySelectorAll('.promises, .download')) {
-      const top = el.getBoundingClientRect().top + scrollY, h = el.offsetHeight;
-      if (h < H * 0.85) continue;
-      out.push([Math.round(top), Math.round(top + Math.max(0, h - H))]);
-    }
-    return story ? out : [];
-  }
-  let spanList = [];
-  const Zpx = () => Math.min(90, innerHeight * 0.11);
-  function nearest(y) {
-    let best = null, bd = 1e9;
-    for (const [a, b] of spanList) {
-      const e = Math.min(b, Math.max(a, y)), d = Math.abs(y - e);
-      if (d === 0) return null;
-      if (d < bd) { bd = d; best = e; }
-    }
-    return best;
-  }
-  function bend(y) {
-    const e = nearest(y), Z = Zpx();
-    if (e === null) return y;
-    const u = y - e;
-    if (Math.abs(u) >= Z) return y;
-    const t = Math.abs(u) / Z;
-    return e + Math.sign(u) * Z * t * t * (2 - t);
-  }
-  function snapHook(data) {
-    const l = lenis;
-    if (!l || !data.event.type.includes('wheel') || data.event.ctrlKey) return true;
-    if (l.isStopped) { clearTimeout(endTimer); raw = null; return true; }
-    const now = performance.now();
-    if (raw === null || now - lastInput > 200) { raw = l.targetScroll; spanList = spans(); }
-    lastInput = now;
-    const asked = data.deltaY;
-    raw = clamp(raw + asked, 0, l.limit);
-    data.deltaY = bend(raw) - l.targetScroll;
-    if (asked !== 0 && data.deltaY === 0 && data.event.cancelable) data.event.preventDefault();
-    clearTimeout(endTimer);
-    endTimer = setTimeout(() => {
-      const e = raw === null || l.isStopped ? null : nearest(raw);
-      if (e !== null && raw !== null && Math.abs(raw - e) < Zpx()) l.scrollTo(e, { lerp: 0.085, force: true });
-      raw = null;
-    }, 130);
-    return true;
-  }
-  if (pinned && !reduced && window.Lenis) {
-    lenis = new Lenis({ lerp: 0.1, autoRaf: false, smoothWheel: true, virtualScroll: snapHook });
+  // Text rises once as it comes on screen.
+  if (fx) {
+    const rio = new IntersectionObserver((ens) => {
+      for (const e of ens) if (e.isIntersecting) { e.target.classList.add('in'); rio.unobserve(e.target); }
+    }, { rootMargin: '0px 0px -7% 0px' });
+    document.querySelectorAll('[data-rise]').forEach((el) => rio.observe(el));
   }
 
-  // anchors and the nav's Download key
+  /* ---------- smooth scroll ---------- */
+  let lenis = null;
+  if (fx && window.Lenis) lenis = new Lenis({ lerp: 0.1, autoRaf: false, smoothWheel: true });
   function go(sel) {
     const t = document.querySelector(sel);
     if (!t) return;
-    if (lenis) lenis.scrollTo(t, { duration: 1.5, offset: -70, easing: (x) => 1 - Math.pow(1 - x, 4), onComplete: () => t.focus && t.focus({ preventScroll: true }) });
-    else { t.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' }); if (t.focus) t.focus({ preventScroll: true }); }
+    const landed = () => t.focus && t.focus({ preventScroll: true });
+    if (lenis) lenis.scrollTo(t, { duration: 1.4, offset: -60, easing: (x) => 1 - Math.pow(1 - x, 4), onComplete: landed });
+    else { t.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' }); landed(); }
   }
   for (const a of document.querySelectorAll('[data-to]')) a.addEventListener('click', (e) => { e.preventDefault(); go(a.dataset.to); });
   // The big button scrolls to the list only when this OS couldn't be picked.
   const auto = document.querySelector('[data-dl-auto]');
-  if (auto) auto.addEventListener('click', (e) => { if (auto.getAttribute('href') === '#download') { e.preventDefault(); go('#download'); } });
+  auto.addEventListener('click', (e) => { if (auto.getAttribute('href') === '#download') { e.preventDefault(); go('#download'); } });
 
-  // going to the docs: stone rises, then the page changes
+  // going to the docs: the page comes up, then it changes
+  const wipe = document.querySelector('.wipe');
   for (const a of document.querySelectorAll('[data-wipe]')) a.addEventListener('click', (e) => {
     if (reduced || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
     e.preventDefault();
-    const w = document.querySelector('.wipe');
-    w.classList.add('on');
+    wipe.classList.add('on');
     setTimeout(() => { location.href = a.href; }, 400);
   });
-  addEventListener('pageshow', () => document.querySelector('.wipe').classList.remove('on'));
-
-  // the download button leans a few pixels towards the cursor, no more (owner: buttons mustn't move much)
-  const mag = document.querySelector('[data-magnet]');
-  let mx = 0, my = 0, magOn = false;
+  addEventListener('pageshow', () => wipe.classList.remove('on'));
 
   /* ---------- pointer ---------- */
   let pointer = null, inputAt = performance.now();
   addEventListener('pointermove', (e) => {
     inputAt = performance.now();
-    if (e.pointerType === 'touch') return;
-    pointer = { x: e.clientX, y: e.clientY };
+    if (e.pointerType !== 'touch') pointer = { x: e.clientX, y: e.clientY };
   }, { passive: true });
   document.addEventListener('pointerleave', () => { pointer = null; });
   addEventListener('blur', () => { pointer = null; });
   ['wheel', 'keydown', 'pointerdown', 'scroll', 'touchstart'].forEach((ev) => addEventListener(ev, () => { inputAt = performance.now(); }, { passive: true, capture: true }));
 
+  // the button leans a few pixels towards the cursor, no more
+  const mag = document.querySelector('[data-magnet]');
+  let mx = 0, my = 0, magOn = false;
+
   /* ---------- gold: one column asks, gets answered, and later another asks ---------- */
-  function pickGold(near) {
-    if (!stone) return;
-    const p = stone.cellAt(near ? near.x : G.x, near ? near.z : G.z);
-    if (p) stone.setGold(p);
-  }
-  let nextAsk = 7;
-  const askSpots = [[4.4, -7.2], [-5.6, -8.2], [9, -9], [-1, -9.6], [1.6, -6], [-8.6, -6.6]];
-  let askI = 0;
-  function askNext() { askI = (askI + 1) % askSpots.length; pickGold({ x: askSpots[askI][0], z: askSpots[askI][1] }); nextAsk = 9; }
-  // Click the lit column to answer it. The canvas never takes pointer events, so this looks at the point under the click.
+  const spots = [[5.2, -7.4], [-5.6, -8.2], [8.6, -9], [-1, -9.6], [2.2, -5.6], [-8.6, -6.6]];
+  let spotI = 0, nextAsk = 7;
+  const light = (s) => { const p = stone.cellAt(s[0], s[1]); if (p) stone.setGold(p); };
+  function askNext() { spotI = (spotI + 1) % spots.length; light(spots[spotI]); nextAsk = 9; }
   addEventListener('click', (e) => {
-    if (!stone || !lastCam || !lit) return;
-    if (e.target.closest('a,button,summary,input,figure,code,p,h1,h2,h3')) return;
+    if (!stone || !lastCam || !lit || scrollY > innerHeight * 0.3) return;
+    if (e.target.closest('a,button,h1,p')) return;
     const g = stone.rayGround(e.clientX, e.clientY, lastCam, stone.cellTop(lit) + stone.goldRise);
-    if (g && Math.hypot(g.x - lit[3], g.z - lit[4]) < 1.3 && curU < 0.3) askNext();
+    if (g && Math.hypot(g.x - lit[3], g.z - lit[4]) < 1.4) askNext();
   });
 
   /* ---------- the ticker ---------- */
-  let last = 0, intro = reduced ? 1 : 0, lastCam = null, curU = 0, lit = null, litSmooth = null;
-  let lastY = scrollY, vel = 0, drew = 0, firstDone = false, footIn = 0;
+  const nav = document.querySelector('.nav');
+  let last = 0, intro = 0, lastCam = null, lit = null, parX = 0, parY = 0;
+  let lastY = scrollY, vel = 0, drew = 0, blank = false, firstDone = false;
+
   function tick(now) {
     requestAnimationFrame(tick);
     if (document.hidden) { last = 0; return; }
@@ -289,68 +152,33 @@
     last = now;
     if (intro < 1) intro = Math.min(1, intro + dt / 1.5);
 
-    const y = scrollY;
-    const pxPerFrame = (y - lastY) / Math.max(dt, 0.001) * (1 / 60);
-    vel = damp(vel, pxPerFrame, 18, dt);
+    const y = scrollY, H = innerHeight, u = y / H;
+    vel = damp(vel, (y - lastY) / Math.max(dt, 0.001) / 60, 18, dt);
     lastY = y;
-    const u = y / vh();
-    curU = u;
+    nav.classList.toggle('past', u > 0.75);
 
-    if (pinned) updateScenes(u, intro);
-
-    if (heroL && pinned || heroL) {
-      // letters rise on load, sink into the stone as the hero leaves
-      const sink = pinned ? clamp((u - 0.08) / 0.3) : 0;
-      const offs = [];
-      const r = heroMark.getBoundingClientRect();
+    if (u < 1.05) {
+      const r = mark.getBoundingClientRect(), offs = [];
       for (let i = 0; i < 8; i++) {
-        const inn = out3((intro * 1.5 - i * 0.05));
         let target = 0;
-        if (pointer && pointer.y > r.top - 80 && pointer.y < r.bottom + 40) {
-          const cx = r.left + r.width * (i + 0.5) / 8;
-          const d = (pointer.x - cx) / (r.width / 8);
-          target = -3.2 * Math.exp(-d * d * 0.5);
+        if (pointer && pointer.y > r.top - 60 && pointer.y < r.bottom + 30) {
+          const d = (pointer.x - (r.left + r.width * (i + 0.5) / 8)) / (r.width / 8);
+          target = -3.5 * Math.exp(-d * d * 0.5);
         }
         lean[i] = damp(lean[i], target, 9, dt);
-        offs[i] = (1 - inn) * 105 + lean[i] + ease(sink * 1.3 - i * 0.04) * 105;
+        offs[i] = (1 - out3(intro * 1.5 - i * 0.05)) * 105 + lean[i];
       }
-      if (!reduced) setLetters(heroL, offs);
-      if (pointer) {
-        heroMark.style.setProperty('--mx', (pointer.x - r.left) + 'px');
-        heroMark.style.setProperty('--my', (pointer.y - r.top) + 'px');
-      } else heroMark.style.setProperty('--mx', '-30vw');
-    }
-
-    if (footMark) {
-      const r = footMark.getBoundingClientRect();
-      if (r.top < innerHeight) {
-        footIn = Math.min(1, footIn + dt / 1.1);
-        const offs = [];
-        for (let i = 0; i < 8; i++) {
-          let target = 0;
-          if (pointer && pointer.y > r.top - 40) {
-            const cx = r.left + r.width * (i + 0.5) / 8;
-            const d = (pointer.x - cx) / (r.width / 8);
-            target = -3.2 * Math.exp(-d * d * 0.5);
-          }
-          footLean[i] = damp(footLean[i], target, 9, dt);
-          offs[i] = (1 - out3(footIn * 1.4 - i * 0.05)) * 105 + footLean[i];
-        }
-        if (!reduced) setLetters(footL, offs);
-        if (pointer) {
-          footMark.style.setProperty('--mx', (pointer.x - r.left) + 'px');
-          footMark.style.setProperty('--my', (pointer.y - r.top) + 'px');
-        }
-      }
+      setLetters(offs);
+      mark.style.setProperty('--mx', pointer ? (pointer.x - r.left) + 'px' : '-30vw');
+      mark.style.setProperty('--my', pointer ? (pointer.y - r.top) + 'px' : '-30vw');
     }
 
     if (mag) {
       let tx = 0, ty = 0;
       if (pointer && u < 0.1) {
         const r = mag.getBoundingClientRect();
-        const cx = r.left - mx + r.width / 2, cy = r.top - my + r.height / 2;
-        const dx = pointer.x - cx, dy = pointer.y - cy;
-        if (Math.abs(dx) < r.width / 2 + 40 && Math.abs(dy) < r.height / 2 + 40) { tx = clamp(dx * 0.05, -7, 7); ty = clamp(dy * 0.09, -5, 5); }
+        const dx = pointer.x - (r.left - mx + r.width / 2), dy = pointer.y - (r.top - my + r.height / 2);
+        if (Math.abs(dx) < r.width / 2 + 30 && Math.abs(dy) < r.height / 2 + 30) { tx = clamp(dx * 0.03, -5, 5); ty = clamp(dy * 0.08, -4, 4); }
       }
       mx = damp(mx, tx, 11, dt); my = damp(my, ty, 11, dt);
       const settled = Math.abs(mx) < 0.05 && Math.abs(my) < 0.05 && !tx && !ty;
@@ -358,59 +186,47 @@
       else if (!settled) { mag.style.transform = `translate(${mx.toFixed(2)}px,${my.toFixed(2)}px)`; magOn = true; }
     }
 
-    if (stone && !stone.lost()) {
-      // a calm page draws less: 60 fps while anything is happening, 24 when it's idle
-      const idle = now - inputAt > 6000 && intro >= 1;
-      if (idle && now - drew < 41) return;
-      const fdt = idle ? (now - drew) / 1000 : dt;
-      drew = now;
+    if (!stone || stone.lost()) return;
+    updateShots(dt);
 
-      if (u < 0.26) { nextAsk -= fdt; if (nextAsk <= 0) askNext(); }
-      lit = stone.litCell();
-      if (lit) {
-        const top = stone.cellTop(lit);
-        const goal = [lit[3], top, lit[4]];
-        litSmooth = litSmooth ? litSmooth.map((v, i) => damp(v, goal[i], 3, fdt)) : goal;
-      }
+    // Nothing to draw: the stone has faded and no screenshot is on screen. Clear once, then stop using the GPU.
+    const dim = 1 - ease((u - 0.2) / 0.75);
+    const planeOn = shots.some((s) => s.inView || (s.t > 0 && s.t < 1));
+    if (dim <= 0.003 && !planeOn) {
+      if (blank) return;
+      blank = true;
+    } else blank = false;
 
-      const cam = camAt(pinned ? u : u * 0.25, litSmooth, stone);
-      // a few centimetres of parallax with the mouse
-      if (pointer && !reduced) {
-        const px = pointer.x / innerWidth - 0.5, py = pointer.y / innerHeight - 0.5;
-        parX = damp(parX, px, 2.4, fdt); parY = damp(parY, py, 2.4, fdt);
-      }
-      cam.eye = [cam.eye[0] + parX * 0.55, cam.eye[1] - parY * 0.25, cam.eye[2]];
-      lastCam = cam;
+    // A still page draws less: 60 fps while something's happening, 24 when it's idle.
+    const idle = now - inputAt > 6000 && intro >= 1;
+    if (idle && now - drew < 41) return;
+    const fdt = drew ? Math.min(0.1, (now - drew) / 1000) : 0.016;
+    drew = now;
 
-      for (const p of parts) if (p.plane) {
-        p.plane.alpha = p.alpha === undefined ? 0 : p.alpha;
-        if (p.plane.spotAt) p.plane.spot = ease((u - p.plane.spotAt[0]) / (p.plane.spotAt[1] - p.plane.spotAt[0]));
-      }
-      for (const f of shotsOwn) f.plane.alpha = f.alpha;
+    if (u < 0.3) { nextAsk -= fdt; if (nextAsk <= 0) askNext(); }
+    lit = stone.litCell();
 
-      stone.frame({
-        dt: fdt, cam, pointer, vel,
-        dim: pinned ? curve(dimKeys, u) : 0.55,
-        goldMask: pinned ? curve(goldKeys, u) : 1,
-        measure: !idle && firstDone,
-      });
-      firstDone = true;
+    const cam = camFor(clamp(u));
+    if (pointer) {
+      parX = damp(parX, pointer.x / innerWidth - 0.5, 2.4, fdt);
+      parY = damp(parY, pointer.y / innerHeight - 0.5, 2.4, fdt);
     }
+    cam.eye = [cam.eye[0] + parX * 0.55, cam.eye[1] - parY * 0.25, cam.eye[2]];
+    lastCam = cam;
+
+    stone.frame({ dt: fdt, cam, pointer: u < 1 ? pointer : null, vel, dim, goldMask: 1, measure: !idle && firstDone });
+    firstDone = true;
   }
-  let parX = 0, parY = 0;
 
   async function start() {
-    fitMarks();
-    pickGold();
-    addEventListener('resize', fitMarks);
-    if (document.fonts && document.fonts.ready) { try { await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 900))]); } catch (e) {} fitMarks(); }
+    fitMark();
+    if (stone) light(spots[0]);
+    addEventListener('resize', fitMark);
+    if (document.fonts && document.fonts.ready) { try { await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 900))]); } catch (e) {} fitMark(); }
     if (reduced) {
-      const offs = new Array(8).fill(0);
-      if (heroL) setLetters(heroL, offs);
-      if (footL) setLetters(footL, offs);
+      setLetters(new Array(8).fill(0));
       if (stone) {
-        const cam = camAt(0);
-        const draw = () => stone.frame({ dt: 3, cam, pointer: null, vel: 0, dim: 0.75, goldMask: 1, measure: false });
+        const draw = () => stone.frame({ dt: 3, cam: camFor(0), pointer: null, vel: 0, dim: 0.75, goldMask: 1, measure: false });
         draw();
         addEventListener('resize', draw);
       }
@@ -419,5 +235,5 @@
     requestAnimationFrame(tick);
   }
   start();
-  window.__home = { keys, stone, go };
+  window.__home = { stone, go };
 })();

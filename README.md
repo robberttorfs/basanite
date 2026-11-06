@@ -5,15 +5,14 @@
 <h1 align="center">Basanite</h1>
 
 <p align="center">
-  A calm home for your Claude Code sessions.<br>
-  Every session on one screen, and the one that needs you lights up.
+  Run all your Claude Code sessions in one window.
 </p>
 
 <p align="center">
   Free and open source, for Mac and Windows. No telemetry, and no extra tokens.
 </p>
 
-![The tile wall](site/public/shots/wall-dark-1400.webp)
+![The tile wall](site/public/shots/wall2-dark-1400.webp)
 
 ## What it is
 
