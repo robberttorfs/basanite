@@ -87,12 +87,46 @@
     document.querySelectorAll('[data-rise]').forEach((el) => rio.observe(el));
   }
 
+  /* ---------- expanding rows: height and fade, time-based, and a click mid-way simply reverses ---------- */
+  function setupDetails(el) {
+    const sum = el.querySelector('summary');
+    const body = document.createElement('div');
+    body.className = 'dbody';
+    while (sum.nextSibling) body.appendChild(sum.nextSibling);
+    el.appendChild(body);
+    let anim = null, wantOpen = false;
+    const run = (open) => {
+      wantOpen = open;
+      el.classList.toggle('is-open', open);
+      if (reduced) { el.open = open; return; }
+      const from = anim ? body.getBoundingClientRect().height : (el.open ? body.offsetHeight : 0);
+      const fromO = anim ? Number(getComputedStyle(body).opacity) : (el.open ? 1 : 0);
+      if (anim) anim.cancel();
+      el.open = true;
+      const to = open ? body.scrollHeight : 0;
+      body.classList.add('moving');
+      anim = body.animate([{ height: from + 'px', opacity: fromO }, { height: to + 'px', opacity: open ? 1 : 0 }], { duration: 300, easing: 'cubic-bezier(.22,.8,.26,1)', fill: 'forwards' });
+      const mine = anim;
+      mine.onfinish = () => {
+        if (anim !== mine) return;
+        anim = null;
+        body.classList.remove('moving');
+        el.open = wantOpen;
+        mine.cancel();
+      };
+    };
+    sum.addEventListener('click', (e) => { e.preventDefault(); run(!wantOpen); });
+    el.__open = () => { wantOpen = true; el.open = true; el.classList.add('is-open'); };
+  }
+  document.querySelectorAll('.fd, .qs details').forEach(setupDetails);
+
   /* ---------- smooth scroll ---------- */
   let lenis = null;
   if (fx && window.Lenis) lenis = new Lenis({ lerp: 0.1, autoRaf: false, smoothWheel: true });
   function go(sel) {
     const t = document.querySelector(sel);
     if (!t) return;
+    if (t.__open) t.__open();
     const landed = () => t.focus && t.focus({ preventScroll: true });
     if (lenis) lenis.scrollTo(t, { duration: 1.4, offset: -60, easing: (x) => 1 - Math.pow(1 - x, 4), onComplete: landed });
     else { t.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' }); landed(); }

@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Free and open source, for Mac and Windows. No telemetry, and no extra tokens.
+  Free and open source, for Mac and Windows. No tracking, and no extra tokens.
 </p>
 
 ![The tile wall](site/public/shots/wall2-dark-1400.webp)
@@ -65,7 +65,7 @@ Every shortcut is listed under **Help → Keyboard shortcuts**, or type `?` in t
 
 - **No extra tokens.** Basanite's hooks reply with nothing unless you've asked for something: a mode or add-on is sent once when it starts (and again after a compaction), a time budget adds a few one-line notes, and a guard mode answers a blocked edit with one line. Counters are read from local files and Claude Code's statusline.
 - **The overseer is lean.** It starts from a small context with one tool, and uses nothing when you aren't asking it anything.
-- **Private.** No telemetry, no accounts, no server. Sessions are ordinary `claude` processes. Basanite talks to them over `127.0.0.1` with a random key per launch and never changes your global Claude Code settings. The only thing it fetches is the update check from GitHub.
+- **Private.** No tracking, no accounts, no server. Sessions are ordinary `claude` processes. Basanite talks to them over `127.0.0.1` with a random key per launch and never changes your global Claude Code settings. The only thing it fetches is the update check from GitHub.
 
 ## Development
 
