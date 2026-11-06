@@ -3,3 +3,15 @@ dist/
 .DS_Store
 *.log
 .devdata/
+
+# Internal notes and scratch tools, kept on the maintainer's PC only
+docs/
+versions/
+site/directions/
+site/REVIEW*.md
+site/RESEARCH*.md
+tools/agentwatch.sh
+tools/site-look.mjs
+tools/site-tour.mjs
+tools/site-shots-extra.sh
+tmp_*.sh

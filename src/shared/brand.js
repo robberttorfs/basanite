@@ -6,5 +6,5 @@ module.exports = {
   appId: 'com.robberttorfs.basanite', // = package.json build.appId; the Windows AppUserModelId
   // Where releases are published (GitHub Releases). Fill both in when the public
   // releases repo exists; while either is empty, update checks are off.
-  releases: { owner: '', repo: '' },
+  releases: { owner: 'robberttorfs', repo: 'basanite' },
 };

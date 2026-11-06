@@ -196,7 +196,7 @@ test('history.list skips meta and command lines and counts messages', async () =
   assert.equal(a.messageCount, 4);                         // 2 prompts + 2 assistant lines (tool results do not count)
   assert.ok(a.size > 100);
   assert.deepEqual(await history.list('E:\\nothing', { root: FIX }), []);
-  assert.equal(history.slugFor('D:\\.ROBBERT\\.Dubai College'), 'D---ROBBERT--Dubai-College');
+  assert.equal(history.slugFor('D:\\.Work\\.My Folder'), 'D---Work--My-Folder');
 });
 
 test('history.search finds text with a snippet and respects caps', async () => {

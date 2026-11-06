@@ -1,6 +1,6 @@
 # Site design (v5, 6 Nov 2026)
 
-v1 to v3 are in `versions/`. Research: `RESEARCH-v4.md` (effects), `RESEARCH-v5.md` (words and order). Logo options: `directions/logos.html` (F was picked).
+v1 to v3 are in `versions/`. Research and logo options are kept privately.
 
 ## The idea
 Basanite is the black stone goldsmiths rubbed gold on to test it. The first screen is one full-screen 3D field of black stone columns (`src/stone.js`, plain WebGL2). One column has gold veins; click it and it settles, and later another asks. The cursor is a warm light on the stone.

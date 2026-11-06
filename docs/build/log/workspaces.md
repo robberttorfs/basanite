@@ -1,6 +1,0 @@
-- 20:11 started: read rules, plan 3.B, UI research 1-2, main.js/app.js storage and bar
-- 20:17 workspaces.js model+migration+tests, renderer pills/menu/switch, main IPC wired; npm test green
-- 20:31 sentence-case labels, palette session rows cover all workspaces (app-commands.js), verified switch/move/put away/undo/close/default mode/keys in dev app; committed
-- 20:32 chunk 2 started: key fix, killPty, trust prompt, overview/seen/snooze/notifications
-- 20:37 attention.js (snooze/seen/counts/notify rules)+tests, overview.js, notification titles/sound, snooze UI
-- 20:48 verified overview (open via menu accel, rows, preview with permission menu, answered 4=No by key, backspace seen, snooze menu, Enter opens across workspace, Esc), moon tile, trust prompt -> Needs you, Ctrl+Shift+1-9; committing

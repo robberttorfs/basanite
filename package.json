@@ -1,6 +1,6 @@
 {
   "name": "basanite",
-  "version": "0.4.0-dev",
+  "version": "0.4.0",
   "description": "A calm, fullscreen home for your Claude Code sessions.",
   "main": "src/main/main.js",
   "scripts": {
@@ -104,6 +104,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/robberttorfs/hangar.git"
+    "url": "https://github.com/robberttorfs/basanite.git"
   }
 }

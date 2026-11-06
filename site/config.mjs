@@ -2,9 +2,8 @@
 export default {
   name: 'Basanite',
   // The public GitHub repo. Releases come from it too.
-  // TODO owner: the open-source repo doesn't exist yet; set these when it does.
   owner: 'robberttorfs',
-  repo: 'hangar-oss',
+  repo: 'basanite',
   // Artifact names, from package.json build.dmg.artifactName and build.win.artifactName.
   artifacts: {
     macArm: 'Basanite-mac-arm64.dmg',
