@@ -115,9 +115,8 @@ picture { display: contents; }
 /* a heading, and the words behind a button */
 .fd summary { list-style: none; display: inline-flex; align-items: center; gap: .32em; padding: 0; font: inherit; }
 .fd summary::-webkit-details-marker { display: none; }
-.fd summary::after { content: '+'; flex: none; display: grid; place-items: center; width: 34px; height: 34px; border: 1.5px solid #55565a; border-radius: 3px; font: 500 22px/1 var(--mono); color: var(--bone); transition: border-color .18s, color .18s; }
-.fd summary:hover::after { border-color: var(--gold); color: var(--gold); }
-.fd.is-open summary::after { content: '\00d7'; border-color: var(--bone); }
+.fd summary::after { content: '+'; flex: none; font: 500 26px/1 var(--mono); transition: transform .28s var(--rise); }
+.fd.is-open summary::after { transform: rotate(45deg); }
 .fd h2, .fd h3 { transition: color .18s; }
 .fd summary:hover h2, .fd summary:hover h3 { color: var(--gold); }
 .fd.sm summary { display: flex; justify-content: space-between; width: 100%; padding: 14px 0; min-height: 56px; }
@@ -196,7 +195,6 @@ picture { display: contents; }
   .files a:active::before { transform: scaleX(1); }
   .qs summary:hover { color: inherit; }
   .fd summary:hover h2, .fd summary:hover h3 { color: inherit; }
-  .fd summary:hover::after { border-color: #55565a; color: var(--bone); }
   .btn:hover { background: var(--gold); }
   .btn:active { background: #ffc964; }
 }
