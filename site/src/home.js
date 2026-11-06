@@ -1,5 +1,5 @@
 // The page's motion: one ticker for Lenis, the name and the stone. Below the first screen it's a normal
-// page with smooth scroll; screenshots rise in, bend with scroll speed and lean towards the cursor.
+// page with smooth scroll; screenshots rise in, flex slightly with scroll speed and barely lean towards the cursor.
 // Everything reads the real scroll position, so it still works with Lenis off (Opera GX's own smooth scrolling).
 (function () {
   'use strict';
@@ -50,7 +50,7 @@
   const shots = [];
   if (fx && stone) {
     for (const fig of document.querySelectorAll('[data-shot]')) {
-      const pl = stone.addPlane(fig, fig.dataset.shot, { base: (fig.dataset.tilt || '0,0').split(',').map(Number), r: Number(fig.dataset.r) || 8, alpha: 0 });
+      const pl = stone.addPlane(fig, fig.dataset.shot, { r: Number(fig.dataset.r) || 8, alpha: 0 });
       if (fig.dataset.spotBox) pl.box = fig.dataset.spotBox.split(',').map(Number);
       shots.push({ fig, pl, inView: false, shown: false, t: 0, spotOn: !!fig.dataset.spotBox });
     }
@@ -66,7 +66,7 @@
   function updateShots(dt) {
     for (const s of shots) {
       if (s.shown && s.t < 1) s.t = Math.min(1, s.t + dt / 1.1);
-      const y = (1 - out3(s.t)) * 70;
+      const y = (1 - out3(s.t)) * 24;
       const next = y < 0.02 ? '' : `translateY(${y.toFixed(2)}px)`;
       if (s.fig.style.transform !== next) s.fig.style.transform = next;
       s.pl.alpha = s.t ? ease(s.t * 2.2) : 0;

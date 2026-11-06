@@ -84,18 +84,20 @@ kbd { padding: .1em .4em; border: 1px solid #4a4b4e; border-radius: 3px; font-si
 .fx .shot.gl-on img { opacity: 0; }
 
 .f { padding: clamp(70px, 13vh, 150px) var(--g) 0; }
-.f-full .tx { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: end; gap: 32px; margin-bottom: 30px; }
-.f-full .tx p { margin: 0 0 .3em; }
+/* the wall always fits on one screen, whatever the window's shape */
+.f-full { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 40px; align-items: center; }
+.f-full .shot { width: min(100vw - var(--g) * 2 - 380px, (100vh - 130px) * 1.838); }
 
 .f-side { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 40px; align-items: center; }
-.bleed-r { width: calc(100% + var(--g) + 7vw); }
+/* never cut off, and always fits on one screen */
+.f-side .shot { width: min(100%, (100vh - 130px) * 1.8); justify-self: end; }
+.f-side.flip .shot { justify-self: start; }
 .f-side.flip { grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); }
 .f-side.flip .tx { order: 2; }
-.bleed-l { width: calc(100% + var(--g) + 4vw); margin-left: calc((var(--g) + 4vw) * -1); }
 
 .f-trio { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(32px, 6vw, 110px); align-items: start; }
 .col-a .shot { width: min(100%, 440px); margin-bottom: 26px; }
-.col-b .shot { margin-top: 24px; }
+.col-b .shot { margin-top: 24px; max-width: 940px; }
 .col-b .tx.gap { margin-top: clamp(60px, 11vh, 120px); }
 
 .f-modes { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: clamp(32px, 6vw, 110px); align-items: start; }
@@ -175,9 +177,10 @@ details p { margin: 0; padding: 0 0 20px; max-width: 44em; font-size: 18px; }
   .btns { flex-wrap: wrap; width: 100%; }
   .btn { width: 100%; }
   .btn2 { display: none; }
-  .f-full .tx, .download .tx, .f-side, .f-side.flip, .f-trio, .f-modes, .faq { grid-template-columns: minmax(0, 1fr); }
+  .f-full, .download .tx, .f-side, .f-side.flip, .f-trio, .f-modes, .faq { grid-template-columns: minmax(0, 1fr); }
   .f-side.flip .tx { order: 0; }
-  .bleed-r, .bleed-l { width: 100%; margin-left: 0; }
+  .f-full .shot { width: 100%; }
+  .f-side .shot { width: 100%; }
   .f-modes .shot { max-width: 320px; }
   .more { grid-template-columns: 1fr; }
   .facts { grid-template-columns: 1fr 1fr; gap: 28px 20px; }

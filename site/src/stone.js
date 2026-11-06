@@ -239,7 +239,7 @@
     if (uSpot > 0.001) {
       float s = box(vUv * uSize - (uSpotBox.xy + uSpotBox.zw * 0.5) * uSize, uSpotBox.zw * 0.5 * uSize, 6.0);
       float out_ = smoothstep(-1.0, 1.0, s);
-      c = mix(c, c * 0.2, out_ * uSpot);
+      c = mix(c, c * 0.42, out_ * uSpot);
       c += vec3(1.0, 0.68, 0.24) * exp(-max(s, 0.0) * 0.045) * out_ * uSpot * 0.16;
     }
     o = vec4(c * a, a);
@@ -466,8 +466,8 @@
         for (const p of live) {
           const r = p.fig.getBoundingClientRect();
           if (r.bottom < -80 || r.top > H + 80) continue;
-          p.bend = damp(p.bend, clamp(f.vel * 1.5, -46, 46), 9, dt);
-          const tx = p.hovOn ? p.hov[0] * 0.5 : p.base[0], ty = p.hovOn ? -p.hov[1] * 0.5 : p.base[1];
+          p.bend = damp(p.bend, clamp(f.vel * 0.35, -9, 9), 9, dt);
+          const tx = p.hovOn ? p.hov[0] * 0.09 : 0, ty = p.hovOn ? -p.hov[1] * 0.09 : 0;
           p.tilt[0] = damp(p.tilt[0], tx, 6, dt); p.tilt[1] = damp(p.tilt[1], ty, 6, dt);
           gl.uniform2f(Q.u.uCenter, r.left + r.width / 2, r.top + r.height / 2);
           gl.uniform2f(Q.u.uSize, r.width, r.height);

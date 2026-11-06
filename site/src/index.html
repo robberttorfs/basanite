@@ -19,7 +19,7 @@
 <script>
 (function(){var h=document.documentElement,n=navigator,d=n.userAgentData,p=(d&&d.platform)||n.platform||'',m=/Android|iPhone|iPad|iPod/i.test(n.userAgent)||(d&&d.mobile)||(/Mac/i.test(p)&&n.maxTouchPoints>1);var o=/[?&]os=(mac|win|none)/.exec(location.search);h.dataset.os=o?(o[1]=='none'?'':o[1]):m?'':/Mac/i.test(p)?'mac':/Win/i.test(p)?'win':'';
 h.classList.add('js');
-// Screenshots bend on the canvas for a real mouse. Phones, touch and reduced motion keep plain images.
+// Screenshots are drawn on the canvas for a real mouse. Phones, touch and reduced motion keep plain images.
 var plain=matchMedia('(prefers-reduced-motion: reduce)').matches||!matchMedia('(hover:hover) and (pointer:fine)').matches||innerWidth<761;
 h.classList.add(plain?'plain':'fx');})();
 </script>
@@ -73,23 +73,23 @@ h.classList.add(plain?'plain':'fx');})();
       <p data-rise>Each session is a tile running the real <code>claude</code> command. A tile that needs you grows and turns amber. The one you're typing in doesn't move.</p>
     </div>
     <figure class="shot" data-shot="/shots/wall2-dark-2558.webp" data-spot-box="0.5025,0.076,0.49,0.45">
-      <img src="/shots/wall2-dark-1400.webp" srcset="/shots/wall2-dark-1400.webp 1400w, /shots/wall2-dark-2558.webp 2558w" sizes="96vw" width="1400" height="762" alt="The app with four sessions in a workspace called Client. The web-app tile has an amber edge, says Needs you and shows a permission menu; api-server and scraper are done; notes is idle." decoding="async" loading="lazy">
+      <img src="/shots/wall2-dark-1400.webp" srcset="/shots/wall2-dark-1400.webp 1400w, /shots/wall2-dark-2558.webp 2558w" sizes="72vw" width="1400" height="762" alt="The app with four sessions in a workspace called Client. The web-app tile has an amber edge, says Needs you and shows a permission menu; api-server and scraper are done; notes is idle." decoding="async" loading="lazy">
     </figure>
   </section>
 
-  <section class="f f-side">
+  <section class="f f-side flip">
     <div class="tx">
       <h2 data-rise>Overview</h2>
       <p data-rise>Every session in one list, the ones waiting on you at the top. Press 1, 2 or 3 to answer a permission menu from there.</p>
     </div>
-    <figure class="shot bleed-r" data-shot="/shots/overview-dark.webp" data-tilt="-0.4,0.15">
+    <figure class="shot" data-shot="/shots/overview-dark.webp">
       <img src="/shots/overview-dark-1x.webp" srcset="/shots/overview-dark-1x.webp 940w, /shots/overview-dark.webp 1880w" sizes="66vw" width="940" height="500" alt="The overview: web-app under Needs you, two done sessions, one idle, and web-app's preview showing an edit permission menu with options 1, 2 and 3." decoding="async" loading="lazy">
     </figure>
   </section>
 
   <section class="f f-trio">
     <div class="col-a">
-      <figure class="shot" data-shot="/shots/usage-panel.webp" data-r="14" data-tilt="0.3,0.1">
+      <figure class="shot" data-shot="/shots/usage-panel.webp" data-r="14">
         <img src="/shots/usage-panel.webp" width="358" height="615" alt="The usage panel: 5-hour limit 34%, weekly limit 52%, cost per open session, and a 14-day bar chart with cost per project." decoding="async" loading="lazy">
       </figure>
       <div class="tx">
@@ -109,24 +109,24 @@ h.classList.add(plain?'plain':'fx');})();
         <h2 data-rise>Command palette</h2>
         <p data-rise><kbd data-mac="⌘K" data-win="Ctrl+Shift+K">⌘K</kbd> finds any session, workspace, mode or action, and shows its shortcut.</p>
       </div>
-      <figure class="shot" data-shot="/shots/palette-dark-tight.webp" data-r="12" data-tilt="-0.25,-0.1">
+      <figure class="shot" data-shot="/shots/palette-dark-tight.webp" data-r="12">
         <img src="/shots/palette-dark-tight-1x.webp" srcset="/shots/palette-dark-tight-1x.webp 560w, /shots/palette-dark-tight.webp 1119w" sizes="52vw" width="560" height="295" alt="The command palette filtered to session: New session, Close session, Copy session ID, Reopen closed session, Next session that needs you, Overview, each with its shortcut." decoding="async" loading="lazy">
       </figure>
     </div>
   </section>
 
-  <section class="f f-side flip">
+  <section class="f f-side">
     <div class="tx">
       <h2 data-rise>Changes</h2>
       <p data-rise>Every tile shows its git branch. Click it to read the diff, new files included. You get a note when two sessions edit the same file.</p>
     </div>
-    <figure class="shot bleed-l" data-shot="/shots/changes.webp" data-r="12" data-tilt="0.4,0.15">
+    <figure class="shot" data-shot="/shots/changes.webp" data-r="12">
       <img src="/shots/changes.webp" width="778" height="433" alt="The changes panel for web-app: two changed files with the diff of each." decoding="async" loading="lazy">
     </figure>
   </section>
 
   <section class="f f-modes">
-    <figure class="shot" data-shot="/shots/modes-dark-tight.webp" data-r="12" data-tilt="0.3,0.1">
+    <figure class="shot" data-shot="/shots/modes-dark-tight.webp" data-r="12">
       <img src="/shots/modes-dark-tight-1x.webp" srcset="/shots/modes-dark-tight-1x.webp 320w, /shots/modes-dark-tight.webp 640w" sizes="28vw" width="320" height="465" alt="The mode menu: Notes, Plan, Build, Overnight, Review (checked), Careful and Until done, each with token-cost dots, then the add-ons Verify at end, Tidy commits and Quiet." decoding="async" loading="lazy">
     </figure>
     <div class="tx">
