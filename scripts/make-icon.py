@@ -1,52 +1,46 @@
-# Draws the Hangar icon: a deep indigo rounded square holding three tiles,
-# one tall, one quiet and one amber ("needs you"). Kept to three shapes so it
-# stays crisp down to 16 px.
-#   python3 scripts/make-icon.py build
-import os, subprocess, sys
+# Draws the Basanite icon: a slab of black stone with one wedge of gold, the streak
+# gold leaves on a touchstone. Two shapes, so it stays crisp down to 16 px.
+#   python scripts/make-icon.py build
+import os, sys
 from PIL import Image, ImageDraw
 
-S = 1024
+SLAB = [(17, 3), (54, 7), (61, 40), (41, 61), (8, 55), (3, 20)]
+STREAK = [(9, 45), (56, 10), (45, 37)]
 
 
 def lerp(a, b, t):
     return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(len(a)))
 
 
-def icon(size=S, pad=56):
-    k = 4  # draw large, then scale down for smooth edges
-    W = size * k
-    sc = W / S
-    p = pad * sc
-    img = Image.new('RGBA', (W, W), (0, 0, 0, 0))
-    grad = Image.new('RGBA', (W, W))
-    gd = ImageDraw.Draw(grad)
+def gradient(W, c0, c1, flip=False):
+    img = Image.new('RGBA', (W, W))
+    px = img.load()
     for y in range(W):
-        gd.line([(0, y), (W, y)], fill=lerp((46, 50, 82, 255), (14, 15, 22, 255), y / W))
+        for x in range(W):
+            t = (x + y) / (2 * W) if not flip else (x + W - y) / (2 * W)
+            px[x, y] = lerp(c0, c1, t)
+    return img
+
+
+def icon(size=1024):
+    W = min(size * 4, 2048)
+    sc = W / 64
+    # a little inside the frame, so it sits like other app icons
+    P = lambda pts: [(W * 0.06 + x * sc * 0.88, W * 0.06 + y * sc * 0.88) for x, y in pts]
+    img = Image.new('RGBA', (W, W), (0, 0, 0, 0))
     mask = Image.new('L', (W, W), 0)
-    ImageDraw.Draw(mask).rounded_rectangle([p, p, W - p, W - p], radius=int(228 * sc), fill=255)
-    img.paste(grad, (0, 0), mask)
-    edge = Image.new('RGBA', (W, W), (0, 0, 0, 0))
-    ImageDraw.Draw(edge).rounded_rectangle([p, p, W - p, W - p], radius=int(228 * sc), outline=(255, 255, 255, 34), width=max(1, int(5 * sc)))
-    img = Image.alpha_composite(img, edge)
-    d = ImageDraw.Draw(img)
-    x0, y0, x1, y1 = 240 * sc, 240 * sc, 784 * sc, 784 * sc
-    g = 42 * sc
-    mid = x0 + (x1 - x0) * 0.56
-    ym = (y0 + y1) / 2
-    r = int(54 * sc)
-    d.rounded_rectangle([x0, y0, mid - g / 2, y1], radius=r, fill=(242, 244, 250, 255))
-    d.rounded_rectangle([mid + g / 2, y0, x1, ym - g / 2], radius=r, fill=(118, 124, 152, 255))
-    d.rounded_rectangle([mid + g / 2, ym + g / 2, x1, y1], radius=r, fill=(245, 181, 69, 255))
+    ImageDraw.Draw(mask).polygon(P(SLAB), fill=255)
+    img.paste(gradient(W, (66, 69, 76, 255), (17, 18, 21, 255)), (0, 0), mask)
+    ImageDraw.Draw(img).line(P(SLAB) + P(SLAB)[:1], fill=(104, 107, 114, 255), width=max(1, int(1.3 * sc)), joint='curve')
+    mask = Image.new('L', (W, W), 0)
+    ImageDraw.Draw(mask).polygon(P(STREAK), fill=255)
+    img.paste(gradient(W, (233, 160, 44, 255), (255, 219, 142, 255), flip=True), (0, 0), mask)
     return img.resize((size, size), Image.LANCZOS)
 
 
-out = sys.argv[1]
-base = icon()
+out = sys.argv[1] if len(sys.argv) > 1 else 'build'
+os.makedirs(out, exist_ok=True)
+base = icon(1024)
 base.save(os.path.join(out, 'icon.png'))
-iconset = os.path.join(out, 'icon.iconset')
-os.makedirs(iconset, exist_ok=True)
-for s in [16, 32, 64, 128, 256, 512]:
-    icon(s).save(os.path.join(iconset, f'icon_{s}x{s}.png'))
-    icon(s * 2).save(os.path.join(iconset, f'icon_{s}x{s}@2x.png'))
-subprocess.run(['iconutil', '-c', 'icns', iconset, '-o', os.path.join(out, 'icon.icns')], check=True)
 base.save(os.path.join(out, 'icon.ico'), sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
+base.save(os.path.join(out, 'icon.icns'))

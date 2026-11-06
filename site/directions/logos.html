@@ -1,0 +1,31 @@
+<!doctype html><meta charset="utf-8"><title>Basanite logos</title>
+<style>
+body{margin:0;background:#0b0c0e;color:#c9c6bf;font:500 15px/1.4 system-ui;padding:32px}
+.g{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.c{border:1px solid #24262a;border-radius:6px;padding:24px;display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
+.c h2{width:100%;margin:0 0 6px;font-size:15px;color:#f1eee7}
+.lt{background:#e9e6df;padding:10px;border-radius:4px;display:flex;gap:8px;align-items:flex-end}
+svg{display:block}
+</style>
+<svg width="0" height="0" style="position:absolute"><defs>
+<linearGradient id="st" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3a3d42"/><stop offset="1" stop-color="#121316"/></linearGradient>
+<linearGradient id="gd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFD98A"/><stop offset="1" stop-color="#E9A02C"/></linearGradient>
+<!-- A: one column top with the streak -->
+<symbol id="A" viewBox="0 0 64 64"><path d="M20 5 49 9 60 33 45 58 15 56 4 28Z" fill="url(#st)" stroke="#55585e" stroke-width="1.5" stroke-linejoin="round"/><path d="M15 45 C24 37 38 25 49 16 C50 15.4 51 16.6 50.3 17.6 C42 28 29 40 18 48 C15.6 49.6 13.4 46.6 15 45Z" fill="url(#gd)"/></symbol>
+<!-- B: cells, one lit -->
+<symbol id="B" viewBox="0 0 64 64"><g stroke-linejoin="round"><path d="M6 13 24 4 34 17 25 33 8 30Z" fill="#2a2c30"/><path d="M38 15 29 32 41 45 59 36 58 15 47 6Z" fill="url(#gd)"/><path d="M4 35 22 38 31 54 18 61 5 52Z" fill="#1d1f22"/><path d="M27 37 38 49 33 60 45 60 58 41 41 49Z" fill="#35383d"/></g></symbol>
+<!-- C: column from three quarters, gold top -->
+<symbol id="C" viewBox="0 0 64 64"><path d="M14 17 32 8 50 15 50 49 33 58 14 50Z" fill="#17181b"/><path d="M33 26 50 15 50 49 33 58Z" fill="#2b2d31"/><path d="M14 17 32 8 50 15 33 26Z" fill="url(#gd)"/></symbol>
+<!-- D: B monogram cut from stone, streak as the waist -->
+<symbol id="D" viewBox="0 0 64 64"><path d="M11 5H39L53 14 50 28 57 37 53 53 40 60H11Z" fill="url(#st)"/><path d="M6 37 58 23 59 27 7 41Z" fill="url(#gd)"/></symbol>
+<!-- E: faceted shard -->
+<symbol id="E" viewBox="0 0 64 64"><path d="M32 3 56 19 49 50 26 61 8 39 13 14Z" fill="#191a1d"/><path d="M32 3 13 14 8 39 27 30Z" fill="#33363b"/><path d="M32 3 27 30 49 50 56 19Z" fill="#232529"/><path d="M27 30 49 50 26 61 8 39Z" fill="#101114"/><path d="M27 30 32 3 35 4 30 31 50 49 49 50Z" fill="url(#gd)"/></symbol>
+<!-- F: slab with a clean wedge streak, flat -->
+<symbol id="F" viewBox="0 0 64 64"><path d="M18 4 54 8 60 40 40 60 8 54 4 20Z" fill="#1b1c20" stroke="#4a4d53" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 42 52 14 44 34Z" fill="url(#gd)"/></symbol>
+</defs></svg>
+<div class="g" id="g"></div>
+<script>
+const names={A:'A. The touchstone: a column top with one streak',B:'B. Cells: quiet stones, one lit',C:'C. Column: a stone standing, gold top',D:'D. B cut from stone, streak across',E:'E. Shard: facets, gold along one',F:'F. Slab with a wedge of gold'};
+for(const k in names){const s=(n)=>`<svg width="${n}" height="${n}"><use href="#${k}"/></svg>`;
+g.insertAdjacentHTML('beforeend',`<div class="c"><h2>${names[k]}</h2>${s(128)}${s(64)}${s(32)}${s(24)}${s(16)}<div class="lt">${s(48)}${s(24)}${s(16)}</div></div>`)}
+</script>

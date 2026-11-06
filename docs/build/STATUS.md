@@ -20,7 +20,7 @@ Everything in PLAN.md rounds 1 to 5 is built, reviewed (code and UX), and fixed.
 - **Launch material:** MIT licence, README, website (landing page and docs, local only, in site/).
 
 ## Needs the owner
-1. **Name.** Rename in `src/shared/brand.js`, `package.json` (name, productName, build.appId, artifact names, repository) and `site/config.mjs`.
+1. **Name: Basanite (chosen 6 Nov), done** in the app, icon, README and site. Still to do: rename the GitHub repo and this folder, then update `site/config.mjs` (`repo`, `siteUrl`) and `package.json` `repository`. Internal names (`hangarctl`, `HANGAR_*`, `window.hangar`) are unchanged.
 2. **Public repo.** Make it public (or create the final repo). Then:
    - set `brand.releases`;
    - fix `package.json` `repository` (it still points at the private personal repo);
@@ -42,3 +42,6 @@ Everything in PLAN.md rounds 1 to 5 is built, reviewed (code and UX), and fixed.
   - the palette screenshot shows slivers of the app at its right edge;
   - the overview shot's sample prompt differs from the wall's;
   - E:\demo (4 tiny demo repos used for screenshots) must be deleted by hand, because the tool's safety check blocks it.
+
+## Website v4 (6 Nov)
+Full rebuild after the owner called v3 "meh": see site/DESIGN.md and site/RESEARCH-v4.md. Download buttons 404 until the repo is public and has a release.

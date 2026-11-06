@@ -1,0 +1,55 @@
+/* The docs page: style.css gives the tokens, type, nav, footer and palette; this is the reading layout. */
+html { scroll-padding-top: 16px; }
+.docs { max-width: var(--wrap); margin: 0 auto; padding: clamp(28px, 5vw, 64px) var(--gut) 0; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: clamp(28px, 5vw, 72px); align-items: start; }
+.toc { position: sticky; top: 16px; font-size: 15px; }
+.toc summary { list-style: none; cursor: pointer; color: var(--muted); padding: 0 0 10px; min-height: 32px; font-weight: 600; }
+.toc summary::-webkit-details-marker { display: none; }
+.toc ul { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--line); }
+.toc a { display: block; padding: 6px 0 6px 14px; color: var(--muted); text-decoration: none; margin-left: -1px; border-left: 1px solid transparent; }
+.toc a:hover { color: var(--text); border-left-color: var(--text); }
+.doc { max-width: 720px; min-width: 0; }
+.doc h1 { font-size: clamp(48px, 7vw, 88px); margin-bottom: .3em; max-width: none; }
+.doc h2 { font-size: clamp(28px, 3vw, 40px); margin: 72px 0 16px; padding-top: 20px; border-top: 1px solid var(--line); scroll-margin-top: 12px; }
+.doc h1 + h2 { margin-top: 24px; }
+.doc h3 { font-size: 20px; font-weight: 700; letter-spacing: -.01em; margin: 28px 0 8px; }
+.doc p { margin: 0 0 14px; }
+.doc p, .doc li { color: var(--muted); }
+.doc strong { color: var(--text); font-weight: 600; }
+.doc a { text-decoration-color: var(--line-hi); text-underline-offset: 3px; }
+.doc a:hover { text-decoration-color: currentColor; }
+.doc ul, .doc ol { padding-left: 1.3em; margin: 0 0 14px; }
+.doc li { margin: 0 0 9px; }
+.doc li::marker { color: var(--muted); }
+.doc pre { margin: 10px 0 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--tile); padding: 12px 14px; overflow-x: auto; font: 500 13.5px/1.5 var(--mono); color: var(--text); }
+.doc .intro { font-size: 19px; }
+.doc .table { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--tile); margin: 0 0 16px; }
+.doc table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.doc th, .doc td { text-align: left; padding: 10px 14px; border-top: 1px solid var(--line); white-space: nowrap; }
+.doc thead th { border-top: 0; font-size: 13px; font-weight: 600; color: var(--muted); padding-top: 13px; }
+.doc td:first-child { color: var(--text); white-space: normal; min-width: 14ch; }
+.doc details { border-top: 1px solid var(--line); }
+.doc details:last-of-type { border-bottom: 1px solid var(--line); }
+.doc details summary { cursor: pointer; padding: 12px 0; min-height: 44px; color: var(--text); font-weight: 600; }
+.doc details p { margin-top: 0; }
+@media (max-width: 900px) {
+  .docs { grid-template-columns: minmax(0, 1fr); }
+  .toc { position: static; border: 1px solid var(--line); border-radius: 12px; background: var(--tile); padding: 6px 14px; }
+  .toc summary { padding: 10px 0; min-height: 44px; color: var(--text); display: flex; justify-content: space-between; align-items: center; }
+  .toc summary::after { content: "+"; font-family: var(--mono); color: var(--muted); }
+  .toc[open] summary::after { content: "\2212"; }
+  .toc ul { border-left: 0; columns: 2; column-gap: 16px; padding-bottom: 8px; }
+  .toc a { padding: 10px 0; border: 0; }
+}
+@media (max-width: 420px) {
+  .toc ul { columns: 1; }
+}
+/* phones: the shortcut table stacks, each key labelled */
+@media (max-width: 600px) {
+  .doc .table { overflow: visible; }
+  .doc table, .doc tbody, .doc tr, .doc td { display: block; }
+  .doc thead { display: none; }
+  .doc tr { padding: 10px 14px; border-top: 1px solid var(--line); }
+  .doc tbody tr:first-child { border-top: 0; }
+  .doc td { border: 0; padding: 3px 0; white-space: normal; }
+  .doc td[data-k]::before { content: attr(data-k); display: inline-block; min-width: 76px; color: var(--muted); font-size: 13px; }
+}

@@ -1,11 +1,11 @@
 /* v3, "Runway" (see site/DESIGN.md). Dark tokens are the default; light follows the system or the nav button. */
 :root {
-  --bg: #0a1317;
-  --tile: #0f1b20;
-  --line: #1e2e35;
-  --line-hi: #2b3f47;
+  --bg: #08090b;
+  --tile: #111215;
+  --line: #26272a;
+  --line-hi: #37383c;
   --text: #e6edef;
-  --muted: #8fa2a9;
+  --muted: #a3a29d;
   --sig: #f5b545;
   --sig-text: #f5b545;
   --glow: rgba(245, 181, 69, .42);

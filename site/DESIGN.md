@@ -1,62 +1,32 @@
-# Site design (v3, 5 Nov 2026)
+# Site design (v4, 6 Nov 2026)
 
-v1 is in `versions/site-v1/`, v2 in `versions/site-v2/`. Research for this round: `RESEARCH-v3.md`. Colour candidates side by side: `directions/colours.html`.
+v1 to v3 are in `versions/`. Research for this round: `RESEARCH-v4.md`. Logo options: `directions/logos.html` (F was picked).
 
-Owner on v2: "too messy, too much going on, especially showcasing those Claude sessions has way too much info." v3 is the opposite: one idea, one picture, a clear download.
+## The idea
+Basanite is the black stone goldsmiths rubbed gold on to test it. One streak of gold on black, which is also what the app does: quiet sessions, and the one that needs you lights up.
 
-## Hero idea: the one that needs you lights up
+The page is one full-screen 3D field of black stone columns (`src/stone.js`, plain WebGL2). Each column is a session. One has gold veins running through it. Answer it (click) and it settles, and later another one asks. The cursor is a warm light moving over the stone.
 
-The headline names the product in plain words: **Every Claude Code session on one calm screen.** Next to it (under it on phones) sits a quiet wall of six tiles. Each tile carries one word, its folder name, and a small shape for its state. No terminal text, no tool calls, no menus.
-
-Every few seconds one tile starts waiting on you: it grows, its edge turns amber, it says "needs you", and the rest of the wall dims a little. Then it's answered, settles back, and later another one asks. One tile has a blinking caret: that's the one you're typing in, and it never moves or resizes, however the others shift. Click or tap the waiting tile and it settles straight away.
-
-That's the whole app in about three seconds: many sessions, calm, the one that needs you comes forward, yours stays put.
-
-## Page structure (one idea per screen, lots of space)
-
-1. **Hero.** Headline, one line under it, the OS-detected download, the other builds and the source as one quiet line, then the tile wall.
-2. **The real thing.** A single large real screenshot of the app with the spotlight move: the window dims, the waiting tile stays at full brightness. One short headline and two lines: it's the real `claude`, in real terminals, with your own login and settings.
-3. **Workspaces and the overview** (chunk 2): one real shot, one headline.
-4. **⌘K and modes** (chunk 2): one real shot, one headline; Review and Plan really block edits.
-5. **Tokens and privacy** (chunk 2): three plain statements, big type, no icons.
-6. **Download** (chunk 2): every build, the unsigned first-launch steps, then a short FAQ and the footer.
-
-No three-column icon grids, no logos, no testimonials, no numbered labels.
-
-## Colour: "Runway"
-
-Chosen from six (`directions/colours.html`): Runway, Carbon (v2), Kingfisher, Vesper, Sumi ink, Hi-vis.
-
-Why Runway: the neutrals are a deep petrol black tinted towards blue-green, so the page gets its character from the blue family the owner likes, without blue ever being a button or a signal. The signal stays the app's own amber (`#F5B545`, the same value as `--needs` in the app), so the page and every real screenshot say "waiting" in the same colour. Kingfisher (blue as the signal) was the runner-up and lost because blue reads as "link" or "working", and every screenshot shows waiting in amber. Carbon is v2's look. Vesper's peach is too soft to mean "needs you". Sumi ink is someone else's theme and only goes cream in light mode. Hi-vis turns amber into a loud block.
-
-| Token | Dark | Light | Use |
-|---|---|---|---|
-| `--bg` | `#0A1317` | `#F1F4F5` | the one page background (no section blocks) |
-| `--tile` | `#0F1B20` | `#FFFFFF` | tiles, panels |
-| `--line` | `#1E2E35` | `#D3DDE0` | 1 px edges |
-| `--text` | `#E6EDEF` (15.9:1) | `#0A1A20` (16.1:1) | headings, body |
-| `--muted` | `#8FA2A9` (7.1:1) | `#4E6169` (5.9:1) | secondary text |
-| `--sig` | `#F5B545` | `#E9A532` | amber edge and glow only |
-| `--sig-text` | `#F5B545` (10.4:1) | `#8A5A00` (5.4:1) | the words "needs you" |
-
-Rules: amber appears only where something needs you (the waiting tile, the waiting tile in screenshots). The download button is ink on the page colour, never amber. All text passes WCAG AA. Light and dark follow the system; the nav button flips and remembers. The same tokens carry through the docs page in chunk 2.
-
-## Type
-
-**Schibsted Grotesk** (Google Fonts, 500 to 800) for everything: big tight headlines at 800, body at 500. It's a newspaper-born grotesk, firm and professional, less common than Inter or Geist. **JetBrains Mono** 500 only for the tile names and keys, the things that come from a terminal. Headline sizes are the drama: up to about 84 px on desktop, 44 px on phones.
+## Structure
+A pinned story, then a normal page. Times are in screens of scroll, set in `data-at` on each scene (`in start, in end, out start, out end`):
+1. Name, edge to edge, with the one line and the download.
+2. "Most of them are fine." All dark.
+3. "One needs you." The camera comes in on the gold column.
+4. "The one you're typing in stays put."
+5. "The real claude, in real terminals." The real screenshot rises, then dims except the waiting tile.
+6. Three features: huge title bottom left, big tilted screenshot on the right.
+7. Three promises as hover rows, then the download rows, questions and footer.
 
 ## Motion
+One ticker (`src/home.js`): Lenis, the scenes, the name and the stone update in the same frame, all time-based. Scenes read the real scroll position, so they still work with Lenis off. Magnetic edges are the owner-approved spec from the portfolio's `smooth.ts`. Screenshots are planes on the canvas synced to their `<img>`: they bend with scroll speed, sit slightly tilted and straighten towards the cursor. Letters rise on load, sink when the hero leaves, lift a little near the cursor and catch gold.
 
-- Time-based CSS transitions only (same on 60 and 120 Hz): a tile grows over 0.7 s, the amber edge fades in over 0.5 s, the dim over 0.6 s. A small JS timer only picks which tile asks next.
-- Nothing bounces, nothing slides in from the side, no scroll hijacking.
-- The wall stops when it's off screen or the tab is hidden.
-- Reduced motion: one still frame with one tile waiting, no transitions; the caret doesn't blink.
+Idle pages draw at 24 fps; hidden tabs stop; resolution steps down on slow machines.
 
-## Phones and small screens
+Phones, touch and reduced motion get `html.flow`: the same content as a plain stacked page with real `<img>`s. No WebGL: `stone.webp`.
 
-- Under 760 px every screenshot swaps for a crop shown at its real size (one tile, the overview preview, the palette), in a frame that pans sideways on its own. Nothing is shrunk until it can't be read, and the page itself never scrolls sideways.
-- The hero's headline and wall scale with the window height too, so the download button and the other builds stay above the fold at 1280x720 and 1366x768.
+## Colour and type
+Dark only on the landing page. `#08090B` black, `#EFECE5` bone, `#F5B545` gold (the app's own "needs you"). Gold is only for what needs you and for download.
+Big Shoulders Display for headings and the name, Schibsted Grotesk for text, JetBrains Mono for file names. Docs keep their light and dark themes.
 
 ## Files
-
-`src/index.html`, `src/style.css` (tokens, nav, landing, footer, palette), `src/docs.html` + `src/docs.css` (the reading layout), `src/hero.js` (the wall and the screenshot spotlight), `src/palette.js` (the page's own ⌘K), `src/site.js` (download picking, theme, copy). Name and links only in `config.mjs`. Screenshot crops: the 2x wall and the phone tile come from `.devdata/site/shots` (made by `tools/site-shots.sh`); the palette and modes crops are the tight versions (`*-tight*.webp`).
+`src/index.html`, `src/home.css`, `src/home.js`, `src/stone.js`, `src/site.js` (download picking, copy). Docs: `src/docs.html`, `src/docs.css`, `src/style.css`, `src/palette.js`. Logo: `public/logo.svg`; app icon: `scripts/make-icon.py`.
