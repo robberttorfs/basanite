@@ -144,17 +144,21 @@ picture { display: contents; }
 .download .tx { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: end; gap: 32px; margin-bottom: 26px; }
 .download .tx p { margin: 0 0 .3em; }
 .files { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
-.files li { border-bottom: 1px solid var(--line); transition: opacity .25s; }
-.files a { position: relative; display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr) 40px; align-items: center; gap: 32px; padding: clamp(14px, 2vh, 22px) 12px clamp(14px, 2vh, 22px) 0; text-decoration: none; overflow: hidden; isolation: isolate; transition: color .2s, padding .28s var(--rise); }
-.files a::before { content: ''; position: absolute; inset: 0; background: var(--gold); transform: scaleX(0); transform-origin: left; transition: transform .34s var(--rise); z-index: -1; }
-.files a:hover, .files a:focus-visible { color: var(--ink); padding-left: 16px; }
-.files a:hover::before, .files a:focus-visible::before { transform: scaleX(1); }
-.files .os { font: 800 clamp(32px, 3.7vw, 66px)/1 var(--head); }
-.files code { font-size: 15px; color: var(--stone); overflow-wrap: anywhere; transition: color .2s; }
-.files a:hover code { color: var(--ink); }
+.files li { border-bottom: 1px solid var(--line); }
+/* hover: one gold fill sliding in, every colour changing with it; nothing moves or changes size */
+.files a { --t: .26s cubic-bezier(.2, .7, .2, 1); position: relative; display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr) 40px; align-items: center; gap: 32px; padding: clamp(14px, 2vh, 22px) 12px clamp(14px, 2vh, 22px) 0; text-decoration: none; isolation: isolate; transition: color var(--t); }
+/* the fill runs to the window's edges, so the text keeps its place with room around it */
+.files a::before { content: ''; position: absolute; inset: 0 calc(var(--g) * -1); background: var(--gold); transform: scaleX(0); transform-origin: left; transition: transform var(--t); z-index: -1; will-change: transform; }
+.files .os { font: 800 clamp(32px, 3.7vw, 66px)/1 var(--head); transition: color var(--t); }
+.files code { font-size: 15px; color: var(--stone); overflow-wrap: anywhere; transition: color var(--t); }
 .files svg { width: 28px; height: 28px; }
 .files [data-here] .os { color: var(--gold); }
-.files a:hover .os { color: var(--ink); }
+@media (hover: hover) {
+  .files a:hover::before { transform: scaleX(1); }
+  .files a:hover, .files a:hover code, .files a:hover .os { color: var(--ink); }
+}
+.files a:focus-visible, .files a:focus-visible code, .files a:focus-visible .os { color: var(--ink); }
+.files a:focus-visible::before { transform: scaleX(1); }
 .first { display: grid; grid-template-columns: 1fr 1fr; gap: 0 56px; margin-top: 30px; max-width: 1240px; align-items: start; }
 .first .fd.sm ul { padding: 0 0 12px 1.1em; }
 .first li { margin-bottom: 4px; }
@@ -194,12 +198,7 @@ picture { display: contents; }
 /* touch: nothing stays lit after a tap */
 @media (hover: none) {
   html { -webkit-tap-highlight-color: transparent; }
-  .files a:hover { color: inherit; padding-left: 0; }
-  .files a:hover::before { transform: scaleX(0); }
-  .files a:hover code { color: var(--stone); }
-  .files a:hover .os { color: inherit; }
-  .files [data-here] a:hover .os { color: var(--gold); }
-  .files a:active { color: var(--ink); }
+  .files a:active, .files a:active code, .files a:active .os { color: var(--ink); }
   .files a:active::before { transform: scaleX(1); }
   .qs summary:hover { color: inherit; }
   .fd summary:hover h2, .fd summary:hover h3 { color: inherit; }
