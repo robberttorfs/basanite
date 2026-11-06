@@ -9,7 +9,6 @@
   const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
   const ease = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
   const out3 = (x) => 1 - Math.pow(1 - clamp(x), 3);
-  const lerp = (a, b, t) => a + (b - a) * t;
   const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
 
   /* ---------- the name fills its box ---------- */
@@ -36,15 +35,7 @@
   try { stone = window.Stone && Stone.create(canvas, { small: innerWidth < 761 || !matchMedia('(pointer:fine)').matches, still: reduced }); } catch (e) { console.error(e); }
   if (!stone) root.classList.add('nogl');
 
-  // First screen, then the camera eases forward as the stone fades out behind the page.
-  const camFor = (u) => {
-    const t = ease(u);
-    return {
-      eye: [lerp(0, -1.2, t), lerp(11.5, 8.6, t), lerp(12.5, 9.5, t)],
-      at: [lerp(0, 0.4, t), 0.2, lerp(-4.2, -6, t)],
-      fov: 38 * Math.PI / 180,
-    };
-  };
+  const camFor = () => ({ eye: [0, 11.5, 12.5], at: [0, 0.2, -4.2], fov: 38 * Math.PI / 180 });
 
   /* ---------- screenshots on the canvas ---------- */
   const shots = [];
@@ -135,7 +126,7 @@
   addEventListener('click', (e) => {
     if (!stone || !lastCam || !lit || scrollY > innerHeight * 0.3) return;
     if (e.target.closest('a,button,h1,p')) return;
-    const g = stone.rayGround(e.clientX, e.clientY, lastCam, stone.cellTop(lit) + stone.goldRise);
+    const g = stone.rayGround(e.clientX, e.clientY + scrollY, lastCam, stone.cellTop(lit) + stone.goldRise);
     if (g && Math.hypot(g.x - lit[3], g.z - lit[4]) < 1.4) askNext();
   });
 
@@ -189,8 +180,8 @@
     if (!stone || stone.lost()) return;
     updateShots(dt);
 
-    // Nothing to draw: the stone has faded and no screenshot is on screen. Clear once, then stop using the GPU.
-    const dim = 1 - ease((u - 0.2) / 0.75);
+    // Nothing to draw: the stone has gone and no screenshot is on screen. Clear once, then stop using the GPU.
+    const dim = u < 1.02 ? 1 : 0; // the stone leaves with the first screen
     const planeOn = shots.some((s) => s.inView || (s.t > 0 && s.t < 1));
     if (dim <= 0.003 && !planeOn) {
       if (blank) return;
@@ -206,7 +197,7 @@
     if (u < 0.3) { nextAsk -= fdt; if (nextAsk <= 0) askNext(); }
     lit = stone.litCell();
 
-    const cam = camFor(clamp(u));
+    const cam = camFor();
     if (pointer) {
       parX = damp(parX, pointer.x / innerWidth - 0.5, 2.4, fdt);
       parY = damp(parY, pointer.y / innerHeight - 0.5, 2.4, fdt);
@@ -214,7 +205,9 @@
     cam.eye = [cam.eye[0] + parX * 0.55, cam.eye[1] - parY * 0.25, cam.eye[2]];
     lastCam = cam;
 
-    stone.frame({ dt: fdt, cam, pointer: u < 1 ? pointer : null, vel, dim, goldMask: 1, measure: !idle && firstDone });
+    // The stone is drawn shifted up by the scroll, so the pointer is looked up at the same offset.
+    const onStone = pointer && u < 1 ? { x: pointer.x, y: pointer.y + y } : null;
+    stone.frame({ dt: fdt, cam, pointer: onStone, vel, dim, scrollY: y, goldMask: 1, measure: !idle && firstDone });
     firstDone = true;
   }
 
@@ -226,7 +219,7 @@
     if (reduced) {
       setLetters(new Array(8).fill(0));
       if (stone) {
-        const draw = () => stone.frame({ dt: 3, cam: camFor(0), pointer: null, vel: 0, dim: 0.75, goldMask: 1, measure: false });
+        const draw = () => stone.frame({ dt: 3, cam: camFor(), pointer: null, vel: 0, dim: 0.75, goldMask: 1, measure: false });
         draw();
         addEventListener('resize', draw);
       }

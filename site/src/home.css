@@ -50,7 +50,7 @@ main, .foot { position: relative; z-index: 1; }
 
 /* ---------- first screen ---------- */
 .hero { position: relative; min-height: 100vh; min-height: 100svh; display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; padding: 0 var(--g) clamp(20px, 3.4vh, 40px); }
-.hero::before { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 50%; background: linear-gradient(to top, rgba(8, 9, 11, .9) 6%, rgba(8, 9, 11, .5) 52%, rgba(8, 9, 11, 0)); pointer-events: none; }
+.hero::before { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 50%; background: linear-gradient(to top, var(--bg) 0, rgba(8, 9, 11, .86) 14%, rgba(8, 9, 11, .5) 52%, rgba(8, 9, 11, 0)); pointer-events: none; }
 .hero > * { position: relative; }
 
 .mark { flex: 0 1 auto; width: min(47vw, 66vh); margin: 0; font: 800 15vw/.8 var(--head); text-transform: uppercase; letter-spacing: .018em; white-space: nowrap; overflow: hidden; color: var(--bone); user-select: none; }

@@ -434,6 +434,8 @@
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
       if (f.dim > 0.003) {
+        // The stone belongs to the first screen: it moves up with the page, not behind it.
+        gl.viewport(0, Math.round((f.scrollY || 0) * canvas.height / H), canvas.width, canvas.height);
         gl.useProgram(P.p);
         gl.uniformMatrix4fv(P.u.uVP, false, VP);
         gl.uniform1f(P.u.uT, t);
@@ -456,6 +458,7 @@
       // screenshots
       const live = planes.filter((p) => p.tex && p.alpha > 0.002);
       if (live.length) {
+        gl.viewport(0, 0, canvas.width, canvas.height);
         gl.useProgram(Q.p);
         gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE);
         gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
