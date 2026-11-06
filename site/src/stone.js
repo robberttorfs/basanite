@@ -312,9 +312,11 @@
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(idx), gl.STATIC_DRAW);
     gl.bindVertexArray(null);
 
-    let W = 0, H = 0, scale = Math.min(devicePixelRatio || 1, 1.6);
+    let W = 0, H = 0, scale = Math.min(devicePixelRatio || 1, opts.small ? 1.25 : 1.6);
     function resize() {
-      W = innerWidth; H = innerHeight;
+      // On touch the canvas is part of the first screen, so it takes that size; otherwise the window's.
+      const box = opts.box ? opts.box() : null;
+      W = box ? box.w : innerWidth; H = box ? box.h : innerHeight;
       const w = Math.round(W * scale), h = Math.round(H * scale);
       if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
     }
@@ -365,6 +367,29 @@
       if (!VP) return null;
       const m = VP, x = m[0] * w[0] + m[4] * w[1] + m[8] * w[2] + m[12], y = m[1] * w[0] + m[5] * w[1] + m[9] * w[2] + m[13], c = m[3] * w[0] + m[7] * w[1] + m[11] * w[2] + m[15];
       return c > 0 ? { x: (x / c + 1) / 2 * W, y: (1 - y / c) / 2 * H } : null;
+    }
+
+    // Columns that are wholly inside a screen rectangle when lit and raised, seen from this camera.
+    function cellsInside(cam, box) {
+      const m = mul(perspective(cam.fov, W / H, 0.1, 80), lookAt(cam.eye, cam.at));
+      const toScreen = (x, y, z) => {
+        const c = m[3] * x + m[7] * y + m[11] * z + m[15];
+        return c > 0 ? [((m[0] * x + m[4] * y + m[8] * z + m[12]) / c + 1) / 2 * W, (1 - (m[1] * x + m[5] * y + m[9] * z + m[13]) / c) / 2 * H] : null;
+      };
+      const R = 1.25, out = [];
+      for (const p of field.pts) {
+        if (p[3] === undefined) continue;
+        const top = cellTop(p) + GOLD_RISE;
+        const pts = [[p[3] - R, top, p[4]], [p[3] + R, top, p[4]], [p[3], top, p[4] - R], [p[3], top - GOLD_RISE - 0.6, p[4] + R]];
+        let ok = true, sx = 0, sy = 0;
+        for (const q of pts) {
+          const v = toScreen(q[0], q[1], q[2]);
+          if (!v || v[0] < box.left || v[0] > box.right || v[1] < box.top || v[1] > box.bottom) { ok = false; break; }
+          sx += v[0] / pts.length; sy += v[1] / pts.length;
+        }
+        if (ok) out.push({ cell: p, x: sx, y: sy });
+      }
+      return out;
     }
 
     function addPlane(fig, src, o) {
@@ -487,7 +512,7 @@
       gl.bindVertexArray(null);
     }
 
-    return { frame, setGold, litCell, cellAt, cellTop, heightJS, addPlane, rayGround, project, planes, goldRise: GOLD_RISE, gold, lost: () => gl.isContextLost() };
+    return { frame, setGold, litCell, cellAt, cellsInside, cellTop, heightJS, addPlane, rayGround, project, planes, goldRise: GOLD_RISE, gold, lost: () => gl.isContextLost() };
   }
 
   window.Stone = { create };

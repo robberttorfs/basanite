@@ -32,7 +32,15 @@
   /* ---------- the stone ---------- */
   const canvas = document.getElementById('stone');
   let stone = null;
-  try { stone = window.Stone && Stone.create(canvas, { small: innerWidth < 761 || !matchMedia('(pointer:fine)').matches, still: reduced }); } catch (e) { console.error(e); }
+  // Touch screens scroll on their own thread, ahead of any script. There the canvas sits in the page and
+  // scrolls natively; a fixed canvas moved by code would always lag behind the page.
+  const hero = document.querySelector('.hero');
+  const box = fx ? null : () => {
+    const r = { w: hero.offsetWidth, h: hero.offsetHeight };
+    canvas.style.height = r.h + 'px';
+    return r;
+  };
+  try { stone = window.Stone && Stone.create(canvas, { small: innerWidth < 761 || !matchMedia('(pointer:fine)').matches, still: reduced, box }); } catch (e) { console.error(e); }
   if (!stone) root.classList.add('nogl');
 
   const camFor = () => ({ eye: [0, 11.5, 12.5], at: [0, 0.2, -4.2], fov: 38 * Math.PI / 180 });
@@ -92,6 +100,8 @@
   for (const a of document.querySelectorAll('[data-to]')) a.addEventListener('click', (e) => { e.preventDefault(); go(a.dataset.to); });
   // The big button scrolls to the list only when this OS couldn't be picked.
   const auto = document.querySelector('[data-dl-auto]');
+  // A phone can't run it, so the button says where it goes.
+  if (!root.dataset.os && innerWidth < 761) auto.querySelector('span').textContent = 'Get it for your computer';
   auto.addEventListener('click', (e) => { if (auto.getAttribute('href') === '#download') { e.preventDefault(); go('#download'); } });
 
   // going to the docs: the page comes up, then it changes
@@ -103,6 +113,8 @@
     setTimeout(() => { location.href = a.href; }, 400);
   });
   addEventListener('pageshow', () => wipe.classList.remove('on'));
+
+  const nav = document.querySelector('.nav');
 
   /* ---------- pointer ---------- */
   let pointer = null, inputAt = performance.now();
@@ -119,10 +131,37 @@
   let mx = 0, my = 0, magOn = false;
 
   /* ---------- gold: one column asks, gets answered, and later another asks ---------- */
-  const spots = [[5.2, -7.4], [-5.6, -8.2], [8.6, -9], [-1, -9.6], [2.2, -5.6], [-8.6, -6.6]];
-  let spotI = 0, nextAsk = 7;
-  const light = (s) => { const p = stone.cellAt(s[0], s[1]); if (p) stone.setGold(p); };
-  function askNext() { spotI = (spotI + 1) % spots.length; light(spots[spotI]); nextAsk = 9; }
+  // Only columns fully on screen can ask: never under the nav or the text, never past an edge, whatever the window.
+  let nextAsk = 7, litSpot = null;
+  function safeCells() {
+    const W = innerWidth, top = mark.getBoundingClientRect().top + scrollY;
+    const cta = document.querySelector('.cta').getBoundingClientRect().top + scrollY;
+    const margin = Math.max(16, W * 0.05);
+    return stone.cellsInside(camFor(), { left: margin, right: W - margin, top: nav.offsetHeight + 12, bottom: Math.min(top, cta) - 16 });
+  }
+  function askNext(first) {
+    const list = safeCells();
+    if (!list.length) return;
+    const W = innerWidth, H = innerHeight;
+    let pick;
+    if (first) {
+      // Opens right of centre on a wide window, in the middle on a narrow one.
+      const gx = W > 760 ? W * 0.64 : W * 0.5, gy = H * 0.32;
+      pick = list.reduce((a, c) => (Math.hypot(c.x - gx, c.y - gy) < Math.hypot(a.x - gx, a.y - gy) ? c : a));
+    } else {
+      const far = litSpot ? list.filter((c) => Math.hypot(c.x - litSpot.x, c.y - litSpot.y) > Math.min(W, H) * 0.22) : list;
+      const from = far.length ? far : list;
+      pick = from[Math.floor(Math.random() * from.length)];
+    }
+    litSpot = pick;
+    stone.setGold(pick.cell);
+    nextAsk = 9;
+  }
+  // If a resize pushes the lit column out of the safe area, another takes over.
+  function recheckLit() {
+    if (!stone || !litSpot) return;
+    if (!safeCells().some((c) => c.cell === litSpot.cell)) askNext(true);
+  }
   addEventListener('click', (e) => {
     if (!stone || !lastCam || !lit || scrollY > innerHeight * 0.3) return;
     if (e.target.closest('a,button,h1,p')) return;
@@ -131,9 +170,8 @@
   });
 
   /* ---------- the ticker ---------- */
-  const nav = document.querySelector('.nav');
   let last = 0, intro = 0, lastCam = null, lit = null, parX = 0, parY = 0;
-  let lastY = scrollY, vel = 0, drew = 0, blank = false, firstDone = false;
+  let lastY = scrollY, vel = 0, drew = 0, blank = false, firstDone = false, touchY = scrollY, touchAt = 0;
 
   function tick(now) {
     requestAnimationFrame(tick);
@@ -148,7 +186,7 @@
     lastY = y;
     nav.classList.toggle('past', u > 0.75);
 
-    if (u < 1.05) {
+    if (fx && u < 1.05) {
       const r = mark.getBoundingClientRect(), offs = [];
       for (let i = 0; i < 8; i++) {
         let target = 0;
@@ -164,7 +202,7 @@
       mark.style.setProperty('--my', pointer ? (pointer.y - r.top) + 'px' : '-30vw');
     }
 
-    if (mag) {
+    if (fx && mag) {
       let tx = 0, ty = 0;
       if (pointer && u < 0.1) {
         const r = mag.getBoundingClientRect();
@@ -179,6 +217,12 @@
 
     if (!stone || stone.lost()) return;
     updateShots(dt);
+
+    // Touch: don't draw while the page is moving, so the scroll has the whole phone to itself.
+    if (!fx) {
+      if (y !== touchY) { touchY = y; touchAt = now; }
+      if (now - touchAt < 180 || u > 1.02) return;
+    }
 
     // Nothing to draw: the stone has gone and no screenshot is on screen. Clear once, then stop using the GPU.
     const dim = u < 1.02 ? 1 : 0; // the stone leaves with the first screen
@@ -207,15 +251,15 @@
 
     // The stone is drawn shifted up by the scroll, so the pointer is looked up at the same offset.
     const onStone = pointer && u < 1 ? { x: pointer.x, y: pointer.y + y } : null;
-    stone.frame({ dt: fdt, cam, pointer: onStone, vel, dim, scrollY: y, goldMask: 1, measure: !idle && firstDone });
+    stone.frame({ dt: fdt, cam, pointer: onStone, vel, dim, scrollY: fx ? y : 0, goldMask: 1, measure: !idle && firstDone });
     firstDone = true;
   }
 
   async function start() {
     fitMark();
-    if (stone) light(spots[0]);
-    addEventListener('resize', fitMark);
+    addEventListener('resize', () => { fitMark(); recheckLit(); });
     if (document.fonts && document.fonts.ready) { try { await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 900))]); } catch (e) {} fitMark(); }
+    if (stone) askNext(true);
     if (reduced) {
       setLetters(new Array(8).fill(0));
       if (stone) {
@@ -228,5 +272,5 @@
     requestAnimationFrame(tick);
   }
   start();
-  window.__home = { stone, go };
+  window.__home = { stone, go, safe: () => safeCells() };
 })();

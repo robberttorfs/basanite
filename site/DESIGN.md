@@ -10,7 +10,7 @@ It scrolls away with that screen (drawn shifted by the scroll, fading to the pag
 ## Motion
 One ticker (`src/home.js`): Lenis, the name and the canvas update in the same frame, time-based. Below the first screen: smooth scroll, text that rises once, screenshots drawn on the canvas synced to their `<img>` (rise in, flex slightly with scroll speed, barely lean towards the cursor; never cut off, always fit one screen), the wall dims except the waiting tile, hover rows. No pinning.
 
-The canvas stops drawing when the stone has faded and no screenshot is on screen; a still page draws at 24 fps; hidden tabs stop. Phones, touch and reduced motion get `html.plain` with real `<img>`s. No WebGL: `stone.webp`.
+The canvas stops drawing when the stone has faded and no screenshot is on screen; a still page draws at 24 fps; hidden tabs stop. Phones, touch and reduced motion get `html.plain`: real `<img>`s, and the canvas sits in the page at the first screen's size so it scrolls natively (a fixed canvas moved by script always lags on touch). It doesn't draw while the page moves. No WebGL: `stone.webp`.
 
 ## Colour and type
 Dark only on the landing page. `#08090B` black, `#EFECE5` bone, `#F5B545` gold (the app's own "needs you"). Gold is only for what needs you and for download.
