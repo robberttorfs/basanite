@@ -8,6 +8,8 @@ const on = (channel) => (fn) => {
 
 contextBridge.exposeInMainWorld('hangar', {
   init: () => ipcRenderer.invoke('init'),
+  feedbackInfo: () => ipcRenderer.invoke('feedback:info'),
+  feedbackOpen: (kind) => ipcRenderer.invoke('feedback:open', kind),
   recent: () => ipcRenderer.invoke('recent'),
   pickFolder: () => ipcRenderer.invoke('pick-folder'),
   pathForFile: (file) => webUtils.getPathForFile(file),

@@ -78,6 +78,12 @@
       shortcut: { mac: 'Cmd+,', win: null }, menu: { menu: 'App' }, run: () => openSettings($('#btn-settings')) },
     { id: 'app.shortcuts', label: 'Keyboard shortcuts', group: 'App', icon: 'keyboard', aliases: ['keys', 'help', '?'],
       menu: { menu: 'Help' }, run: () => HangarPalette.openShortcuts() },
+    { id: 'app.report-bug', label: 'Report a bug', group: 'App', aliases: ['issue', 'problem', 'broken'],
+      menu: { menu: 'Help', section: 'feedback' }, run: () => hangar.feedbackOpen('bug') },
+    { id: 'app.feedback', label: 'Send feedback', group: 'App', aliases: ['idea', 'request', 'suggest'],
+      menu: { menu: 'Help', section: 'feedback' }, run: () => hangar.feedbackOpen('idea') },
+    { id: 'app.copy-debug', label: 'Copy debug info', group: 'App', aliases: ['version', 'diagnostics', 'system'],
+      menu: { menu: 'Help', section: 'feedback' }, run: async () => navigator.clipboard.writeText(await hangar.feedbackInfo()) },
 
     // Window
     { id: 'session.next-waiting', label: 'Next session that needs you', group: 'App', aliases: ['waiting', 'jump'],

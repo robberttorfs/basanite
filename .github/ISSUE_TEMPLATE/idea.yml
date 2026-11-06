@@ -1,0 +1,10 @@
+name: Send feedback
+description: An idea, a request, or anything you'd change.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What's on your mind?
+    validations:
+      required: true

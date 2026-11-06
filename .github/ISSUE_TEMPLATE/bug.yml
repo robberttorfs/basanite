@@ -1,0 +1,29 @@
+name: Report a bug
+description: Something doesn't work as it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1.
+        2.
+  - type: textarea
+    id: system
+    attributes:
+      label: System
+      description: Use Copy debug info in the app's Help menu, or fill in your app, OS and Claude Code versions. Check there's nothing private in your report before submitting.
+      render: text
+    validations:
+      required: true

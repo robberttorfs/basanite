@@ -61,6 +61,10 @@ Drop a project folder on the window, or press <kbd>⌘N</kbd> / <kbd>Ctrl+Shift+
 
 Every shortcut is listed under **Help → Keyboard shortcuts**, or type `?` in the palette. The full guide is on the [docs page](site/src/docs.html).
 
+## Feedback
+
+**Help → Report a bug** or **Send feedback** opens a GitHub form in your browser, with your app, OS and Claude Code versions filled in for bugs. Nothing is sent until you submit it. You can also use [Issues](../../issues/new/choose) or [Discussions](../../discussions) directly.
+
 ## Tokens and privacy
 
 - **No extra tokens.** Basanite's hooks reply with nothing unless you've asked for something: a mode or add-on is sent once when it starts (and again after a compaction), a time budget adds a few one-line notes, and a guard mode answers a blocked edit with one line. Counters are read from local files and Claude Code's statusline.

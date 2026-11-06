@@ -18,6 +18,7 @@ const palette = require('../shared/palette');
 const lifecycle = require('./lifecycle');
 const updaterMod = require('./updater');
 const dataIpc = require('./data-ipc');
+const feedback = require('./feedback');
 let data = null;
 let updater = null;
 
@@ -1074,6 +1075,13 @@ function wireIpc() {
       dialog.showMessageBox(win, { type: 'none', title: brand.name, message: brand.name, detail: `Version ${app.getVersion()}`, buttons: ['OK'], noLink: true });
     }
   });
+  // Feedback: nothing is sent from here; the browser opens a form the person reads and submits.
+  const debugText = async () => feedback.debugInfo({
+    appVersion: app.getVersion(), platform: process.platform, osRelease: os.release(), arch: process.arch,
+    electron: process.versions.electron, claude: await feedback.claudeVersion(cleanEnv()),
+  });
+  ipcMain.handle('feedback:info', () => debugText());
+  ipcMain.handle('feedback:open', async (_e, kind) => { await shell.openExternal(feedback.issueUrl(kind, await debugText())); });
   ipcMain.on('settings:set', (_e, patch) => {
     settings = { ...settings, ...patch, notify: { ...settings.notify, ...(patch.notify || {}) } };
     saveJSON(paths.settingsFile(), settings);
