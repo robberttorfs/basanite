@@ -150,6 +150,16 @@
 
   const nav = document.querySelector('.nav');
 
+  // The first-launch note after pressing download: it stays until you close it or press anywhere else.
+  const closeNotes = () => document.querySelectorAll('.first-note').forEach((n) => { n.hidden = true; });
+  document.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('[data-dl-auto], [data-intel]')) return;
+    const note = e.target.closest('.first-note');
+    if (note && !e.target.closest('[data-note-close]')) return;
+    closeNotes();
+  });
+  document.querySelectorAll('[data-note-close]').forEach((b) => b.addEventListener('click', closeNotes));
+
   /* ---------- pointer ---------- */
   let pointer = null, inputAt = performance.now();
   addEventListener('pointermove', (e) => {

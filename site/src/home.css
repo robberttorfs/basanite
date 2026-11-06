@@ -73,7 +73,10 @@ main, .foot { position: relative; z-index: 1; }
 .btn2:hover { background: var(--bone); color: var(--ink); }
 .cta > .alt { margin: 10px 0 0; font-size: 15px; }
 .meta { margin: 12px 0 0; font-size: 15px; color: var(--bone); }
-.first-note { margin: 8px 0 0; font-size: 14px; }
+/* appears after pressing download; floats above the block so nothing on the page moves */
+.first-note { position: absolute; left: 0; right: 0; bottom: calc(100% + 12px); margin: 0; padding: 12px 40px 12px 14px; background: #15161a; border: 1px solid #3a3b3f; border-left: 3px solid var(--gold); border-radius: 4px; font-size: 15px; line-height: 1.35; box-shadow: 0 12px 34px rgba(0, 0, 0, .55); }
+.first-note button { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; padding: 0; background: none; border: 0; color: var(--bone); font: 500 20px/1 var(--mono); cursor: var(--cur-on); }
+.first-note button:hover { color: var(--gold); }
 
 /* what it does, straight after the first screen */
 .intro { padding: clamp(64px, 12vh, 130px) var(--g) 0; }
