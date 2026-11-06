@@ -15,10 +15,10 @@
     ['app.usage', 'app.overseer', 'app.settings'],
     ['@more'],
   ];
-  const FOOT = ['app.shortcuts', '@about', '@update'];
+  const FOOT = ['app.shortcuts', 'app.report-bug', 'app.feedback', '@about', '@update'];
   // In More: every native-menu command that isn't shown elsewhere, by menu. Single modes,
   // add-ons and Session 1-9 stay in the mode picker, the palette and the filter.
-  const MORE_MENUS = ['Session', 'Modes', 'View', 'Window'];
+  const MORE_MENUS = ['Session', 'Modes', 'View', 'Window', 'Help'];
   const skipInMore = (c) => /^(mode\.set|addon\.toggle):/.test(c.id) || c.isMode || /^window\.session-/.test(c.id);
   // Window controls the native template adds itself (they're not commands).
   const NATIVE = [
@@ -83,6 +83,8 @@
     sliders: SVG('<path d="M2.5 4.5h11M2.5 11.5h11"/><circle cx="10.5" cy="4.5" r="1.6" class="fill"/><circle cx="5.5" cy="11.5" r="1.6" class="fill"/>'),
     keyboard: SVG('<rect x="1.5" y="4" width="13" height="8" rx="1.5"/><path d="M4 6.5h.01M6.5 6.5h.01M9 6.5h.01M11.5 6.5h.01M5 9.5h6"/>'),
     info: SVG('<circle cx="8" cy="8" r="5.5"/><path d="M8 7.5v3M8 5.3v.01"/>'),
+    bug: SVG('<rect x="5" y="5" width="6" height="8" rx="3"/><path d="M8 7.5V13M5 8.5H2.5M13.5 8.5H11M5.5 11.5l-2 1.5M10.5 11.5l2 1.5M6 5.5L4.5 3.5M10 5.5l1.5-2"/>'),
+    chat: SVG('<path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z"/>'),
     update: SVG('<path d="M8 2.5v7M5 6.5l3 3 3-3M3 12.5h10"/>'),
     check: SVG('<path d="M3.5 8.5l3 3 6-7"/>'),
   };
