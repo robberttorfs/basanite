@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const modes = require('./modes');
 
-/** The text Hangar types for Until done. The turn cap is part of the condition, as the /goal docs advise. */
+/** The text Basanite types for Until done. The turn cap is part of the condition, as the /goal docs advise. */
 function goalCommand(condition, turns) {
   const cond = String(condition || '').replace(/\s+/g, ' ').trim().slice(0, 3800);
   if (!cond) return null;
@@ -60,7 +60,7 @@ function wire({ ipcMain, dialog, getWin, find, typeInto, changed }) {
     const m = modes.get(id);
     if (!m) return null;
     const name = `${m.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'mode'}${modes.FILE_EXT}`;
-    const r = await dialog.showSaveDialog(getWin(), { defaultPath: name, filters: [{ name: 'Hangar mode', extensions: ['json'] }] });
+    const r = await dialog.showSaveDialog(getWin(), { defaultPath: name, filters: [{ name: 'Basanite mode', extensions: ['json'] }] });
     if (r.canceled || !r.filePath) return null;
     fs.writeFileSync(r.filePath, `${JSON.stringify(modes.toFile(m), null, 2)}\n`);
     return r.filePath;
@@ -76,7 +76,7 @@ function wire({ ipcMain, dialog, getWin, find, typeInto, changed }) {
   ipcMain.handle('modes:import', async (_e, file) => {
     try {
       if (!file) {
-        const r = await dialog.showOpenDialog(getWin(), { properties: ['openFile'], filters: [{ name: 'Hangar mode', extensions: ['json'] }] });
+        const r = await dialog.showOpenDialog(getWin(), { properties: ['openFile'], filters: [{ name: 'Basanite mode', extensions: ['json'] }] });
         if (r.canceled || !r.filePaths[0]) return null;
         file = r.filePaths[0];
       }

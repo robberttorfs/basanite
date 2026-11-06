@@ -1,5 +1,5 @@
-# Loaded into Hangar terminal tiles (bash and zsh). Running `claude` here adds
-# Hangar's hook settings, so the tile becomes a full Hangar session while
+# Loaded into Basanite terminal tiles (bash and zsh). Running `claude` here adds
+# Basanite's hook settings, so the tile becomes a full Basanite session while
 # Claude Code runs and turns back into a terminal when it exits.
 __hangar_interactive() {
   for __h_a in "$@"; do case "$__h_a" in -p|--print|-v|--version|-h|--help) return 1;; esac; done

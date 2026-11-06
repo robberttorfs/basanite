@@ -3,7 +3,7 @@ const assert = require('node:assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-// Modes are stored in Hangar's data folder; keep tests away from the real one.
+// Modes are stored in Basanite's data folder; keep tests away from the real one.
 process.env.HANGAR_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'hangar-test-'));
 const timer = require('../src/main/timer');
 const modes = require('../src/main/modes');
@@ -224,7 +224,7 @@ test('modes: sent once with the next prompt, not again', () => {
   const s = new Session({ id: 't', name: 'x', cwd: '/tmp' });
   assert.equal(s.onHook({ hook_event_name: 'UserPromptSubmit', prompt: 'hi' }), null, 'no mode, no output');
   s.setMode('notes');
-  assert.match(ctxOf(s.onHook({ hook_event_name: 'UserPromptSubmit', prompt: 'the header is too tall' })), /Hangar mode: Notes/);
+  assert.match(ctxOf(s.onHook({ hook_event_name: 'UserPromptSubmit', prompt: 'the header is too tall' })), /Basanite mode: Notes/);
   assert.equal(s.onHook({ hook_event_name: 'UserPromptSubmit', prompt: 'and the font is small' }), null);
   assert.equal(s.snapshot().mode.applied, true);
 });
@@ -233,7 +233,7 @@ test('modes: switching says what it replaces; compaction restates it', () => {
   const s = new Session({ id: 't', name: 'x', cwd: '/tmp', mode: 'plan', modeApplied: true });
   s.setMode('review');
   const c = ctxOf(s.onHook({ hook_event_name: 'UserPromptSubmit', prompt: 'look at auth' }));
-  assert.match(c, /Hangar mode: Review/);
+  assert.match(c, /Basanite mode: Review/);
   assert.match(c, /replaces Plan mode/);
   assert.match(ctxOf(s.onHook({ hook_event_name: 'SessionStart', source: 'compact' })), /Review.*Restated/s);
   assert.equal(s.onHook({ hook_event_name: 'SessionStart', source: 'resume' }), null);
@@ -241,7 +241,7 @@ test('modes: switching says what it replaces; compaction restates it', () => {
 
 test('modes: a fresh conversation in a restored tile gets its mode again', () => {
   const s = new Session({ id: 't', name: 'x', cwd: '/tmp', mode: 'plan', modeApplied: true });
-  assert.match(ctxOf(s.onHook({ hook_event_name: 'SessionStart', source: 'startup' })), /Hangar mode: Plan/);
+  assert.match(ctxOf(s.onHook({ hook_event_name: 'SessionStart', source: 'startup' })), /Basanite mode: Plan/);
 });
 
 test('modes: an exit phrase ends the mode and the chip follows', () => {

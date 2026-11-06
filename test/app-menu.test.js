@@ -29,7 +29,7 @@ function setup() {
 
 test('app menu: top level is the most-used commands, straight from the registry', () => {
   setup();
-  const m = M.model(C, { appName: 'Hangar OSS' });
+  const m = M.model(C, { appName: 'Basanite' });
   const ids = m.top.map((g) => g.map((c) => c.id));
   assert.deepEqual(ids, [
     ['session.new', 'session.new-terminal'],
@@ -40,7 +40,7 @@ test('app menu: top level is the most-used commands, straight from the registry'
   // The very same objects, so labels and shortcuts can't drift.
   assert.equal(m.top[0][0], C.get('session.new'));
   assert.equal(C.shortcutLabel(m.top[0][0]), 'Ctrl+Shift+N');
-  assert.deepEqual(m.foot.map((c) => c.label), ['Keyboard shortcuts', 'About Hangar OSS']);
+  assert.deepEqual(m.foot.map((c) => c.label), ['Keyboard shortcuts', 'About Basanite']);
   assert.equal(M.model(C, { update: 'Restart to update' }).foot.length, 3);
 });
 

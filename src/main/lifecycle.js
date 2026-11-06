@@ -4,7 +4,7 @@
 // exit from a native thread. Killing every pty and exiting the app in the same tick
 // lets those native callbacks fire into a half-torn-down process, and killing a pty
 // that has already exited closes a handle that is already gone. Both end in a null
-// dereference inside Hangar.exe. So: kill each pty once, wait for its exit (bounded),
+// dereference inside Basanite.exe. So: kill each pty once, wait for its exit (bounded),
 // then let the app exit.
 
 const { execFile } = require('child_process');

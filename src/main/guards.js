@@ -1,4 +1,4 @@
-// Mode guards: real limits behind a mode's words. Hangar's PreToolUse hook asks
+// Mode guards: real limits behind a mode's words. Basanite's PreToolUse hook asks
 // check() before a tool runs; a deny comes back to Claude as a one-line reason.
 // No guard on, or a tool the guard allows: nothing is returned, so no tokens.
 //   'readonly' (Review, Plan): no file edits, no shell commands that clearly write.
@@ -53,8 +53,8 @@ const DB_CLIENTS = new Set(['psql', 'mysql', 'mariadb', 'sqlite3', 'sqlcmd', 'du
 const SQL_RISKY = /\b(DROP|TRUNCATE)\s+(TABLE|DATABASE|SCHEMA)\b|\bDELETE\s+FROM\b|\bFLUSHALL\b|\bdropDatabase\b/i;
 
 const REASON = {
-  readonly: (mode) => `${mode} mode is read-only in Hangar: no file changes. Report instead, or ask the user to switch mode.`,
-  risky: (mode) => `${mode} mode blocks pushes, deploys and destructive commands in Hangar. Ask the user to run it themselves.`,
+  readonly: (mode) => `${mode} mode is read-only in Basanite: no file changes. Report instead, or ask the user to switch mode.`,
+  risky: (mode) => `${mode} mode blocks pushes, deploys and destructive commands in Basanite. Ask the user to run it themselves.`,
 };
 
 function baseName(w) { return String(w).replace(/^.*[\\/]/, '').replace(/\.(exe|cmd|bat|ps1)$/i, '').toLowerCase(); }

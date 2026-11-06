@@ -1,4 +1,4 @@
-# Hangar starts bash with --init-file this, then behaves like a login shell.
+# Basanite starts bash with --init-file this, then behaves like a login shell.
 [ -f /etc/profile ] && . /etc/profile
 if [ -f "$HOME/.bash_profile" ]; then . "$HOME/.bash_profile"
 elif [ -f "$HOME/.bash_login" ]; then . "$HOME/.bash_login"

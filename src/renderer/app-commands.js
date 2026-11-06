@@ -1,7 +1,7 @@
 /* global HangarCommands, HangarPalette, hangar, state, tiles, focused, isMac, ICON, STATUS_LABEL, folderName, esc, h, $,
    openNew, start, openFresh, openRename, openTimer, openModePicker, openUsage, openSettings, toggleOverseer,
    toggleZoom, closeTile, resetSizes, nextWaiting, setFocus, setView, setOvView, ov, ovChatOn, modeById, openPop, closePop */
-// Hangar's own commands. The native menu, the command palette, the shortcut sheet and
+// Basanite's own commands. The native menu, the command palette, the shortcut sheet and
 // the tile menus all read this one list (see commands.js for the fields).
 'use strict';
 

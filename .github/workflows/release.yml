@@ -31,10 +31,10 @@ jobs:
         with:
           name: mac
           path: |
-            dist/Hangar-mac-*.dmg
-            dist/Hangar-mac-*.dmg.blockmap
-            dist/Hangar-mac-*.zip
-            dist/Hangar-mac-*.zip.blockmap
+            dist/Basanite-mac-*.dmg
+            dist/Basanite-mac-*.dmg.blockmap
+            dist/Basanite-mac-*.zip
+            dist/Basanite-mac-*.zip.blockmap
             dist/latest-mac.yml
           if-no-files-found: error
 
@@ -61,8 +61,8 @@ jobs:
         with:
           name: windows
           path: |
-            dist/Hangar-windows-*-setup.exe
-            dist/Hangar-windows-*-setup.exe.blockmap
+            dist/Basanite-windows-*-setup.exe
+            dist/Basanite-windows-*-setup.exe.blockmap
             dist/latest.yml
           if-no-files-found: error
 

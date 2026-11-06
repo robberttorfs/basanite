@@ -32,7 +32,7 @@ class Session {
     this.addons = [...addons];      // add-on ids, stacked on top of the mode
     this.addonsApplied = addonsApplied.filter((a) => this.addons.includes(a)); // reached Claude
     this.addonsOff = [];            // names turned off since the last prompt, so Claude is told once
-    this.goalSet = !!goalSet;       // Hangar typed a /goal for Until done that is still running
+    this.goalSet = !!goalSet;       // Basanite typed a /goal for Until done that is still running
     this.typeCommand = null;        // (text) => types a command into the tile; set by main
     this.color = migrateColor(color); // old amber/green/red/purple picks move to an allowed colour
     this.lock = lock;               // { w, h } as fractions of the stage, set by dragging an edge
@@ -96,7 +96,7 @@ class Session {
     this.onChange({ type: 'mode' });
   }
 
-  /** Ends the /goal Hangar set for Until done, whichever way the mode ended. */
+  /** Ends the /goal Basanite set for Until done, whichever way the mode ended. */
   clearGoal() {
     if (!this.goalSet) return;
     this.goalSet = false;
@@ -150,7 +150,7 @@ class Session {
   modeContext(prompt) {
     const out = [];
     let mode = modes.get(this.mode);
-    if (this.mode && !mode) { this.mode = null; this.modeApplied = false; this.clearGoal(); out.push('[Hangar mode] The session\'s mode was deleted. Its rules no longer apply.'); }
+    if (this.mode && !mode) { this.mode = null; this.modeApplied = false; this.clearGoal(); out.push('[Basanite mode] The session\'s mode was deleted. Its rules no longer apply.'); }
     if (mode && this.modeApplied) {
       const said = modes.exitPhraseIn(prompt, mode.exitPhrases);
       if (said) {
@@ -382,7 +382,7 @@ class Session {
       if (this.status === 'working') for (const t of tools) this.doing.tool(t.name, t.input);
     }
 
-    // Subagents: pick up ones started before Hangar saw them, read their tokens.
+    // Subagents: pick up ones started before Basanite saw them, read their tokens.
     const dir = this.subagentDir;
     if (dir) {
       let files = [];
@@ -503,7 +503,7 @@ function statuslineText(j) {
 }
 
 /**
- * Per-tile Claude Code settings: HTTP hooks into Hangar plus the statusline.
+ * Per-tile Claude Code settings: HTTP hooks into Basanite plus the statusline.
  * The statusline refreshes often while Claude works, so on Mac and Linux it
  * is a curl call (a few ms) instead of starting the bundled Node each time.
  */
@@ -536,7 +536,7 @@ function hookSettings(tileId, server, ctlCommand, platform = process.platform) {
   };
 }
 
-/** CLI flags for the permission mode chosen in Hangar's settings. */
+/** CLI flags for the permission mode chosen in Basanite's settings. */
 const PERMISSION_MODES = ['default', 'acceptEdits', 'plan', 'auto', 'bypassPermissions'];
 function permissionArgs(mode) {
   if (mode === 'bypassPermissions') return ['--dangerously-skip-permissions'];

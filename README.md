@@ -2,7 +2,7 @@
   <img src="build/icon.png" width="96" alt="">
 </p>
 
-<h1 align="center">Hangar OSS</h1>
+<h1 align="center">Basanite</h1>
 
 <p align="center">
   A calm home for your Claude Code sessions.<br>
@@ -13,13 +13,11 @@
   Free and open source, for Mac and Windows. No telemetry, and no extra tokens.
 </p>
 
-> **Hangar OSS is a placeholder name.** The final name comes before the first public release.
-
 ![The tile wall](site/public/shots/wall-dark-1400.webp)
 
 ## What it is
 
-Each tile is the real `claude` command in a real terminal, with your own login, settings, skills and slash commands. Hangar listens to Claude Code's hooks to know what each session is doing. The session that's waiting on you grows and turns amber; the rest stay quiet. The tile you're typing in never moves.
+Each tile is the real `claude` command in a real terminal, with your own login, settings, skills and slash commands. Basanite listens to Claude Code's hooks to know what each session is doing. The session that's waiting on you grows and turns amber; the rest stay quiet. The tile you're typing in never moves.
 
 - **Workspaces.** Group sessions ("Client", "School", "Side project") and switch between them. Background sessions keep running, and a hidden workspace shows a dot when something there needs you. Put a workspace away and reopen it later with every session where it was. With one workspace, you never see any of this.
 - **Overview.** One list of everything across workspaces, *needs you* first, with a preview. Answer a permission menu right from the preview with a number key.
@@ -42,7 +40,7 @@ Download the latest build from the [releases page](../../releases/latest).
 **Mac.** Open the `.dmg` and drag the app to Applications. The app isn't notarised yet, so the first time, run this once in Terminal (or right-click the app, choose Open, then Open again):
 
 ```sh
-xattr -cr "/Applications/Hangar OSS.app"
+xattr -cr "/Applications/Basanite.app"
 ```
 
 **Windows.** Run the setup `.exe`. SmartScreen may not recognise it yet: click **More info**, then **Run anyway**. Claude Code must work as `claude` in PowerShell.
@@ -66,9 +64,9 @@ Every shortcut is listed under **Help → Keyboard shortcuts**, or type `?` in t
 
 ## Tokens and privacy
 
-- **No extra tokens.** Hangar's hooks reply with nothing unless you've asked for something: a mode or add-on is sent once when it starts (and again after a compaction), a time budget adds a few one-line notes, and a guard mode answers a blocked edit with one line. Counters are read from local files and Claude Code's statusline.
+- **No extra tokens.** Basanite's hooks reply with nothing unless you've asked for something: a mode or add-on is sent once when it starts (and again after a compaction), a time budget adds a few one-line notes, and a guard mode answers a blocked edit with one line. Counters are read from local files and Claude Code's statusline.
 - **The overseer is lean.** It starts from a small context with one tool, and uses nothing when you aren't asking it anything.
-- **Private.** No telemetry, no accounts, no server. Sessions are ordinary `claude` processes. Hangar talks to them over `127.0.0.1` with a random key per launch and never changes your global Claude Code settings. The only thing it fetches is the update check from GitHub.
+- **Private.** No telemetry, no accounts, no server. Sessions are ordinary `claude` processes. Basanite talks to them over `127.0.0.1` with a random key per launch and never changes your global Claude Code settings. The only thing it fetches is the update check from GitHub.
 
 ## Development
 
@@ -86,7 +84,7 @@ Tagged pushes (`v*`) build every platform in GitHub Actions and attach the files
 ### How it fits together
 
 - `src/main/` runs the window, one `node-pty` terminal per tile, the local hook server, workspaces, modes and guards, git/history/usage readers, notifications and the overseer.
-- Each session starts as `claude --settings <tile settings>`. That file adds HTTP hooks pointing at Hangar and a statusline command; nothing touches your global settings.
+- Each session starts as `claude --settings <tile settings>`. That file adds HTTP hooks pointing at Basanite and a statusline command; nothing touches your global settings.
 - `src/renderer/` is plain HTML, CSS and JS with xterm.js. `commands.js` is the single command list behind the menu, palette and shortcuts.
 - `src/shell/` holds the small `claude` wrapper loaded into terminal tiles.
 - `src/cli/hangarctl.js` is what Claude Code and the overseer call to talk to the app.

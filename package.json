@@ -1,5 +1,5 @@
 {
-  "name": "hangar-oss",
+  "name": "basanite",
   "version": "0.4.0-dev",
   "description": "A calm, fullscreen home for your Claude Code sessions.",
   "main": "src/main/main.js",
@@ -29,11 +29,11 @@
     "node-pty": false,
     "electron-winstaller@5.4.0": true
   },
-  "productName": "Hangar OSS",
+  "productName": "Basanite",
   "private": true,
   "build": {
-    "appId": "com.robberttorfs.hangar-oss",
-    "productName": "Hangar OSS",
+    "appId": "com.robberttorfs.basanite",
+    "productName": "Basanite",
     "files": [
       "src/**/*",
       "node_modules/**/*",
@@ -68,13 +68,13 @@
           ]
         }
       ],
-      "artifactName": "Hangar-mac-${arch}.${ext}",
+      "artifactName": "Basanite-mac-${arch}.${ext}",
       "category": "public.app-category.developer-tools",
       "identity": null,
       "icon": "build/icon.icns"
     },
     "dmg": {
-      "artifactName": "Hangar-mac-${arch}.dmg"
+      "artifactName": "Basanite-mac-${arch}.dmg"
     },
     "win": {
       "target": [
@@ -87,7 +87,7 @@
         }
       ],
       "icon": "build/icon.ico",
-      "artifactName": "Hangar-windows-${arch}-setup.${ext}"
+      "artifactName": "Basanite-windows-${arch}-setup.${ext}"
     },
     "nsis": {
       "oneClick": false,

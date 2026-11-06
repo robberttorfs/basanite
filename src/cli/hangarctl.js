@@ -1,4 +1,4 @@
-// hangarctl: tiny helper that talks to the running Hangar app.
+// hangarctl: tiny helper that talks to the running Basanite app.
 //
 //   hangarctl statusline          (run by Claude Code's statusline)
 //   hangarctl list                one line per open session
@@ -24,7 +24,7 @@ function server() {
 
 function request(method, p, body) {
   const s = server();
-  if (!s) return Promise.reject(new Error('Hangar is not running.'));
+  if (!s) return Promise.reject(new Error('Basanite is not running.'));
   return new Promise((resolve, reject) => {
     const data = body ? JSON.stringify(body) : null;
     const req = http.request({
@@ -38,8 +38,8 @@ function request(method, p, body) {
         try { resolve(t ? JSON.parse(t) : null); } catch { resolve(null); }
       });
     });
-    req.on('timeout', () => req.destroy(new Error('Hangar did not answer.')));
-    req.on('error', () => reject(new Error('Hangar is not running.')));
+    req.on('timeout', () => req.destroy(new Error('Basanite did not answer.')));
+    req.on('error', () => reject(new Error('Basanite is not running.')));
     if (data) req.write(data);
     req.end();
   });
@@ -67,7 +67,7 @@ async function statusline() {
   process.stdout.write(parts.join('  '));
 }
 
-/** Forwards a command hook's stdin to Hangar and prints its answer for Claude Code. */
+/** Forwards a command hook's stdin to Basanite and prints its answer for Claude Code. */
 async function hook() {
   const raw = await readStdin();
   const tile = process.env.HANGAR_TILE;

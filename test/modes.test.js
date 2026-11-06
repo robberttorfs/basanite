@@ -32,7 +32,7 @@ test('add-ons: stack on any mode, sent once, restated after compaction, never pe
   s.setAddon('build', true); // a mode is not an add-on
   assert.deepEqual(s.addons, ['verify', 'quiet']);
   let c = ctxOf(prompt(s, 'make the thing'));
-  assert.match(c, /\[Hangar mode: Build\]/);
+  assert.match(c, /\[Basanite mode: Build\]/);
   assert.match(c, /Verify at end: /);
   assert.match(c, /Quiet: /);
   assert.equal(prompt(s, 'next thing'), null, 'nothing on later prompts');

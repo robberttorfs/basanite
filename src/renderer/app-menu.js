@@ -34,7 +34,7 @@
     const pick = (id) => {
       if (id === '@workspaces') return { id, label: 'Workspaces', icon: 'layers', sub: 'workspaces' };
       if (id === '@more') return { id, label: 'More', icon: 'more', sub: 'more' };
-      if (id === '@about') return { id, label: `About ${extra.appName || 'Hangar'}`, icon: 'info', role: 'about' };
+      if (id === '@about') return { id, label: `About ${extra.appName || 'Basanite'}`, icon: 'info', role: 'about' };
       if (id === '@update') return extra.update ? { id, label: extra.update, icon: 'update', role: 'update' } : null;
       const c = byId.get(id);
       if (c) used.add(id);

@@ -189,7 +189,7 @@
     const n = state.tiles.findIndex((t) => t.id === id) + 1;
     const snap = state.tiles[n - 1];
     if (!snap) return;
-    toggleOverseer(true, `Make a new Hangar mode from session ${n} ("${snap.name}"). Read its log and capture how I told it to work (rules, style, when to stop or ask), not the task itself. Show me the draft in a few lines, then save it with hangarctl mode-save once I agree.`);
+    toggleOverseer(true, `Make a new Basanite mode from session ${n} ("${snap.name}"). Read its log and capture how I told it to work (rules, style, when to stop or ask), not the task itself. Show me the draft in a few lines, then save it with hangarctl mode-save once I agree.`);
   }
 
   // ---------- library and editor ----------
@@ -234,7 +234,7 @@
       det.ontoggle = () => { try { localStorage.setItem('hangar.modes.more', det.open ? '1' : '0'); } catch {} };
       $('[data-new]', el).onclick = () => { current = null; draft = blank(); dirty = true; view = 'edit'; draw(); $('[name=name]', el)?.focus(); };
       $('[data-import]', el).onclick = () => importMode();
-      $('[data-ask]', el).onclick = () => { closePop(); toggleOverseer(true, 'Help me create a new Hangar mode. Ask me what the mode is for, then draft it and save it with hangarctl mode-save once I agree.'); };
+      $('[data-ask]', el).onclick = () => { closePop(); toggleOverseer(true, 'Help me create a new Basanite mode. Ask me what the mode is for, then draft it and save it with hangarctl mode-save once I agree.'); };
       el.querySelector('.ml-card')?.focus();
     };
 

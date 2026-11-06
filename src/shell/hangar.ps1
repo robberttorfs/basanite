@@ -1,5 +1,5 @@
-# Loaded into Hangar terminal tiles (PowerShell). Running `claude` here adds
-# Hangar's hook settings, so the tile becomes a full Hangar session while
+# Loaded into Basanite terminal tiles (PowerShell). Running `claude` here adds
+# Basanite's hook settings, so the tile becomes a full Basanite session while
 # Claude Code runs and turns back into a terminal when it exits.
 function global:__HangarInteractive($a) {
   foreach ($x in $a) { if ("$x" -in '-p', '--print', '-v', '--version', '-h', '--help') { return $false } }

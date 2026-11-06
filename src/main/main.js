@@ -95,8 +95,8 @@ function shQuote(s) { return `'${String(s).replace(/'/g, `'\\''`)}'`; }
 function psQuote(s) { return `'${String(s).replace(/'/g, "''")}'`; }
 
 function cleanEnv(extra) {
-  const env = { ...process.env, ...extra, TERM: 'xterm-256color', COLORTERM: 'truecolor', TERM_PROGRAM: 'Hangar' };
-  // Markers a parent Claude Code session leaves behind (e.g. when Hangar is
+  const env = { ...process.env, ...extra, TERM: 'xterm-256color', COLORTERM: 'truecolor', TERM_PROGRAM: 'Basanite' };
+  // Markers a parent Claude Code session leaves behind (e.g. when Basanite is
   // started from a terminal running claude) would make children think they
   // are subprocesses and switch off transcripts.
   const inherited = ['ELECTRON_RUN_AS_NODE', 'CLAUDECODE', 'CLAUDE_PID', 'CLAUDE_EFFORT', 'AI_AGENT',
@@ -127,7 +127,7 @@ function spawnClaude(claudeArgs, cwd, env, cols = 100, rows = 30) {
 /**
  * A plain interactive login shell, for terminal tiles. PowerShell, zsh and bash
  * also load a small `claude` wrapper (src/shell) so Claude Code started there
- * reports to Hangar and the tile becomes a full session while it runs.
+ * reports to Basanite and the tile becomes a full session while it runs.
  */
 function spawnShell(cwd, env, cols, rows) {
   const dir = unpacked('src', 'shell');
@@ -282,7 +282,7 @@ let lastClosed = null;   // for Reopen Closed Session
 // ---------- fresh start ----------
 //
 // Hand a session over to a fresh context without losing anything: Claude
-// writes a handover file, Hangar checks it exists, runs /clear in the same
+// writes a handover file, Basanite checks it exists, runs /clear in the same
 // tile, then tells the new context to read the handover and carry on.
 
 const HANDOVER_TIMEOUT = 20 * 60000;
@@ -310,7 +310,7 @@ function freshStart(s) {
   }
   const file = handoverPath(s.cwd);
   s.handover = { stage: 'writing', file, at: Date.now() };
-  typeInto(s, `[Hangar fresh start] Wrap up so a fresh session can continue exactly from here. Stop the current task at a safe point (no half-made edits). ` +
+  typeInto(s, `[Basanite fresh start] Wrap up so a fresh session can continue exactly from here. Stop the current task at a safe point (no half-made edits). ` +
     `Write a handover to ${file} (replace any older one): the goal, current state, what is done, what is in progress, the exact next steps, ` +
     `decisions made and why, hard rules and how the user likes to work, key files and commands. Update any progress notes or memory this project uses. ` +
     'Keep it complete but tight. When it is written, reply with one short line.');
@@ -347,7 +347,7 @@ function stepHandover(s, ev) {
   if (h.stage === 'clearing' && ev.type === 'session-start' && ev.source === 'clear') {
     h.stage = 'continuing';
     setTimeout(() => {
-      typeInto(s, `[Hangar fresh start] Read ${h.file} and continue the work from where it stopped. Follow its rules and next steps.`);
+      typeInto(s, `[Basanite fresh start] Read ${h.file} and continue the work from where it stopped. Follow its rules and next steps.`);
       clearTimeout(h.timer);
       s.handover = null;
       send('tile:notice', { id: s.id, text: 'Fresh start done. Continuing from the handover.' });
@@ -394,7 +394,7 @@ function rememberFolder(dir) {
   recentFolders = [dir, ...recentFolders.filter((d) => d !== dir)].slice(0, 20);
 }
 
-/** Recent project folders from Hangar and from Claude Code's own prompt history. */
+/** Recent project folders from Basanite and from Claude Code's own prompt history. */
 function recentProjects() {
   const out = [...recentFolders];
   try {
@@ -418,7 +418,7 @@ function recentProjects() {
   }).slice(0, 12);
 }
 
-/** Hangar's own folders (the overseer's home) never show up as projects, from this or any other Hangar data folder. */
+/** Basanite's own folders (the overseer's home) never show up as projects, from this or any other Basanite data folder. */
 function isHangarInternal(dir) {
   const rel = path.relative(paths.dataDir(), dir);
   if (!rel.startsWith('..') && !path.isAbsolute(rel)) return true;
@@ -579,9 +579,9 @@ function pollLoop() {
 
 // ---------- overseer ----------
 
-const OVERSEER_MD = `# Hangar overseer
+const OVERSEER_MD = `# Basanite overseer
 
-You are the overseer inside Hangar, an app that shows the user's Claude Code sessions as tiles. You do not do project work yourself. You answer questions about the sessions and, when asked, type into them.
+You are the overseer inside Basanite, an app that shows the user's Claude Code sessions as tiles. You do not do project work yourself. You answer questions about the sessions and, when asked, type into them.
 
 Use these commands through Bash. They read live data from the app.
 
@@ -701,7 +701,7 @@ function createWindow() {
   win.once('ready-to-show', () => {
     if (saved.maximized !== false) win.maximize();
     if (saved.fullscreen) win.setFullScreen(true);
-    // Dev copies open behind other windows so they never take the keyboard from the real Hangar.
+    // Dev copies open behind other windows so they never take the keyboard from the real Basanite.
     if (process.env.HANGAR_DEV) win.showInactive(); else win.show();
   });
   const saveBounds = () => {

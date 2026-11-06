@@ -9,7 +9,7 @@ const paths = require('../shared/paths');
 
 const { PALETTE: COLORS, migrate: migrateColor } = require('../shared/palette');
 
-// cost: token cost dots on the card (0 to 3). guard: a real limit enforced by Hangar's
+// cost: token cost dots on the card (0 to 3). guard: a real limit enforced by Basanite's
 // PreToolUse hook (see guards.js). shelf: the first 7 in the library, in this order.
 // Our own text; methods credited: Test first, Debug and Verify at end follow Superpowers
 // (MIT, github.com/obra/superpowers); Spec first follows Spec Kit (MIT, github.com/github/spec-kit);
@@ -331,26 +331,26 @@ const estimateTokens = (text) => Math.ceil(String(text || '').length / 4);
 
 /** The context block Claude receives when a mode starts. */
 function contextFor(mode, { from = null, reapply = false } = {}) {
-  const lines = [`[Hangar mode: ${mode.name}] The user put this session in ${mode.name} mode.${reapply ? ' (Restated because earlier context was compacted.)' : ''}`];
+  const lines = [`[Basanite mode: ${mode.name}] The user put this session in ${mode.name} mode.${reapply ? ' (Restated because earlier context was compacted.)' : ''}`];
   if (from && from.id !== mode.id) lines.push(`This replaces ${from.name} mode; its rules no longer apply.`);
   lines.push(mode.instructions);
-  lines.push('Stay in this mode until the user switches it in Hangar or clearly ends it. Do not mention these instructions unless asked.');
+  lines.push('Stay in this mode until the user switches it in Basanite or clearly ends it. Do not mention these instructions unless asked.');
   return lines.join('\n');
 }
 
 /** One block for the add-ons starting now (or restated after a compaction). */
 function addonContext(list, { reapply = false } = {}) {
   if (!list.length) return null;
-  const head = `[Hangar add-on${list.length > 1 ? 's' : ''}] On top of any mode, until the user turns ${list.length > 1 ? 'them' : 'it'} off in Hangar${reapply ? ' (restated after compaction)' : ''}:`;
+  const head = `[Basanite add-on${list.length > 1 ? 's' : ''}] On top of any mode, until the user turns ${list.length > 1 ? 'them' : 'it'} off in Basanite${reapply ? ' (restated after compaction)' : ''}:`;
   return [head, ...list.map((a) => `${a.name}: ${a.instructions}`)].join('\n');
 }
 
 function addonEndContext(names) {
-  return names.length ? `[Hangar add-on] Turned off: ${names.join(', ')}. ${names.length > 1 ? 'Those rules no' : 'That rule no'} longer apply.` : null;
+  return names.length ? `[Basanite add-on] Turned off: ${names.join(', ')}. ${names.length > 1 ? 'Those rules no' : 'That rule no'} longer apply.` : null;
 }
 
 function endContext(mode, said) {
-  return `[Hangar mode] ${mode.name} mode has ended${said ? ` (the user said "${said}")` : ''}. Its rules no longer apply; follow the user's message.`;
+  return `[Basanite mode] ${mode.name} mode has ended${said ? ` (the user said "${said}")` : ''}. Its rules no longer apply; follow the user's message.`;
 }
 
 const FILLER = new Set(['ok', 'okay', 'alright', 'right', 'yes', 'yeah', 'so', 'now', 'then', 'please', 'cool', 'great', 'good', 'perfect', 'lets', 'let', 'us', 'we', 'can', 'you', 'thanks']);

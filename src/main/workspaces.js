@@ -5,7 +5,7 @@
 // The workspace file (workspace.json) holds, from version 2:
 //   { version: 2, active, workspaces: [{ id, name, color, notify, defaultMode,
 //     focused, putAway, tiles: [...] }], tiles: [...], recent: [...] }
-// Top-level `tiles` repeats the open workspaces' tiles so an older Hangar
+// Top-level `tiles` repeats the open workspaces' tiles so an older Basanite
 // still finds them. Old files ({ tiles, recent }) load as one "Main".
 'use strict';
 

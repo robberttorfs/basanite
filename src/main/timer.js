@@ -25,7 +25,7 @@ function fraction(timer, now) {
 }
 
 function startNote(timer) {
-  return `[Hangar] Time budget for this task: ${mins(timer.minutes)} min (until ${clock(timer.startedAt + timer.minutes * 60000)}). ` +
+  return `[Basanite] Time budget for this task: ${mins(timer.minutes)} min (until ${clock(timer.startedAt + timer.minutes * 60000)}). ` +
     'Plan the work to fit and aim to finish with solid, checked work by then. You will get a note when it is time to wrap up.';
 }
 
@@ -47,7 +47,7 @@ function nudge(input, event, hook, now = Date.now()) {
       t.sent.push('start');
       out = { context: startNote(t) };
     } else if (remaining(t, now) > 0 && !String(hook.prompt || '').trimStart().startsWith('<')) {
-      out = { context: `[Hangar] ${mins(remaining(t, now))} min left of the ${mins(t.minutes)} min budget.` };
+      out = { context: `[Basanite] ${mins(remaining(t, now))} min left of the ${mins(t.minutes)} min budget.` };
     }
   } else if (event === 'PostToolUse') {
     if (t.startedAt == null) return { timer: input, out: null };
@@ -60,20 +60,20 @@ function nudge(input, event, hook, now = Date.now()) {
     } else if (f >= 1 && !t.sent.includes(`end:${who}`)) {
       t.sent.push(`end:${who}`, `wrap:${who}`);
       out = { context: agent
-        ? '[Hangar] The task\'s time budget is used up. Stop now and report what you have.'
-        : '[Hangar] Time budget reached. Finish only the current step, leave everything in a working state, give a short summary of what is done and what is left, then stop.' };
+        ? '[Basanite] The task\'s time budget is used up. Stop now and report what you have.'
+        : '[Basanite] Time budget reached. Finish only the current step, leave everything in a working state, give a short summary of what is done and what is left, then stop.' };
     } else if (f >= WRAP_AT && !t.sent.includes(`wrap:${who}`)) {
       t.sent.push(`wrap:${who}`);
       out = { context: agent
-        ? `[Hangar] The task's time budget is nearly used (about ${mins(r)} min left). Wrap up and report back soon.`
-        : `[Hangar] About ${mins(r)} min left of ${mins(t.minutes)}. Start wrapping up: finish the piece you are on, check it works, and do not start anything big.` };
+        ? `[Basanite] The task's time budget is nearly used (about ${mins(r)} min left). Wrap up and report back soon.`
+        : `[Basanite] About ${mins(r)} min left of ${mins(t.minutes)}. Start wrapping up: finish the piece you are on, check it works, and do not start anything big.` };
     }
   } else if (event === 'Stop' && !agent) {
     if (t.startedAt == null) return { timer: input, out: null };
     const f = fraction(t, now);
     if (f < EARLY_STOP_BEFORE && !hook.stop_hook_active && !t.sent.includes('early')) {
       t.sent.push('early');
-      out = { block: `[Hangar] ${mins(remaining(t, now))} of ${mins(t.minutes)} min remain. If worthwhile work toward the task is left (checks, tests, the obvious next part of what was asked), keep going. If the task is fully done, stop and say so. Do not invent extra scope.` };
+      out = { block: `[Basanite] ${mins(remaining(t, now))} of ${mins(t.minutes)} min remain. If worthwhile work toward the task is left (checks, tests, the obvious next part of what was asked), keep going. If the task is fully done, stop and say so. Do not invent extra scope.` };
     } else {
       t.finished = true;
     }
