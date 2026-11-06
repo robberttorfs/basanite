@@ -79,6 +79,8 @@ main, .foot { position: relative; z-index: 1; }
 .intro { padding: clamp(64px, 12vh, 130px) var(--g) 0; }
 .intro p { margin: 0; max-width: 25em; font: 600 clamp(28px, 3.3vw, 60px)/1.16 var(--body); letter-spacing: -.018em; text-wrap: pretty; }
 
+.intro b { font-weight: inherit; color: var(--gold); }
+
 /* ---------- features: ordinary sections, different shapes ---------- */
 h2 { margin: 0; font: 800 clamp(48px, 6.4vw, 118px)/.95 var(--head); }
 .tx p { margin: .55em 0 0; font-size: clamp(18px, 1.4vw, 23px); line-height: 1.38; max-width: 31em; text-wrap: pretty; }
