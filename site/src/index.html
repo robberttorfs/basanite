@@ -163,22 +163,20 @@ h.classList.add(plain?'plain':'fx');})();
       <li><a href="{{dl.winArm}}"><span class="os">Windows on ARM</span><code>{{file.winArm}}</code><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M12 3v13m0 0-5.5-5.5M12 16l5.5-5.5M4 21h16"/></svg></a></li>
     </ul>
     <div class="first">
-      <div id="first-win" tabindex="-1">
-        <h3>First launch on Windows</h3>
+      <details class="fd sm" id="first-win" tabindex="-1"><summary><h3>First launch on Windows</h3></summary>
         <ul>
           <li>Run the installer.</li>
           <li>If SmartScreen warns you, click <strong>More info</strong>, then <strong>Run anyway</strong>.</li>
           <li><code>claude</code> must work in PowerShell.</li>
         </ul>
-      </div>
-      <div id="first-mac" tabindex="-1">
-        <h3>First launch on Mac</h3>
+      </details>
+      <details class="fd sm" id="first-mac" tabindex="-1"><summary><h3>First launch on Mac</h3></summary>
         <ul>
           <li>Drag the app to Applications.</li>
           <li>Run this once in Terminal:</li>
         </ul>
         <div class="cmd"><code>xattr -cr "/Applications/{{name}}.app"</code><button type="button" data-copy aria-live="polite">Copy</button></div>
-      </div>
+      </details>
     </div>
   </section>
 
