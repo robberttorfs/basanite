@@ -148,7 +148,8 @@ picture { display: contents; }
 .files [data-here] .os { color: var(--gold); }
 .files a:hover .os { color: var(--ink); }
 .first { display: grid; grid-template-columns: 1fr 1fr; gap: 0 56px; margin-top: 30px; max-width: 1240px; align-items: start; }
-.first .fd.sm ul { padding: 0 0 12px 1.1em; }
+.first h3 { margin: 0 0 8px; font: 800 28px/1 var(--head); }
+.first ul { margin: 0; padding: 0 0 12px 1.1em; font-size: 17px; line-height: 1.38; }
 .first li { margin-bottom: 4px; }
 .first .cmd { margin: 0 0 18px; }
 .cmd { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; padding: 10px 10px 10px 14px; background: #000; border: 1px solid var(--line); border-radius: 3px; }
@@ -216,7 +217,7 @@ picture { display: contents; }
   .col-b .tx.gap { margin-top: 64px; }
   .f-modes { gap: 26px; }
   .f-modes .tx { display: contents; }
-  .f-modes .tx > .fd { order: 1; }
+  .f-modes .tx > h2, .f-modes .tx > p { order: 1; }
   .f-modes .shot { order: 2; margin: 18px auto 0; justify-self: center; }
   .f-modes .more { order: 3; }
   .col-a { display: flex; flex-direction: column; }
@@ -251,6 +252,6 @@ picture { display: contents; }
   .files a { grid-template-columns: minmax(0, 1fr) 30px; gap: 4px 12px; }
   .files code { grid-row: 2; grid-column: 1; font-size: 12px; }
   .files svg { grid-row: 1 / 3; grid-column: 2; width: 24px; height: 24px; }
-  .first { grid-template-columns: 1fr; gap: 0; }
+  .first { grid-template-columns: 1fr; gap: 28px; }
   .foot-top { flex-direction: column; align-items: flex-start; }
 }
