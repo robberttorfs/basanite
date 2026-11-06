@@ -17,6 +17,7 @@ function setup() {
     S('app.overseer', 'Overseer', 'View'),
     S('app.settings', 'Settings…', 'App'),
     S('app.shortcuts', 'Keyboard shortcuts', 'Help'),
+    S('app.intro', 'Show intro', 'Help'),
     S('app.report-bug', 'Report a bug', 'Help'),
     S('app.feedback', 'Send feedback', 'Help'),
     S('app.copy-debug', 'Copy debug info', 'Help'),
@@ -43,8 +44,8 @@ test('app menu: top level is the most-used commands, straight from the registry'
   // The very same objects, so labels and shortcuts can't drift.
   assert.equal(m.top[0][0], C.get('session.new'));
   assert.equal(C.shortcutLabel(m.top[0][0]), 'Ctrl+Shift+N');
-  assert.deepEqual(m.foot.map((c) => c.label), ['Keyboard shortcuts', 'Report a bug', 'Send feedback', 'About Basanite']);
-  assert.equal(M.model(C, { update: 'Restart to update' }).foot.length, 5);
+  assert.deepEqual(m.foot.map((c) => c.label), ['Keyboard shortcuts', 'Show intro', 'Report a bug', 'Send feedback', 'About Basanite']);
+  assert.equal(M.model(C, { update: 'Restart to update' }).foot.length, 6);
 });
 
 test('app menu: everything else is in More or Workspaces, nothing is lost', () => {

@@ -1,9 +1,6 @@
 /* Modes 2.0: picker, library, editor, goal form. Reuses style.css tokens only. */
 
 /* Token cost dots: filled and hollow */
-.tdots { display: inline-flex; gap: 3px; align-items: center; flex: none; }
-.tdots i { width: 5px; height: 5px; border-radius: 50%; border: 1px solid var(--faint); box-sizing: border-box; }
-.tdots i.on { background: var(--muted); border-color: var(--muted); }
 
 /* Mode icon in its colour */
 .mi { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; color: var(--c); flex: none; }
@@ -67,7 +64,3 @@
 .mi-btn { width: 28px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; border: 1px solid transparent; background: none; color: var(--muted); cursor: pointer; padding: 0; }
 .mi-btn:hover { background: var(--hover); color: var(--text); }
 .mi-btn.sel { color: var(--c); border-color: color-mix(in srgb, var(--c) 45%, transparent); background: color-mix(in srgb, var(--c) 12%, transparent); }
-.ml-cost { display: flex; gap: 4px; }
-.ml-cost button { height: 28px; min-width: 40px; display: inline-flex; align-items: center; justify-content: center; border-radius: 7px; border: 1px solid var(--line); background: none; cursor: pointer; padding: 0 8px; }
-.ml-cost button.on { border-color: #3a4560; background: #1a1f2b; }
-.ml-cost button.on .tdots i.on { background: var(--text); border-color: var(--text); }

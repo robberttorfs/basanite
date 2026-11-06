@@ -15,7 +15,7 @@
     ['app.usage', 'app.overseer', 'app.settings'],
     ['@more'],
   ];
-  const FOOT = ['app.shortcuts', 'app.report-bug', 'app.feedback', '@about', '@update'];
+  const FOOT = ['app.shortcuts', 'app.intro', 'app.report-bug', 'app.feedback', '@about', '@update'];
   // In More: every native-menu command that isn't shown elsewhere, by menu. Single modes,
   // add-ons and Session 1-9 stay in the mode picker, the palette and the filter.
   const MORE_MENUS = ['Session', 'Modes', 'View', 'Window', 'Help'];

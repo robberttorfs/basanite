@@ -107,7 +107,7 @@
     el.innerHTML = `<div class="ch-head">${SVG.branch}<b>${esc(r.branch || '')}</b><span class="faint">${r.fileCount} file${r.fileCount === 1 ? '' : 's'}</span><span class="grow"></span><span class="ch-runs"></span></div>
       <div class="ch-files">${files || '<p class="hint">No changes</p>'}</div>
       ${body ? `<div class="ch-diff">${body}${r.truncated ? '<p class="hint">Diff truncated</p>' : ''}</div>` : ''}`;
-    // Everything about changes in one place: Review and Simplify (they cost tokens, so the dots show it).
+    // Everything about changes in one place: Review and Simplify.
     const runs = $('.ch-runs', el);
     for (const it of window.HangarModes?.moreItems(snapOf(id)) || []) {
       const b = h('button', 'btn small', it.html);

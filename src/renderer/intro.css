@@ -1,0 +1,20 @@
+/* The intro: one picture, one line, always the same size so nothing jumps between steps. */
+.pop.modal.intro-pop { top: 50%; transform: translate(-50%, -50%); width: min(720px, calc(100vw - 48px)); padding: 0; overflow: hidden; }
+.in-shot { display: flex; align-items: center; justify-content: center; height: min(380px, 50vh); padding: 18px; background: #0c0d11; border-bottom: 1px solid var(--line-soft); }
+.in-shot img { display: block; max-width: 100%; max-height: 100%; border-radius: 8px; }
+.in-text { padding: 18px 24px 4px; min-height: 104px; }
+.in-text h2 { margin: 0 0 6px; font-size: 19px; font-weight: 600; color: var(--text); }
+.in-text p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.in-key { display: inline-block; margin-left: 2px; padding: 1px 6px; border: 1px solid var(--line); border-radius: 5px; font: inherit; font-size: 12px; color: var(--text); white-space: nowrap; }
+.in-foot { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; padding: 10px 16px 16px 24px; }
+.in-skip { justify-self: start; padding: 6px 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
+.in-skip:hover { color: var(--text); }
+.in-dots { display: flex; gap: 2px; }
+.in-dots button { width: 18px; height: 18px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; }
+.in-dots button::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--line); transition: background .15s; }
+.in-dots button:hover::before { background: var(--muted); }
+.in-dots button.on::before { background: var(--text); }
+.in-nav { justify-self: end; display: flex; gap: 8px; white-space: nowrap; }
+.intro-pop.in-fade .in-shot img, .intro-pop.in-fade .in-text { animation: in-fade .16s ease-out; }
+@keyframes in-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .intro-pop.in-fade .in-shot img, .intro-pop.in-fade .in-text { animation: none; } }

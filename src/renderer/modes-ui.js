@@ -32,7 +32,6 @@
   const ICON_NAMES = Object.keys(MI).filter((k) => !['back', 'file', 'dot'].includes(k));
   const icon = (m) => MI[m?.icon] || MI.dot;
   const GUARD_LABEL = { '': 'None', readonly: 'Read-only', risky: 'Block pushes and deploys' };
-  const COST_WORD = ['No extra tokens', 'Some tokens', 'More tokens', 'Many tokens'];
   const est = (text) => Math.ceil(String(text || '').length / 4);
 
   const all = () => state.modes || [];
@@ -43,12 +42,6 @@
   const shelf = (list) => list.filter((m) => m.shelf).sort((a, b) => a.shelf - b.shelf);
   const rest = (list) => list.filter((m) => !m.shelf);
   const snapOf = (id) => state.tiles.find((t) => t.id === id);
-
-  /** Token cost as 0 to 3 dots: filled and hollow, so it reads without colour. */
-  function dots(n, cls = '') {
-    n = Math.max(0, Math.min(3, Number(n) || 0));
-    return `<span class="tdots ${cls}" role="img" aria-label="${COST_WORD[n]}" title="${COST_WORD[n]}">${[0, 1, 2].map((i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span>`;
-  }
 
   // ---------- the chip on the tile ----------
 
@@ -83,7 +76,7 @@
     el.innerHTML = `<h3><span class="mi" style="--c:${m.color}">${icon(m)}</span>${esc(m.name)}</h3>
       <label>Done when<input class="field" name="cond" maxlength="3800" placeholder="npm test passes"></label>
       <label>Max turns<input class="field" name="turns" type="number" min="1" max="200" value="20"></label>
-      <div class="gp-cost">${dots(m.cost)}<span>Each turn uses tokens</span></div>
+      <div class="gp-cost"><span>Each turn uses tokens</span></div>
       <div class="row end"><button class="btn small" data-no>Cancel</button><button class="btn small primary" data-go>Start</button></div>`;
     openPop(el, anchorEl, { alignLeft: true });
     const cond = $('[name=cond]', el), turns = $('[name=turns]', el);
@@ -111,7 +104,7 @@
     const row = (m) => {
       const b = h('button', `item${m && rest(modesOnly()).includes(m) ? ' mm-rest' : ''}`,
         `<span class="mi" style="--c:${m ? m.color : 'var(--faint)'}">${m ? icon(m) : ''}</span><span class="mn">${esc(m ? m.name : 'No mode')}</span>` +
-        `${m ? dots(m.cost) : ''}<span class="ck">${(m?.id || null) === cur ? ICON.check : ''}</span>`);
+        `<span class="ck">${(m?.id || null) === cur ? ICON.check : ''}</span>`);
       b.dataset.desc = m ? m.description || '' : '';
       b.onclick = () => { closePop(); pick(id, m ? m.id : null, anchorEl); };
       return b;
@@ -208,7 +201,7 @@
     const card = (m) => {
       const b = h('button', `ml-card${isAddon(m) ? ' small' : ''}${m.hidden ? ' hidden-mode' : ''}`,
         `<span class="mi" style="--c:${m.color}">${icon(m)}</span><span class="mn">${esc(m.name)}</span>` +
-        `${m.guard ? `<span class="ml-guard" title="${esc(GUARD_LABEL[m.guard])}">${MI.shield}</span>` : ''}${dots(m.cost)}` +
+        `${m.guard ? `<span class="ml-guard" title="${esc(GUARD_LABEL[m.guard])}">${MI.shield}</span>` : ''}` +
         `${m.hidden ? '<span class="tag">hidden</span>' : !m.builtin ? '<span class="tag">yours</span>' : m.edited ? '<span class="tag">edited</span>' : ''}`);
       b.type = 'button';
       b.style.setProperty('--c', m.color);
@@ -256,7 +249,6 @@
           <label><span class="ml-row">Instructions for Claude<span class="grow"></span><span class="ml-est" aria-live="polite"></span></span>
             <textarea class="field mono" name="instructions" rows="9" placeholder="- One rule per line"></textarea></label>
           <div class="two">
-            <label>Token cost<div class="ml-cost" role="radiogroup" aria-label="Token cost">${[0, 1, 2, 3].map((n) => `<button type="button" role="radio" data-cost="${n}" aria-label="${COST_WORD[n]}">${dots(n)}</button>`).join('')}</div></label>
             ${addon ? '' : `<label>Guard<select class="field" name="guard">${Object.entries(GUARD_LABEL).map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join('')}</select></label>`}
           </div>
           ${addon ? '' : `<details class="me-more"${(m.exitPhrases || []).length || m.exitTo || m.tokenWarn ? ' open' : ''}><summary>More options</summary>
@@ -299,13 +291,6 @@
         }
       };
       drawIcons();
-      const drawCost = () => form.querySelectorAll('[data-cost]').forEach((b) => {
-        const sel = Number(b.dataset.cost) === cost;
-        b.classList.toggle('on', sel);
-        b.setAttribute('aria-checked', String(sel));
-      });
-      form.querySelectorAll('[data-cost]').forEach((b) => { b.onclick = () => { cost = Number(b.dataset.cost); dirty = true; drawCost(); }; });
-      drawCost();
       // Live size of what Claude receives, so modes stay short.
       const estEl = $('.ml-est', form);
       const drawEst = () => { const n = est(F.instructions.value); estEl.textContent = `~${n} tokens`; estEl.classList.toggle('warn', n > 400); };
@@ -410,7 +395,7 @@
   /** Rows for the tile's ⋯ menu. */
   function moreItems(snap) {
     if (!canRun(snap)) return [];
-    return RUNS.map((r) => ({ html: `${esc(r.label)}<span class="kb">${dots(r.cost)}</span>`, run: () => hangar.runCommand(snap.id, r.which) }));
+    return RUNS.map((r) => ({ html: esc(r.label), run: () => hangar.runCommand(snap.id, r.which) }));
   }
 
   // ---------- command registry ----------
@@ -418,7 +403,7 @@
   const C = HangarCommands;
   const claude = (cx) => !!cx.snap && cx.snap.kind !== 'shell';
   C.register(RUNS.map((r) => ({
-    id: r.id, label: r.label, group: 'Actions', aliases: r.aliases, context: '●'.repeat(r.cost) + '○'.repeat(3 - r.cost),
+    id: r.id, label: r.label, group: 'Actions', aliases: r.aliases,
     menu: { menu: 'Session', section: 'after' }, when: (cx) => canRun(cx.snap), run: (cx) => hangar.runCommand(cx.id, r.which),
   })));
   // One entry per mode (Until done asks for its goal), then add-on switches. Replaces app-commands' list.
@@ -442,5 +427,5 @@
     { id: 'mode.import', label: 'Import mode…', group: 'Modes', aliases: ['mode file', 'open mode'], menu: { menu: 'Modes', section: 'edit' }, run: () => importMode() },
   ]);
 
-  window.HangarModes = { drawChip, pick, openPicker, openLibrary, openGoal, modeFromSession, moreItems, importMode, refresh: () => refresh?.(), dots, icon };
+  window.HangarModes = { drawChip, pick, openPicker, openLibrary, openGoal, modeFromSession, moreItems, importMode, refresh: () => refresh?.(), icon };
 })();

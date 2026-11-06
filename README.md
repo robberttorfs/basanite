@@ -21,7 +21,7 @@ Each tile is the real `claude` command in a real terminal, with your own login, 
 - **Workspaces.** Group sessions ("Client", "School", "Side project") and switch between them. Background sessions keep running, and a hidden workspace shows a dot when something there needs you. Put a workspace away and reopen it later with every session where it was. With one workspace, you never see any of this.
 - **Overview.** One list of everything across workspaces, *needs you* first, with a preview. Answer a permission menu right from the preview with a number key.
 - **Command palette.** <kbd>⌘K</kbd> / <kbd>Ctrl+Shift+K</kbd> reaches every session, workspace, mode and action. Menus, shortcuts and the palette come from one list, so they always match.
-- **Modes.** Put a session in Notes, Plan, Build, Review, Test first, Debug, Until done and more, or make your own. A mode is sent once, not with every message. Review and Plan really block file edits (through a Claude Code hook), and Careful blocks risky commands like push and deploy. Stack add-ons such as *Verify at end* or *Tidy commits* on top. Each mode shows its token cost as dots, and you can share modes as files.
+- **Modes.** Put a session in Notes, Plan, Build, Review, Test first, Debug, Until done and more, or make your own. A mode is sent once, not with every message. Review and Plan really block file edits (through a Claude Code hook), and Careful blocks risky commands like push and deploy. Stack add-ons such as *Verify at end* or *Tidy commits* on top. You can share modes as files.
 - **Tiles that tell you things.** What it's doing right now ("Editing routes.ts"), its git branch with a peek at the changes, a note when two sessions edit the same file, and a snowflake when the prompt cache has gone cold.
 - **The overseer.** A small, lean Claude in a side panel that can see all your sessions. Ask "anything waiting on me?" or have it type a reply for you.
 - **Time budgets and Fresh start.** Give a session 30 minutes and it plans to fit. Fresh start writes a handover, clears the context and carries on.
@@ -47,6 +47,8 @@ xattr -cr "/Applications/Basanite.app"
 On Windows, updates download quietly and install when you choose Restart to update. On Mac the app tells you when a new version is out.
 
 ## Getting started
+
+A short intro shows on first launch; **Help → Show intro** brings it back.
 
 Drop a project folder on the window, or press <kbd>⌘N</kbd> / <kbd>Ctrl+Shift+N</kbd>. Click a tile and type, exactly like a terminal.
 

@@ -54,6 +54,8 @@ const DEFAULT_SETTINGS = {
   fontSize: 13,
   uiZoom: 1,
 };
+// No settings file yet: this is the first launch ever, which is when the intro shows.
+let firstLaunch = !fs.existsSync(paths.settingsFile());
 let settings = loadJSON(paths.settingsFile(), DEFAULT_SETTINGS);
 settings = { ...DEFAULT_SETTINGS, ...settings, notify: { ...DEFAULT_SETTINGS.notify, ...(settings.notify || {}) } };
 
@@ -1081,6 +1083,12 @@ function wireIpc() {
     electron: process.versions.electron, claude: await feedback.claudeVersion(cleanEnv()),
   });
   ipcMain.handle('feedback:info', () => debugText());
+  // Once only, and saved straight away, so closing the app mid-intro never brings it back.
+  ipcMain.handle('intro:first', () => {
+    const show = firstLaunch && (!process.env.HANGAR_DEV_OFFSCREEN || !!process.env.HANGAR_DEV_INTRO);
+    if (firstLaunch) { firstLaunch = false; saveJSON(paths.settingsFile(), settings); }
+    return show;
+  });
   ipcMain.handle('feedback:open', async (_e, kind) => { await shell.openExternal(feedback.issueUrl(kind, await debugText())); });
   ipcMain.on('settings:set', (_e, patch) => {
     settings = { ...settings, ...patch, notify: { ...settings.notify, ...(patch.notify || {}) } };

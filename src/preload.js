@@ -8,6 +8,7 @@ const on = (channel) => (fn) => {
 
 contextBridge.exposeInMainWorld('hangar', {
   init: () => ipcRenderer.invoke('init'),
+  introFirst: () => ipcRenderer.invoke('intro:first'),
   feedbackInfo: () => ipcRenderer.invoke('feedback:info'),
   feedbackOpen: (kind) => ipcRenderer.invoke('feedback:open', kind),
   recent: () => ipcRenderer.invoke('recent'),
