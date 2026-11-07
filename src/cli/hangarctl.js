@@ -5,6 +5,8 @@
 //   hangarctl screen <tile> [n]   last n lines of its terminal
 //   hangarctl log <tile> [n]      last n user/Claude messages
 //   hangarctl send <tile> <text>  type text into the session and press Enter
+//   hangarctl folders             recent project folders
+//   hangarctl open <folder> ...   open a new session (see help)
 //   hangarctl modes               the modes a session can be put in
 //   hangarctl mode <tile> <mode>  put a session in a mode (or "none")
 //   hangarctl mode-save ...       create or update a mode (see help)
@@ -120,6 +122,16 @@ async function main() {
       const r = await request('POST', '/api/TOKEN/send', { tile: rest[0], text: rest.slice(1).join(' ') });
       if (r?.error) fail(r.error);
       console.log(r.text);
+    } else if (cmd === 'folders') {
+      const r = await request('GET', '/api/TOKEN/folders');
+      if (r?.error) fail(r.error);
+      console.log(r.folders.length ? r.folders.join('\n') : 'No recent folders.');
+    } else if (cmd === 'open') {
+      const f = flags(rest);
+      if (!f._.length) fail('usage: hangarctl open <folder> [--mode <mode>] [--name <name>]');
+      const r = await request('POST', '/api/TOKEN/open-session', { dir: f._.join(' '), mode: f.mode, name: f.name });
+      if (r?.error) fail(r.error);
+      console.log(r.text);
     } else if (cmd === 'modes') {
       const r = await request('GET', '/api/TOKEN/modes');
       if (r?.error) fail(r.error);
@@ -149,6 +161,9 @@ async function main() {
         'hangarctl screen <tile> [n]    last n lines of its terminal (default 30)',
         'hangarctl log <tile> [n]       last n user/Claude messages (default 4)',
         'hangarctl send <tile> <text>   type text into the session and press Enter',
+        'hangarctl folders              recent project folders',
+        'hangarctl open <folder> [--mode M] [--name N]',
+        '                               open a new session in that folder',
         'hangarctl modes [--full]       list modes (--full shows their instructions)',
         'hangarctl mode <tile> <mode>   put a session in a mode, or "none"',
         'hangarctl mode-save --name N [--id ID] [--description D] [--color #hex] [--exit "start, go"] --instructions T',

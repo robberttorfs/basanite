@@ -59,6 +59,8 @@ function startServer(handlers) {
         if (cmd === 'js' && handlers.js) return reply(200, await handlers.js(q.code));
         if (cmd === 'open' && handlers.open) return reply(200, await handlers.open(q.dir, q.timer));
         if (cmd === 'detach' && req.method === 'POST' && handlers.detach) return reply(200, await handlers.detach(q.tile));
+        if (cmd === 'folders') return reply(200, await handlers.folders());
+        if (cmd === 'open-session' && req.method === 'POST') return reply(200, await handlers.openSession(await readBody(req)));
         if (cmd === 'modes') return reply(200, await handlers.modes());
         if ((cmd === 'mode' || cmd === 'mode-save') && req.method === 'POST') {
           return reply(200, await handlers[cmd === 'mode' ? 'mode' : 'modeSave'](await readBody(req)));

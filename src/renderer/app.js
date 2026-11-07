@@ -299,6 +299,9 @@ function setFocus(id, moveKeyboard = true) {
   if (moveKeyboard) focusInput(id);
 }
 
+/** A tile that changes by itself must not take the keyboard from someone talking to the overseer. */
+const typingToOverseer = () => $('#overseer').contains(document.activeElement);
+
 /** Keyboard into the tile: the message box in clean view, otherwise the terminal. */
 function focusInput(id) {
   const t = tiles.get(id);
@@ -382,7 +385,7 @@ function setView(id, on, tile = tiles.get(id)) {
   if (on) hangar.chatOpen(id).then((items) => { tile.chat.view.set(items, true); tile.chat.view.scrollToEnd(); });
   else hangar.chatClose(id);
   tile.fitSoon(60);
-  if (focused === id) setTimeout(() => focusInput(id), 0);
+  if (focused === id && !typingToOverseer()) setTimeout(() => focusInput(id), 0);
 }
 
 function updateTile(tile, snap) {
@@ -483,7 +486,7 @@ function updateTile(tile, snap) {
     const forced = snap.status === 'needs_input';
     if (forced !== el.classList.contains('term-forced')) {
       el.classList.toggle('term-forced', forced);
-      if (focused === snap.id) setTimeout(() => focusInput(snap.id), 0);
+      if (focused === snap.id && !typingToOverseer()) setTimeout(() => focusInput(snap.id), 0);
     }
     const working = snap.status === 'working' || !!snap.handover;
     tile.chat.view.setBusy(working, snap.handover ? label : working ? label || 'Working' : '');
@@ -737,7 +740,7 @@ function render() {
   if (!drag) layout();
   renderBar();
   if (!state.tiles.length) renderRecent($('#empty-recent'), 6);
-  if (!focused && state.tiles.length) setFocus(state.tiles[0].id);
+  if (!focused && state.tiles.length) setFocus(state.tiles[0].id, !typingToOverseer());
   window.HangarWs?.afterRender();
 }
 

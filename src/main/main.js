@@ -617,6 +617,8 @@ Use these commands through Bash. They read live data from the app.
 - \`hangarctl log <n> [k]\` - last k user/Claude messages of session n (default 4). Use it to learn what a session concluded or is doing.
 - \`hangarctl screen <n> [lines]\` - what its terminal shows right now (default 30). Use it to see a question or permission prompt that is waiting.
 - \`hangarctl send <n> "text"\` - types the text into session n and presses Enter.
+- \`hangarctl folders\` - the user's recent project folders.
+- \`hangarctl open "<full folder path>" [--mode <mode>] [--name "Name"]\` - opens a new Claude Code session there, in the current workspace.
 - \`hangarctl modes [--full]\` - the modes a session can be in (Notes, Plan, Build, Review and the user's own). --full shows each mode's instructions.
 - \`hangarctl mode <n> <mode>\` - puts session n in a mode, or \`none\`. Claude in that session gets the mode's instructions with its next prompt.
 - \`hangarctl mode-save --name "Name" --description "one line" --exit "start, go" --instructions "..."\` - creates a mode (add \`--id <id>\` to update an existing one; \`--color\` takes one of ${modes.COLORS.join(' ')}). Instructions are written to Claude, as short concrete rules, one per line starting with "- ". \`--exit\` lists phrases that end the mode (optional).
@@ -628,6 +630,7 @@ Rules:
 - Never guess. If \`list\` does not answer it, check \`log\` or \`screen\` before saying anything. If something is unclear, say so.
 - Only \`send\` when the user asks you to or clearly approves. Text goes to whatever is on that screen: check \`screen\` first, because a permission menu expects a choice like 1 or 2, not a sentence. Do not send to a session that is working unless the user insists; it would queue up.
 - After sending, check \`screen <n> 15\` to confirm it landed, and report briefly.
+- Only \`open\` a session when the user asks. Never guess a path: if the folder is not clear, run \`folders\` and ask which one. A new session takes a few seconds to start, so check \`screen\` before sending it anything. If it is asking whether to trust the folder, tell the user and leave that answer to them.
 - Modes: when asked to create or change one, draft it, show the user the draft in a few lines, and save it once they agree. When asked to make a mode from a session, read that session's \`log\` (8 to 12 messages) and capture how the user told it to work, not the task itself.
 - Keep answers short.
 `;
@@ -1130,6 +1133,15 @@ function wireIpc() {
   });
 }
 
+/** A mode by id or name; null for "none". Throws when there is no such mode. */
+function findMode(mode) {
+  const key = String(mode || '').trim().toLowerCase();
+  if (!key || key === 'none' || key === 'off') return null;
+  const m = modes.listModes().find((x) => x.id === key || x.name.toLowerCase() === key);
+  if (!m) throw new Error(`No mode "${mode}". Run hangarctl modes.`);
+  return m;
+}
+
 const serverHandlers = {
   hook: (tileId, body) => find(tileId)?.onHook(body) ?? null,
   // A terminal tile's `claude` wrapper calls this when Claude Code exits.
@@ -1203,13 +1215,30 @@ const serverHandlers = {
     if (minutes) s.timer = { minutes: Number(minutes), startedAt: null, sent: [], finished: false };
     return { text: s.id };
   },
+  folders: () => ({ folders: recentProjects() }),
+  // Opens a session for the overseer. It stays unfocused, so whoever is typing keeps typing.
+  openSession: async ({ dir, mode, name }) => {
+    const cwd = String(dir || '').trim();
+    if (!path.isAbsolute(cwd)) throw new Error('Give the full path of the folder. Run hangarctl folders to see recent ones.');
+    let isDir = false;
+    try { isDir = fs.statSync(cwd).isDirectory(); } catch {}
+    if (!isDir) throw new Error(`There is no folder at ${cwd}. Run hangarctl folders to see recent ones.`);
+    if (await claudeMissing()) throw new Error('Claude Code is not installed, so no session can start.');
+    let start = modesIpc.startMode(null, cwd, workspaces.get(workspaces.active)?.defaultMode);
+    if (mode) {
+      const m = findMode(mode);
+      // Until done needs a goal, which is set in the app; started without one it would run on by itself.
+      if (m?.goal) throw new Error(`${m.name} needs a goal, so start it from the app.`);
+      start = m ? m.id : null;
+    }
+    const s = addSession({ cwd, mode: start, name: name ? uniqueName(String(name)) : undefined, ws: workspaces.active }, 'new');
+    return { text: `Opened "${s.name}" as session ${sessions.indexOf(s) + 1}${start ? ` in ${modes.get(start)?.name || start} mode` : ''}. It is still starting: check hangarctl screen ${sessions.indexOf(s) + 1} 15 before sending anything.` };
+  },
   modes: () => ({ modes: modes.listModes() }),
   mode: ({ tile, mode }) => {
     const s = resolveTile(tile);
-    const key = String(mode || '').trim().toLowerCase();
-    if (!key || key === 'none' || key === 'off') { s.setMode(null); return { text: `${s.name} is in no mode now.` }; }
-    const m = modes.listModes().find((x) => x.id === key || x.name.toLowerCase() === key);
-    if (!m) throw new Error(`No mode "${mode}". Run hangarctl modes.`);
+    const m = findMode(mode);
+    if (!m) { s.setMode(null); return { text: `${s.name} is in no mode now.` }; }
     s.setMode(m.id);
     return { text: `${s.name} is in ${m.name} mode. Claude gets it with the next prompt.` };
   },

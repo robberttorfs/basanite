@@ -23,7 +23,7 @@ Each tile is the real `claude` command in a real terminal, with your own login, 
 - **Command palette.** <kbd>⌘K</kbd> / <kbd>Ctrl+Shift+K</kbd> reaches every session, workspace, mode and action. Menus, shortcuts and the palette come from one list, so they always match.
 - **Modes.** Put a session in Notes, Plan, Build, Review, Test first, Debug, Until done and more, or make your own. A mode is sent once, not with every message. Review and Plan really block file edits (through a Claude Code hook), and Careful blocks risky commands like push and deploy. Stack add-ons such as *Verify at end* or *Tidy commits* on top. You can share modes as files.
 - **Tiles that tell you things.** What it's doing right now ("Editing routes.ts"), its git branch with a peek at the changes, a note when two sessions edit the same file, and a snowflake when the prompt cache has gone cold.
-- **The overseer.** A small, lean Claude in a side panel that can see all your sessions. Ask "anything waiting on me?" or have it type a reply for you.
+- **The overseer.** A small, lean Claude in a side panel that can see all your sessions. Ask "anything waiting on me?", have it type a reply for you, or have it open a new session.
 - **Time budgets and Fresh start.** Give a session 30 minutes and it plans to fit. Fresh start writes a handover, clears the context and carries on.
 - **Usage.** Your plan's 5-hour and weekly limits, per-session cost, and a 14-day history (costs are estimates at API prices).
 - **History.** Search a folder's past conversations and resume one in a tile, or branch a session into a second tile.
