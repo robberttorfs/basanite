@@ -298,10 +298,23 @@ function typeInto(s, text) {
   return true;
 }
 
-function handoverPath(cwd) {
-  const docs = path.join(cwd, 'docs');
-  try { if (fs.statSync(docs).isDirectory()) return path.join(docs, 'HANDOVER.md'); } catch {}
-  return path.join(cwd, 'HANDOVER.md');
+/** Claude picks where the handover goes and leaves its path here, so a fresh start can check it and hand it on. */
+function handoverNote(s) {
+  const dir = path.join(app.getPath('userData'), 'handovers');
+  fs.mkdirSync(dir, { recursive: true });
+  return path.join(dir, `${String(s.id).replace(/[^\w-]/g, '_')}.txt`);
+}
+
+/** The handover Claude named in the note, if it was written during this fresh start. */
+function readHandoverNote(s, h) {
+  try {
+    if (fs.statSync(h.note).mtimeMs < h.at - 2000) return null;
+    const named = fs.readFileSync(h.note, 'utf8').replace(/^﻿/, '').trim().replace(/^["'`]|["'`]$/g, '');
+    if (!named) return null;
+    const file = path.resolve(s.cwd, named);
+    const st = fs.statSync(file);
+    return st.isFile() && st.mtimeMs >= h.at - 2000 ? file : null;
+  } catch { return null; }
 }
 
 function freshStart(s) {
@@ -311,12 +324,16 @@ function freshStart(s) {
     broadcast();
     return;
   }
-  const file = handoverPath(s.cwd);
-  s.handover = { stage: 'writing', file, at: Date.now() };
+  const note = handoverNote(s);
+  fs.rmSync(note, { force: true });
+  s.handover = { stage: 'writing', note, at: Date.now() };
   typeInto(s, `[Basanite fresh start] Wrap up so a fresh session can continue exactly from here. Stop the current task at a safe point (no half-made edits). ` +
-    `Write a handover to ${file} (replace any older one): the goal, current state, what is done, what is in progress, the exact next steps, ` +
-    `decisions made and why, hard rules and how the user likes to work, key files and commands. Update any progress notes or memory this project uses. ` +
-    'Keep it complete but tight. When it is written, reply with one short line.');
+    `First save anything that should outlast this task to the notes or memory this project uses. ` +
+    `Then write a short handover with only what a new session can't get from those notes, the code or git: ` +
+    `the goal, where things stand, the exact next steps, and any decision or instruction from this conversation it still needs. ` +
+    `Choose an appropriate place for it, inside the project you are working on and following that project's rules for where files go. ` +
+    `Don't overwrite anything except an older handover of this same work. ` +
+    `Then write the handover's full path, and nothing else, to ${note}. When both are written, reply with one short line.`);
   broadcast();
   const h = s.handover;
   h.timer = setTimeout(() => { if (s.handover === h && h.stage !== 'continuing') failHandover(s, 'It took too long.'); }, HANDOVER_TIMEOUT + 1000);
@@ -339,9 +356,9 @@ function stepHandover(s, ev) {
     return;
   }
   if (h.stage === 'writing' && ev.type === 'status' && ev.next === 'done') {
-    let written = false;
-    try { written = fs.statSync(h.file).mtimeMs >= h.at - 2000; } catch {}
-    if (!written) return failHandover(s, 'No handover file was written, so nothing was cleared.');
+    h.file = readHandoverNote(s, h);
+    if (!h.file) return failHandover(s, 'No handover file was written, so nothing was cleared.');
+    fs.rmSync(h.note, { force: true });
     h.stage = 'clearing';
     typeInto(s, '/clear');
     setTimeout(() => { if (s.handover === h && h.stage === 'clearing') failHandover(s, 'The /clear did not go through. The handover is saved.'); }, 30000);
