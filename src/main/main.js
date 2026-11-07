@@ -714,6 +714,8 @@ function createWindow() {
     titleBarStyle: isMac ? 'hiddenInset' : 'hidden',
     titleBarOverlay: isWin ? look.overlay(40) : undefined,
     trafficLightPosition: { x: 14, y: 13 },
+    // run from source, the taskbar would show electron.exe's icon; an installed build takes it from its own .exe
+    icon: isWin && !app.isPackaged ? path.join(__dirname, '..', '..', 'build', 'icon.ico') : undefined,
     show: false,
     webPreferences: { preload: path.join(__dirname, '..', 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: false },
   });
