@@ -104,7 +104,7 @@ const HangarChat = (() => {
 
   // ---------- the view ----------
 
-  function create({ send, interrupt, takeFiles, placeholder = 'Message Claude', empty = 'No messages yet.' }) {
+  function create({ send, interrupt, answer, takeFiles, placeholder = 'Message Claude', empty = 'No messages yet.' }) {
     const el = document.createElement('div');
     el.className = 'chat';
     el.innerHTML = `<div class="feed" role="log" aria-live="polite"></div>
@@ -116,6 +116,20 @@ const HangarChat = (() => {
     const box = el.querySelector('textarea');
     const busyEl = el.querySelector('.busy');
     const attsEl = el.querySelector('.atts');
+    const composer = el.querySelector('.composer');
+    // Sits where the message box sits. A draft in the box stays there for after.
+    const ask = answer ? HangarAsk.create({ submit: answer, stop: interrupt, md }) : null;
+    if (ask) {
+      el.insertBefore(ask.el, composer);
+      ask.onShown((hadFocus) => {
+        composer.hidden = ask.active();
+        if (hadFocus && !ask.active()) box.focus({ preventScroll: true });
+      });
+      // A click on the conversation (not a text selection) leaves the keyboard on the question.
+      el.addEventListener('mouseup', () => {
+        if (ask.active() && !ask.el.contains(document.activeElement) && !window.getSelection()?.toString()) ask.focus();
+      });
+    }
     let atts = [];                 // files waiting to go with the next message: { path, name, url }
     const items = new Map();       // n -> item, in arrival order
     const open = new Set();        // expanded step groups and steps
@@ -206,6 +220,11 @@ const HangarChat = (() => {
           out.push({ key, html: `${html}</div>` });
           continue;
         }
+        if (it.k === 'ask') {
+          // Unanswered it is on the card. Stopped or refused, the transcript says nothing worth showing.
+          if (it.qa?.length) out.push({ key: `m${it.n}`, html: `<div class="asked">${it.qa.map((p) => `<div class="apair"><div class="aq">${esc(p.question)}</div><div class="aa${p.skipped ? ' skip' : ''}">${p.skipped ? 'Skipped' : esc(p.answer)}</div></div>`).join('')}</div>` });
+          continue;
+        }
         if (it.k === 'you') out.push({ key: `m${it.n}`, html: `<div class="msg you"><div class="bubble">${youHtml(it.text)}</div></div>` });
         else if (it.k === 'claude') out.push({ key: `m${it.n}`, html: `<div class="msg claude">${md(it.text)}</div>` });
         else if (it.k === 'note') out.push({ key: `m${it.n}`, html: `<div class="note">${esc(it.text)}</div>` });
@@ -266,7 +285,19 @@ const HangarChat = (() => {
         const last = [...items.values()].pop();
         return !!pending || last?.k === 'you' || (last?.k === 'tool' && !last.done);
       },
-      focus() { box.focus({ preventScroll: true }); },
+      focus() { if (ask?.active()) ask.focus(); else box.focus({ preventScroll: true }); },
+      /** Shows or clears the question card. True when a new question just went up. */
+      setQuestion(q) {
+        if (!ask) return false;
+        const atBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 60;
+        const hadFocus = ask.el.contains(document.activeElement);
+        const changed = ask.set(q);
+        composer.hidden = ask.active();
+        if (ask.active()) busyEl.hidden = true;
+        else if (hadFocus) box.focus({ preventScroll: true }); // Esc or an answer from elsewhere: back to the box
+        if (changed && atBottom) feed.scrollTop = feed.scrollHeight;
+        return changed && !!q;
+      },
       attach,
       hasFocus() { return el.contains(document.activeElement); },
       scrollToEnd() { feed.scrollTop = feed.scrollHeight; },

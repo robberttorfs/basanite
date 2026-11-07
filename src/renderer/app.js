@@ -369,6 +369,7 @@ function setView(id, on, tile = tiles.get(id)) {
   if (on && !tile.chat) {
     const view = HangarChat.create({
       send: (text, files) => whenReady(id, () => typeMessage((d) => hangar.input(id, d), text, files)),
+      answer: (question, picks) => hangar.askAnswer(id, question, picks),
       takeFiles: pastedFiles,
       interrupt: () => hangar.input(id, '\x1b'),
       empty: '',
@@ -380,10 +381,11 @@ function setView(id, on, tile = tiles.get(id)) {
   tile.chat.on = on;
   tile.el.classList.toggle('chat-on', on);
   saveViewPref(id, on);
+  hangar.chatView(id, on);
   $('.view', tile.el).classList.toggle('active', on);
   $('.view', tile.el).title = on ? `Show the terminal (${HangarCommands.shortcutLabel('view.clean')})` : `Clean view (${HangarCommands.shortcutLabel('view.clean')})`;
   if (on) hangar.chatOpen(id).then((items) => { tile.chat.view.set(items, true); tile.chat.view.scrollToEnd(); });
-  else hangar.chatClose(id);
+  else { hangar.chatClose(id); tile.chat.view.setQuestion(null); }
   tile.fitSoon(60);
   if (focused === id && !typingToOverseer()) setTimeout(() => focusInput(id), 0);
 }
@@ -395,6 +397,7 @@ function updateTile(tile, snap) {
     tile.chat.on = false;
     tile.el.classList.remove('chat-on');
     $('.view', tile.el).classList.remove('active');
+    hangar.chatView(snap.id, false);
     hangar.chatClose(snap.id);
     tile.fitSoon(60);
   }
@@ -483,13 +486,16 @@ function updateTile(tile, snap) {
   if (strip.innerHTML !== html) strip.innerHTML = html;
   if (tile.chat?.on) {
     // Menus and permission prompts need the real terminal; the chat comes back after.
-    const forced = snap.status === 'needs_input';
+    // A question Basanite is holding is answered on the card instead.
+    const forced = snap.status === 'needs_input' && !snap.question;
     if (forced !== el.classList.contains('term-forced')) {
       el.classList.toggle('term-forced', forced);
+      tile.fitSoon(40); // the terminal was hidden, so its size is out of date
       if (focused === snap.id && !typingToOverseer()) setTimeout(() => focusInput(snap.id), 0);
     }
     const working = snap.status === 'working' || !!snap.handover;
     tile.chat.view.setBusy(working, snap.handover ? label : working ? label || 'Working' : '');
+    if (tile.chat.view.setQuestion(snap.question) && focused === snap.id && !typingToOverseer()) setTimeout(() => focusInput(snap.id), 0);
   } else el.classList.remove('term-forced');
   $('.view', el).hidden = shell;
   if (!$('.view', el).title) $('.view', el).title = `Clean view (${HangarCommands.shortcutLabel('view.clean')})`;

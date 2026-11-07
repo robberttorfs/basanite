@@ -12,6 +12,7 @@ const { readLog } = require('./log');
 const modes = require('./modes');
 const modesIpc = require('./modes-ipc');
 const { ChatFeed, findTranscript } = require('./chat');
+const questions = require('./questions');
 const { migrate: loadWorkspaces } = require('./workspaces');
 const attention = require('../shared/attention');
 const palette = require('../shared/palette');
@@ -43,6 +44,8 @@ const ptys = new Map();       // tile id -> pty
 let overseer = null;          // { pty, sessionId, transcript }
 let overseerSize = { cols: 60, rows: 30 };  // the panel's last size; a new overseer starts at it, as the panel only reports changes
 const chats = new Map();      // tile id or 'overseer' -> ChatFeed, only while a clean view is open
+const cleanViews = new Set(); // tiles showing their clean view (the overview's preview also opens a feed, without the card)
+const holds = new questions.Holds((id, current, waiting) => { find(id)?.setQuestion(current, waiting); scheduleBroadcast(); });
 let focusedTile = null;
 let rateLimits = null;
 let claudeSessions = new Map();
@@ -1062,6 +1065,12 @@ function wireIpc() {
     return feed.recent();
   });
   ipcMain.on('chat:close', (_e, id) => chats.delete(id));
+  // Leaving the clean view hands an open question to the terminal's own menu.
+  ipcMain.on('chat:view', (_e, { id, on }) => {
+    if (on) cleanViews.add(id);
+    else { cleanViews.delete(id); holds.release(id); }
+  });
+  ipcMain.handle('ask:answer', (_e, { id, question, picks }) => holds.answer(id, question, picks));
   // Asks the overseer something on the user's behalf (e.g. "make a mode from session 2").
   ipcMain.on('overseer:ask', (_e, text) => {
     // Typed in rather than passed on the command line, which mangles quotes on Windows.
@@ -1143,7 +1152,16 @@ function findMode(mode) {
 }
 
 const serverHandlers = {
-  hook: (tileId, body) => find(tileId)?.onHook(body) ?? null,
+  hook: (tileId, body, onGone) => {
+    const s = find(tileId);
+    if (!s) return null;
+    if (!cleanViews.has(tileId) || !questions.shouldHold(body)) return s.onHook(body) ?? null;
+    // The question goes up first, so the status change it causes never flashes the terminal.
+    const { reply, entry } = holds.hold(tileId, body);
+    onGone(() => holds.gone(tileId, entry));
+    entry.passthrough = s.onHook(body) ?? null;
+    return reply;
+  },
   // A terminal tile's `claude` wrapper calls this when Claude Code exits.
   detach: (tileId) => { find(tileId)?.detach(); return { ok: true }; },
   statusline: (tileId, body) => {
@@ -1166,7 +1184,8 @@ const serverHandlers = {
     const s = resolveTile(key);
     const text = await askScreen(s.id, Math.min(lines, 200));
     if (text == null) throw new Error('Could not read the screen.');
-    return { text: `[${s.name} | ${s.status}]\n${text}` };
+    const asked = s.question?.questions.map((q) => `${q.question}\n${q.options.map((o, i) => `  ${i + 1}. ${o.label}`).join('\n')}`).join('\n');
+    return { text: `[${s.name} | ${s.status}]\n${text}${asked ? `\n[Waiting on a question in the clean view. hangarctl send answers it in words.]\n${asked}` : ''}` };
   },
   log: (key, n) => {
     const s = resolveTile(key);
@@ -1255,6 +1274,7 @@ const serverHandlers = {
     const p = ptys.get(s.id);
     if (!p) throw new Error(`${s.name} is not running.`);
     if (!text) throw new Error('Nothing to send.');
+    if (holds.respond(s.id, text)) return { text: `Answered the question in ${s.name}.` };
     p.write(text);
     // A separate Enter, so Claude Code does not treat it as part of a paste.
     setTimeout(() => p.write('\r'), 120);

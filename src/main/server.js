@@ -34,7 +34,10 @@ function startServer(handlers) {
     try {
       const kind = parts[0];
       if (kind === 'hook' && req.method === 'POST') {
-        const out = await handlers.hook(parts[2], await readBody(req));
+        // A held hook (see questions.js) needs to hear when Claude Code stops waiting.
+        let gone = null;
+        res.on('close', () => { if (!res.writableFinished) gone?.(); });
+        const out = await handlers.hook(parts[2], await readBody(req), (fn) => { gone = fn; });
         return reply(200, out);   // empty body = no effect on the session
       }
       // curl from the statusline: record it and answer with the text to show.

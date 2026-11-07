@@ -108,7 +108,7 @@ test('guards: no guard mode means an empty reply (zero tokens)', () => {
 
 test('hook settings: PreToolUse matcher covers the guarded tools', () => {
   const st = hookSettings('t', { port: 1, token: 'k' }, 'ctl', 'win32');
-  const m = st.hooks.PreToolUse[0].matcher.split('|');
+  const m = st.hooks.PreToolUse.flatMap((e) => e.matcher.split('|'));
   for (const t of ['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash', 'PowerShell', 'AskUserQuestion', 'ExitPlanMode']) assert.ok(m.includes(t), t);
 });
 

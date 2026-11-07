@@ -8,6 +8,7 @@ const { TranscriptReader } = require('./transcript');
 const timer = require('./timer');
 const modes = require('./modes');
 const guards = require('./guards');
+const questions = require('./questions');
 const paths = require('../shared/paths');
 const { unwrapPasted } = require('../shared/pasted');
 const { migrate: migrateColor } = require('../shared/palette');
@@ -44,6 +45,7 @@ class Session {
     this.booting = true;
     this.statusSince = Date.now();
     this.waitingOn = null;          // 'main' or an agent id
+    this.question = null;           // a question waiting on the clean view's card: { id, questions }
     this.lastPrompt = null;
     this.lastEventAt = 0;
     this.turnStartedAt = null;
@@ -211,6 +213,16 @@ class Session {
     this.goalSet = false; // a new conversation has no /goal
   }
 
+  /** The card's question changed. With none left and nothing else to wait for, Claude carries on. */
+  setQuestion(q, waiting) {
+    this.question = q || null;
+    if (!q && !waiting && this.status === 'needs_input' && (this.waitingOn === 'main' || this.waitingOn === null)) {
+      this.waitingOn = null;
+      this.lastEventAt = Date.now();
+      this.setStatus('working');
+    }
+  }
+
   /** Handles a hook event. Returns the JSON body to send back to Claude Code, or null. */
   onHook(hook) {
     const event = hook.hook_event_name;
@@ -347,6 +359,7 @@ class Session {
   }
 
   clearWaitIf(source) {
+    if (this.question) return; // the card still waits for the user, whatever else reports in
     if (this.status === 'needs_input' && (this.waitingOn === null || this.waitingOn === source || this.waitingOn === 'dialog')) {
       this.waitingOn = null;
       this.setStatus('working');
@@ -455,6 +468,7 @@ class Session {
       color: this.color, lock: this.lock, mode: this.modeSnapshot(),
       kind: this.kind === 'shell' && !this.hosted ? 'shell' : 'claude', inShell: this.kind === 'shell',
       handover: this.handover ? this.handover.stage : null,
+      question: this.question,
       lastPrompt: this.lastPrompt, lastText: this.reader?.lastText || null,
       model: this.statusline?.model || this.reader?.model || null,
       tokens: this.tokens(), agents, error: this.error,
@@ -518,7 +532,11 @@ function hookSettings(tileId, server, ctlCommand, platform = process.platform) {
       SessionStart: [{ hooks: [{ type: 'command', command: `${ctlCommand} hook`, timeout: 5 }] }],
       UserPromptSubmit: http(),
       // Edit and shell tools too, so guard modes can deny them; with no guard on the reply is empty.
-      PreToolUse: [{ matcher: guards.MATCHER, hooks: [{ type: 'http', url, timeout: 5 }] }],
+      PreToolUse: [
+        { matcher: guards.MATCHER, hooks: [{ type: 'http', url, timeout: 5 }] },
+        // Stays open while the clean view's card waits; with the terminal showing it returns at once.
+        { matcher: questions.TOOL, hooks: [{ type: 'http', url, timeout: questions.HOLD_SECONDS }] },
+      ],
       PermissionRequest: http(),
       PostToolUse: http(),
       PostToolUseFailure: http(),

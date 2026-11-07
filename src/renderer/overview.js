@@ -190,7 +190,9 @@
     if (!t) { pane.innerHTML = ''; pane._key = ''; return; }
     if (previewFor !== sel || (!fresh && Date.now() - previewAt > 2000 && t.status !== 'idle')) { loadPreview(sel); if (previewFor !== sel) return; }
     if (t.status === 'done') looked.add(t.id);
-    const menu = t.status === 'needs_input' || t.status === 'starting' ? pendingMenu(t.id) : null;
+    // A question on a tile's card has no menu in its terminal: shown here, answered on the card (Open).
+    const menu = t.question ? { lines: t.question.questions.flatMap((q) => [q.question, ...q.options.map((o, i) => `  ${i + 1}. ${o.label}`)]), options: [] }
+      : t.status === 'needs_input' || t.status === 'starting' ? pendingMenu(t.id) : null;
     const tail = previewItems.filter((it) => it.k === 'claude' || it.k === 'you').slice(-3);
     const lastTool = [...previewItems].reverse().find((it) => it.k === 'tool');
     const key = JSON.stringify([t.id, t.status, t.snoozed, t.name, tail.map((x) => x.n + x.text.length), lastTool?.n, menu]);

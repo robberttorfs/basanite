@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { unwrapPasted } = require('../shared/pasted');
+const questions = require('./questions');
 
 const MAX_ITEMS = 1500;
 const clip = (s, n) => (s.length > n ? `${s.slice(0, n)}…` : s);
@@ -121,6 +122,10 @@ class ChatFeed {
           const last = this.items[this.items.length - 1];
           if (last?.k === 'claude' && last.mid && last.mid === j.message.id) { last.text += `\n\n${c.text.trim()}`; this.changed.set(last.n, last); }
           else this.push({ k: 'claude', text: c.text.trim(), mid: j.message.id });
+        } else if (c.type === 'tool_use' && c.name === questions.TOOL) {
+          // Open, the card shows it; answered, the feed keeps what was asked and said.
+          const it = this.push({ k: 'ask', questions: c.input?.questions, qa: [], done: false });
+          if (c.id) this.byTool.set(c.id, it);
         } else if (c.type === 'tool_use') {
           const t = toolTitle(c.name || 'Tool', c.input || {});
           const it = this.push({ k: 'tool', name: c.name, verb: t.verb, obj: t.obj, detail: toolDetail(c.name, c.input || {}), done: false });
@@ -138,6 +143,7 @@ class ChatFeed {
         if (!it) continue;
         it.done = true;
         it.error = !!c.is_error;
+        if (it.k === 'ask') it.qa = questions.record(it.questions, j.toolUseResult);
         it.result = clip(resultText(c).trim(), 2000);
         this.byTool.delete(c.tool_use_id);
         this.changed.set(it.n, it);

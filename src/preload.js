@@ -56,6 +56,8 @@ contextBridge.exposeInMainWorld('hangar', {
   chatOpen: (id) => ipcRenderer.invoke('chat:open', id),
   chatClose: (id) => ipcRenderer.send('chat:close', id),
   onChat: on('chat:items'),
+  chatView: (id, on) => ipcRenderer.send('chat:view', { id, on }),
+  askAnswer: (id, question, picks) => ipcRenderer.invoke('ask:answer', { id, question, picks }),
 
   gitChanges: (id) => ipcRenderer.invoke('git:changes', id),
   historyList: (cwd) => ipcRenderer.invoke('history:list', cwd),

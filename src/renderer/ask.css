@@ -1,0 +1,83 @@
+/* The question card, in place of the message box while Claude waits on an answer. */
+.qc { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; margin: 4px auto 10px; width: calc(100% - 20px); max-width: 776px; max-height: 80%; background: var(--pop); border: 1px solid color-mix(in srgb, var(--needs) 45%, var(--line)); border-radius: 12px; animation: qc-in .12s ease-out; user-select: none; }
+@keyframes qc-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .qc { animation: none; } }
+
+.qc-head { display: flex; align-items: center; gap: 6px; flex: none; padding: 7px 7px 0 12px; min-width: 0; }
+.qc-tag { font-size: 11.5px; font-weight: 600; color: var(--needs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qc-title { display: none; font-size: 12.5px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.qc-head .grow { flex: 1 0 0; }
+.qc-icon { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex: none; background: none; border: 0; border-radius: 6px; color: var(--faint); cursor: pointer; }
+.qc-icon:hover { background: var(--hover); color: var(--text); }
+.qc-fold svg { transform: rotate(0); }
+
+.qc-tabs { display: flex; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; margin-left: -6px; }
+.qc-tab { display: inline-flex; align-items: center; gap: 4px; flex: none; max-width: 150px; padding: 3px 8px; background: none; border: 0; border-radius: 6px; font-size: 11.5px; font-weight: 600; color: var(--faint); cursor: pointer; }
+.qc-tab > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qc-tab:hover { background: var(--hover); color: var(--text); }
+.qc-tab.on { background: var(--hover); color: var(--needs); }
+.qc-tab.done:not(.on) { color: var(--muted); }
+.qc-tick { display: none; }
+.qc-tab.done .qc-tick { display: inline-flex; color: var(--done); }
+.qc-tick svg { width: 11px; height: 11px; stroke-width: 2; }
+
+.qc-main { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; scrollbar-width: thin; padding: 6px 12px 8px; }
+.qc-q { font-size: 13.5px; line-height: 1.5; color: var(--text); user-select: text; overflow-wrap: anywhere; padding-bottom: 8px; }
+.qc-q p { margin: 0 0 6px; }
+.qc-q p:last-child { margin-bottom: 0; }
+.qc-q code { font-size: 12px; padding: 1px 4px; border-radius: 4px; background: var(--hover); }
+.qc-q pre { margin: 4px 0; padding: 8px; border-radius: 6px; background: var(--panel); overflow-x: auto; font-size: 12px; }
+.qc-q pre code { background: none; padding: 0; }
+
+.qc-body { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.qc-opts { flex: 1 1 260px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.qc-opt, .qc-other { display: flex; align-items: flex-start; gap: 9px; width: 100%; min-width: 0; padding: 7px 9px 7px 7px; text-align: left; background: none; border: 1px solid var(--line-soft); border-radius: 8px; color: var(--text); transition: background .1s, border-color .1s; }
+.qc-opt { cursor: pointer; }
+.qc-opt:hover, .qc-opt:focus-visible { background: var(--hover); border-color: var(--line); }
+.qc-opt:focus-visible, .qc-other:focus-within { outline: 0; border-color: color-mix(in srgb, var(--accent) 65%, var(--line)); }
+.qc-opt.on, .qc-other.on { border-color: color-mix(in srgb, var(--accent) 65%, var(--line)); background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.qc-other { align-items: center; cursor: text; }
+.qc-key { flex: none; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; background: var(--hover); color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.qc-opt.on .qc-key, .qc-other.on .qc-key { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--text); }
+.qc-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.qc-label { font-size: 13px; line-height: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.qc-label em { margin-left: 7px; font-style: normal; font-size: 11px; font-weight: 500; color: var(--accent); white-space: nowrap; }
+.qc-desc { font-size: 12px; line-height: 1.4; color: var(--muted); overflow-wrap: anywhere; }
+.qc-mark { flex: none; width: 15px; height: 15px; margin-top: 2px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 50%; color: transparent; }
+.qc-mark.sq { border-radius: 4px; }
+.qc-mark svg { width: 10px; height: 10px; stroke-width: 2.2; }
+.qc-opt.on .qc-mark, .qc-other.on .qc-mark { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.qc-other .qc-mark { margin-top: 0; }
+.qc-other textarea { flex: 1; min-width: 0; resize: none; border: 0; outline: 0; background: none; color: var(--text); font: 13px/18px var(--font); padding: 0; max-height: 120px; overflow-wrap: anywhere; user-select: text; }
+.qc-other textarea::placeholder { color: var(--muted); }
+
+.qc-preview { flex: 1 1 240px; min-width: 0; max-height: 280px; margin: 0; padding: 9px 10px; overflow: auto; background: var(--panel); border: 1px solid var(--line-soft); border-radius: 8px; font: 12px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; color: var(--text); white-space: pre; user-select: text; scrollbar-width: thin; }
+
+.qc-foot { display: flex; align-items: center; gap: 2px; min-height: 28px; padding: 0 12px 8px 6px; flex: none; }
+.qc-foot .grow { flex: 1; }
+.qc-link { padding: 4px 8px; background: none; border: 0; border-radius: 6px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.qc-link:hover { background: var(--hover); color: var(--text); }
+.qc-go { padding: 4px 14px; border: 0; border-radius: 7px; background: #2a3550; color: #dbe6ff; font-size: 12.5px; font-weight: 500; cursor: pointer; }
+.qc-go:hover { background: #34426a; }
+.qc-go:disabled { background: var(--hover); color: var(--faint); cursor: default; }
+
+/* Folded: one line, so the conversation has the room. */
+.qc.folded .qc-main, .qc.folded .qc-foot { display: none; }
+.qc.folded .qc-head { padding-bottom: 7px; }
+.qc.folded .qc-tabs { display: none; }
+.qc.folded .qc-title { display: block; flex: 0 1 auto; }
+.qc.folded .qc-head .grow { flex: 1 0 8px; }
+.qc.folded .qc-fold svg { transform: rotate(180deg); }
+
+/* Feed: what was asked and what you said, once it is answered. */
+.asked { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; margin-bottom: 10px; }
+.asked .aq { font-size: 12.5px; line-height: 1.45; color: var(--muted); overflow-wrap: anywhere; }
+.asked .aa { align-self: flex-end; max-width: 85%; margin-top: 4px; padding: 5px 11px; background: #1b2130; border: 1px solid #27304a; border-radius: 12px; font-size: 13.5px; line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; user-select: text; width: fit-content; margin-left: auto; }
+.asked .aa.skip { background: none; border-style: dashed; border-color: var(--line); color: var(--faint); }
+.asked .apair { display: flex; flex-direction: column; }
+
+@media (prefers-color-scheme: light) {
+  .qc-go { background: #dfe8fb; color: #1d3f86; }
+  .qc-go:hover { background: #d0ddf8; }
+  .asked .aa { background: #edf2fc; border-color: #d6e0f3; }
+}

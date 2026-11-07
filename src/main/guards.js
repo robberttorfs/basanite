@@ -16,7 +16,8 @@ const GUARDS = ['readonly', 'risky'];
 const EDIT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
 const SHELL_TOOLS = new Set(['Bash', 'PowerShell']);
 // The hook matcher: every tool a guard may stop, plus what session.js already watches.
-const MATCHER = 'AskUserQuestion|ExitPlanMode|Agent|Task|Edit|Write|MultiEdit|NotebookEdit|Bash|PowerShell';
+// AskUserQuestion has its own hook entry in session.js: that one may stay open while the card waits.
+const MATCHER = 'ExitPlanMode|Agent|Task|Edit|Write|MultiEdit|NotebookEdit|Bash|PowerShell';
 
 const NULLISH = /^(\/dev\/(null|stdout|stderr|tty)|\$null|nul|con)$/i;
 const SHELLS = new Set(['bash', 'sh', 'zsh', 'dash', 'ksh', 'fish']);
