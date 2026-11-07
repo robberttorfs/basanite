@@ -225,8 +225,8 @@ function createTile(snap) {
       </span>
       <button class="hbtn lock" aria-label="Unlock size">${ICON.lock}</button>
       <button class="hbtn timer" aria-label="Time budget">${ICON.timer}<span class="tv"></span></button>
-      <button class="hbtn pin" aria-label="Pin as main">${ICON.pin}</button>
       <button class="hbtn view" aria-label="Clean view">${ICON.chat}</button>
+      <button class="hbtn pin" aria-label="Pin as main">${ICON.pin}</button>
       <button class="hbtn more" aria-label="More" title="More">${ICON.more}</button>
     </div>
     <div class="agents"></div>
@@ -697,12 +697,14 @@ function toggleZoom(id) {
   for (const [tid, t] of tiles) t.el.classList.toggle('zoomed', tid === zoomed);
   document.body.classList.toggle('has-zoom', !!zoomed);
   layout(true);
+  renderBar();
 }
 
 function clearZoom() {
   zoomed = null;
   for (const t of tiles.values()) t.el.classList.remove('zoomed');
   document.body.classList.remove('has-zoom');
+  renderBar();
 }
 
 function setLock(id, lock) {
@@ -746,6 +748,16 @@ function render() {
 
 // ---------- top bar ----------
 
+function zoomTabs() {
+  const key = HangarCommands.shortcutLabel('session.zoom');
+  const look = { needs_input: 'needs', error: 'error', working: 'working', starting: 'working', done: 'done' };
+  const tabs = state.tiles.map((t) => {
+    const on = t.id === zoomed;
+    return `<button class="s z-tab ${t.snoozed ? '' : look[t.status] || ''}${on ? ' on' : ''}" data-act="zoom" data-id="${esc(t.id)}" title="${esc(t.name)}"${on ? ' aria-current="true"' : ''}><span class="dot"></span><span class="z-name">${esc(t.name)}</span></button>`;
+  }).join('');
+  return `<button class="btn z-back" data-act="unzoom" title="All sessions (${esc(key)})"><svg viewBox="0 0 16 16"><path d="M10 3.5L5.5 8l4.5 4.5"/></svg>All sessions</button>${tabs}`;
+}
+
 function renderBar() {
   // Every workspace counts; snoozed sessions do not count as needing you. A click opens the overview.
   const c = HangarAttention.counts(state.allTiles || state.tiles);
@@ -756,7 +768,9 @@ function renderBar() {
   if (c.working) parts.push(`<button class="s working" data-act="overview" title="${ovKey}"><span class="dot"></span>${c.working} working</button>`);
   if (c.done) parts.push(`<button class="s done" data-act="overview" title="${ovKey}"><span class="dot"></span>${c.done} done</button>`);
   const sum = $('#summary');
-  const html = parts.join('');
+  // A zoomed session hides the rest, so the bar shows they are still there and how to get back.
+  const html = zoomed ? zoomTabs() : parts.join('');
+  sum.classList.toggle('zooming', !!zoomed);
   if (sum.innerHTML !== html) sum.innerHTML = html;
   // The overview's own way in: shown once there is a session anywhere, tooltip from the registry.
   const ovb = $('#btn-overview');
@@ -781,6 +795,8 @@ function renderBar() {
 const jumpOnly = () => (state.workspaces || []).length < 2 && (state.allTiles || state.tiles).length <= 4;
 $('#summary').addEventListener('click', (e) => {
   const b = e.target.closest('[data-act]');
+  if (b?.dataset.act === 'unzoom') { toggleZoom(zoomed); focusInput(focused); return; }
+  if (b?.dataset.act === 'zoom') { if (b.dataset.id === zoomed) focusInput(zoomed); else toggleZoom(b.dataset.id); return; }
   if (!b) return;
   if (b.dataset.act === 'next' && jumpOnly()) nextWaiting();
   else window.HangarOverview?.open();
@@ -912,7 +928,6 @@ function openMore(id, anchorEl) {
     { label: 'Rename and colour…', kbd: HangarCommands.shortcutLabel('session.rename'), run: () => openRename(id) },
     ...(shell ? [] : [{ label: 'Mode…', kbd: HangarCommands.shortcutLabel('mode.choose'), run: () => openModePicker(id) }]),
     ...(shell || snap.status === 'exited' ? [] : [{ label: 'Fresh start…', run: () => openFresh(id) }]),
-    { label: snap.pinned ? 'Unpin' : 'Pin as main', kbd: HangarCommands.shortcutLabel('session.pin'), run: () => hangar.pin(id) },
     ...(shell || snap.status === 'exited' || !asks ? [] : [{ label: snap.snoozed ? 'Glow again' : 'Snooze…', run: () => (snap.snoozed ? hangar.snooze(id, 'off') : window.HangarOverview?.snoozeMenu(id)) }]),
     ...(snap.status === 'exited' ? [{ label: shell ? 'Reopen' : snap.sessionId ? 'Resume' : 'Restart', run: () => hangar.restart(id) }] : []),
     null,
