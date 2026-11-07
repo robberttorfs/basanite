@@ -43,4 +43,17 @@ function claudeVersion(env, platform = process.platform) {
   });
 }
 
-module.exports = { debugInfo, issueUrl, parseClaudeVersion, claudeVersion };
+/** True only when the user's shell really says there is no claude command. Asked the way sessions
+ *  are started (profile included, so an alias counts); a slow or failed check is not "missing". */
+function claudeMissing(env, platform = process.platform) {
+  const [file, args] = platform === 'win32'
+    ? ['powershell.exe', ['-NoLogo', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', 'if (-not (Get-Command claude -ErrorAction SilentlyContinue)) { exit 3 }']]
+    : [env.SHELL || '/bin/zsh', ['-l', '-i', '-c', 'command -v claude >/dev/null || exit 3']];
+  return new Promise((resolve) => {
+    try {
+      execFile(file, args, { env, timeout: 10000, windowsHide: true }, (err) => resolve(err?.code === 3));
+    } catch { resolve(false); }
+  });
+}
+
+module.exports = { debugInfo, issueUrl, parseClaudeVersion, claudeVersion, claudeMissing };

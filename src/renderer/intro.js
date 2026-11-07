@@ -1,76 +1,67 @@
-/* global HangarCommands, hangar, h, $, openPop, closePop, isMac */
-// The short intro: shown once on the very first launch, and any time from Help. Four real
-// screenshots, one idea each, skippable from anywhere. It ends on the first real action,
-// choosing a folder, rather than on a "you're all set" screen.
+/* global HangarCommands, HangarClaudeCheck, HangarModes, ICON, hangar, h, $, esc, openPop, closePop, isMac */
+// The short intro: shown once on the very first launch, and any time from Help. One screen says
+// what the app is and what to do, and leads straight to the first real action, choosing a folder.
+// A second page, only if asked for, lists what else it does. tips.js teaches the rest in place.
 'use strict';
 
 (function (root) {
   // ---------- the steps (pure, tested in test/intro.test.js) ----------
 
-  const steps = (mac) => {
+  const welcome = {
+    img: 'wall.webp',
+    alt: 'Four session tiles. The web-app tile has an amber edge and says Needs you.',
+    title: 'Run all your Claude Code sessions in one window',
+    steps: [
+      'Choose a project folder. A session opens there.',
+      'Type to Claude as you would in a terminal. Your login, skills and commands all work.',
+      'Start more. The one that needs you grows and turns amber.',
+    ],
+  };
+  const features = (mac) => {
     const key = (m, w) => (mac ? m : w);
     return [
-      { img: 'wall.webp', title: 'Every session is a tile', text: 'Each one runs the real claude command. The one that needs you grows and turns amber.', alt: 'Four session tiles. The web-app tile has an amber edge and says Needs you.' },
-      { img: 'overview.webp', title: 'See them all in one list', text: 'Whatever needs you comes first. Press 1, 2 or 3 to answer from there.', keys: key('⇧⌘A', 'Ctrl+Shift+A'), alt: 'The overview: sessions listed by status, with a permission menu in the preview.' },
-      { img: 'modes.webp', title: 'Modes change how Claude works', text: 'Plan, Build, Review, or make your own.', keys: key('⇧⌘M', 'Ctrl+Shift+M'), alt: 'The mode menu: Notes, Plan, Build, Overnight, Review, Careful and Until done.' },
-      { img: 'palette.webp', title: 'Find anything from one key', text: 'Any session, workspace, mode or action.', keys: key('⌘K', 'Ctrl+Shift+K'), alt: 'The command palette listing session actions with their shortcuts.' },
+      { name: 'Overview', icon: 'grid', text: 'Every session in one list, what needs you first', keys: key('⇧⌘A', 'Ctrl+Shift+A') },
+      { name: 'Modes', icon: 'map', text: 'Plan, Build, Review, or make your own', keys: key('⇧⌘M', 'Ctrl+Shift+M') },
+      { name: 'Workspaces', icon: 'layers', text: 'Group sessions and switch between them' },
+      { name: 'Overseer', icon: 'eye', text: "Manages your sessions. Ask what's going on or have it instruct them", keys: key('⇧⌘O', 'Ctrl+Shift+O') },
+      { name: 'Fresh start', icon: 'loop', text: 'Clear the context and carry on from a handover' },
+      { name: 'Palette', icon: 'search', text: 'Find any session, mode or action', keys: key('⌘K', 'Ctrl+Shift+K') },
     ];
   };
-  const clamp = (i, n) => Math.max(0, Math.min(n - 1, i));
-  const pure = { steps, clamp };
+  const pure = { welcome, features };
   if (typeof module !== 'undefined' && module.exports) { module.exports = pure; return; }
 
   // ---------- the window ----------
 
-  function open(start = 0) {
-    const list = steps(isMac);
-    list.forEach((s) => { new Image().src = `intro/${s.img}`; });  // no flash between steps
-    let at = clamp(start, list.length);
+  function open() {
     const el = h('div', 'pop modal intro-pop');
     el.setAttribute('aria-label', 'Introduction');
-    el.innerHTML = `<div class="in-shot"><img alt=""></div>
-      <div class="in-text"><h2></h2><p><span class="in-words"></span> <kbd class="in-key" hidden></kbd></p></div>
+    el.innerHTML = `<button class="hbtn in-close" aria-label="Close" title="Close"><svg viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg></button>
+      <div class="in-page in-welcome">
+        <div class="in-shot"><img src="intro/${welcome.img}" alt="${esc(welcome.alt)}"></div>
+        <div class="in-text"><h2>${esc(welcome.title)}</h2>
+          <ol>${welcome.steps.map((t) => `<li>${esc(t)}</li>`).join('')}</ol></div>
+      </div>
+      <div class="in-page in-features" hidden>
+        <h2>What else it does</h2>
+        <div class="in-rows">${features(isMac).map((f) => `<div class="in-row"><span class="in-ic" aria-hidden="true">${ICON[f.icon] || HangarModes.icon({ icon: f.icon })}</span><b>${esc(f.name)}</b><p>${esc(f.text)}</p>${f.keys ? `<kbd class="in-key">${esc(f.keys)}</kbd>` : ''}</div>`).join('')}</div>
+      </div>
       <div class="in-foot">
-        <button class="in-skip" data-skip>Skip</button>
-        <div class="in-dots">${list.map((s, i) => `<button data-to="${i}" aria-label="Step ${i + 1} of ${list.length}: ${s.title}"></button>`).join('')}</div>
-        <div class="in-nav"><button class="btn" data-back>Back</button><button class="btn primary" data-next>Next</button></div>
+        <button class="btn in-more" data-swap></button>
+        <button class="btn primary" data-go>Choose a folder</button>
       </div>`;
-    const img = $('img', el), title = $('h2', el), words = $('.in-words', el), keyEl = $('.in-key', el);
-    const back = $('[data-back]', el), next = $('[data-next]', el), skip = $('[data-skip]', el);
-    const draw = () => {
-      const s = list[at], last = at === list.length - 1;
-      img.src = `intro/${s.img}`; img.alt = s.alt;
-      title.textContent = s.title;
-      words.textContent = s.text;
-      keyEl.textContent = s.keys || ''; keyEl.hidden = !s.keys;
-      back.style.visibility = at ? '' : 'hidden';
-      skip.style.visibility = last ? 'hidden' : '';
-      next.textContent = last ? 'Choose a folder' : 'Next';
-      el.querySelectorAll('[data-to]').forEach((b, i) => {
-        b.classList.toggle('on', i === at);
-        if (i === at) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
-      });
-      // A short fade, restarted for each step; the size never changes, so nothing jumps.
-      el.classList.remove('in-fade'); void el.offsetWidth; el.classList.add('in-fade');
+    const swap = $('[data-swap]', el), go = $('[data-go]', el);
+    const pageA = $('.in-welcome', el), pageB = $('.in-features', el);
+    const show = (more) => {
+      pageA.hidden = more; pageB.hidden = !more;
+      swap.textContent = more ? 'Back' : 'See what else it does';
     };
-    const go = (i) => { at = clamp(i, list.length); draw(); next.focus(); };
-    const forward = () => {
-      if (at < list.length - 1) return go(at + 1);
-      closePop();
-      HangarCommands.run('session.new');
-    };
-    next.onclick = forward;
-    back.onclick = () => go(at - 1);
-    skip.onclick = () => closePop();
-    el.querySelectorAll('[data-to]').forEach((b) => { b.onclick = () => go(Number(b.dataset.to)); });
-    openPop(el, null, {
-      onKey: (e) => {
-        if (e.key === 'ArrowRight') { e.preventDefault(); if (at < list.length - 1) go(at + 1); }
-        else if (e.key === 'ArrowLeft') { e.preventDefault(); go(at - 1); }
-      },
-    });
-    draw();
-    next.focus();
+    swap.onclick = () => show(pageB.hidden);
+    $('.in-close', el).onclick = () => closePop();
+    go.onclick = () => { closePop(); HangarCommands.run('session.new'); };
+    openPop(el, null);
+    show(false);
+    go.focus();
   }
 
   root.HangarIntro = { open, ...pure };
@@ -81,5 +72,9 @@
   ]);
 
   // First launch only; the main process remembers, so it never comes back by itself.
-  hangar.introFirst().then((first) => { if (first) open(); });
+  // Without Claude Code the intro's first step can't work, so the warning comes first and the
+  // intro waits for a launch where it can.
+  HangarClaudeCheck.atLaunch().then((missing) => {
+    if (!missing) hangar.introFirst().then((first) => { if (first) open(); });
+  });
 })(typeof window !== 'undefined' ? window : globalThis);

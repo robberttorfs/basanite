@@ -1,20 +1,37 @@
-/* The intro: one picture, one line, always the same size so nothing jumps between steps. */
-.pop.modal.intro-pop { top: 50%; transform: translate(-50%, -50%); width: min(720px, calc(100vw - 48px)); padding: 0; overflow: hidden; }
-.in-shot { display: flex; align-items: center; justify-content: center; height: min(380px, 50vh); padding: 18px; background: #0c0d11; border-bottom: 1px solid var(--line-soft); }
+/* The intro: both pages share one fixed size, so nothing jumps when you switch. */
+.pop.modal.intro-pop { top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; width: min(720px, calc(100vw - 48px)); height: min(600px, calc(100vh - 48px)); padding: 0; overflow: hidden; }
+.in-close { position: absolute; top: 10px; right: 10px; z-index: 1; height: 26px; min-width: 26px; padding: 0 5px; color: #c4c8d0; }
+.intro-pop:has(.in-welcome[hidden]) .in-close { color: var(--muted); }
+.in-page { display: flex; flex-direction: column; flex: 1; min-height: 0; animation: in-fade .16s ease-out; }
+.in-page[hidden] { display: none; }
+.in-shot { display: flex; align-items: center; justify-content: center; flex: 1; min-height: 0; padding: 18px; background: #0c0d11; border-bottom: 1px solid var(--line-soft); }
 .in-shot img { display: block; max-width: 100%; max-height: 100%; border-radius: 8px; }
-.in-text { padding: 18px 24px 4px; min-height: 104px; }
-.in-text h2 { margin: 0 0 6px; font-size: 19px; font-weight: 600; color: var(--text); }
-.in-text p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
-.in-key { display: inline-block; margin-left: 2px; padding: 1px 6px; border: 1px solid var(--line); border-radius: 5px; font: inherit; font-size: 12px; color: var(--text); white-space: nowrap; }
-.in-foot { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; padding: 10px 16px 16px 24px; }
-.in-skip { justify-self: start; padding: 6px 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
-.in-skip:hover { color: var(--text); }
-.in-dots { display: flex; gap: 2px; }
-.in-dots button { width: 18px; height: 18px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; }
-.in-dots button::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--line); transition: background .15s; }
-.in-dots button:hover::before { background: var(--muted); }
-.in-dots button.on::before { background: var(--text); }
-.in-nav { justify-self: end; display: flex; gap: 8px; white-space: nowrap; }
-.intro-pop.in-fade .in-shot img, .intro-pop.in-fade .in-text { animation: in-fade .16s ease-out; }
+.intro-pop h2 { margin: 0; font-size: 19px; font-weight: 600; color: var(--text); }
+.in-text { flex: none; padding: 18px 24px 4px; }
+.in-text ol { margin: 10px 0 0; padding: 0 0 0 20px; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.in-text li + li { margin-top: 4px; }
+.in-text li::marker { color: var(--faint); }
+.in-features { padding: 24px 24px 0; overflow-y: auto; }
+.in-rows { display: flex; flex-direction: column; flex: 1; min-height: 0; margin-top: 14px; }
+.in-row { display: grid; grid-template-columns: 16px 88px 1fr auto; align-items: center; gap: 12px; flex: 1; border-top: 1px solid var(--line-soft); }
+.in-ic { display: flex; color: var(--muted); }
+.in-ic svg { width: 16px; height: 16px; }
+.in-row b { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.in-row p { margin: 0; font-size: 13.5px; line-height: 1.4; color: var(--muted); }
+.in-key { padding: 1px 6px; border: 1px solid var(--line); border-radius: 5px; font: inherit; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.in-foot { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px 16px 24px; }
+.btn.in-more { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.btn.in-more:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); border-color: var(--accent); }
 @keyframes in-fade { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .intro-pop.in-fade .in-shot img, .intro-pop.in-fade .in-text { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .in-page { animation: none; } }
+
+/* The warning when Claude Code can't be found. */
+.pop.modal.missing-pop { top: 50%; transform: translate(-50%, -50%); width: min(520px, calc(100vw - 48px)); padding: 22px 24px 18px; }
+.missing-pop h3 { margin: 0 0 8px; font-size: 17px; font-weight: 600; color: var(--text); }
+.missing-pop p, .missing-pop ol { margin: 0 0 12px; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.missing-pop ol { padding-left: 20px; color: var(--text); }
+.missing-pop li + li { margin-top: 10px; }
+.missing-pop code { font-family: Consolas, Menlo, monospace; font-size: 12.5px; }
+.mp-cmd { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; padding: 7px 7px 7px 11px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); }
+.mp-cmd code { min-width: 0; overflow-wrap: anywhere; }
+.missing-pop .mp-faint { font-size: 12.5px; color: var(--faint); }

@@ -41,6 +41,7 @@ let ctlCommand = null;
 const sessions = [];          // display order
 const ptys = new Map();       // tile id -> pty
 let overseer = null;          // { pty, sessionId, transcript }
+let overseerSize = { cols: 60, rows: 30 };  // the panel's last size; a new overseer starts at it, as the panel only reports changes
 const chats = new Map();      // tile id or 'overseer' -> ChatFeed, only while a clean view is open
 let focusedTile = null;
 let rateLimits = null;
@@ -96,6 +97,13 @@ function installHelpers() {
 
 function shQuote(s) { return `'${String(s).replace(/'/g, `'\\''`)}'`; }
 function psQuote(s) { return `'${String(s).replace(/'/g, "''")}'`; }
+
+// Once found it stays found; while missing, every new session asks again.
+let claudeCheck = null;
+function claudeMissing() {
+  if (!claudeCheck) claudeCheck = feedback.claudeMissing(cleanEnv()).then((missing) => { if (missing) claudeCheck = null; return missing; });
+  return claudeCheck;
+}
 
 function cleanEnv(extra) {
   const env = { ...process.env, ...extra, TERM: 'xterm-256color', COLORTERM: 'truecolor', TERM_PROGRAM: 'Basanite' };
@@ -642,7 +650,7 @@ function startOverseer() {
   const sessionId = crypto.randomUUID();
   args.push('--session-id', sessionId);
   let p;
-  try { p = spawnClaude(args, dir, env, 60, 30); } catch (e) {
+  try { p = spawnClaude(args, dir, env, overseerSize.cols, overseerSize.rows); } catch (e) {
     send('overseer:data', `\r\nCould not start the overseer: ${e.message}\r\n`);
     return;
   }
@@ -917,7 +925,8 @@ function wireIpc() {
     const r = await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'] });
     return r.canceled ? null : r.filePaths[0];
   });
-  ipcMain.handle('tile:create', (_e, { cwd, mode, sessionMode, ws }) => {
+  ipcMain.handle('claude:missing', () => claudeMissing());
+  ipcMain.handle('tile:create', async (_e, { cwd, mode, sessionMode, ws }) => {
     // A session starts in the given workspace (a folder dropped on its pill), else the current one,
     // in that workspace's default mode unless the New dialog said 'none'.
     const target = workspaces.get(ws) && !workspaces.get(ws).putAway ? ws : workspaces.active;
@@ -926,6 +935,8 @@ function wireIpc() {
     if (mode === 'shell' && !cwd) return addSession({ cwd: os.homedir(), kind: 'shell', name: uniqueName('Terminal'), ws: target }, 'new').id;
     try { if (!fs.statSync(cwd).isDirectory()) return null; } catch { return null; }
     if (mode === 'shell') return addSession({ cwd, kind: 'shell', ws: target }, 'new').id;
+    // Better a clear warning than a tile that shows a shell error and ends.
+    if (await claudeMissing()) { send('claude:missing'); return null; }
     return addSession({ cwd, mode: smode, ws: target }, mode || 'new').id;
   });
   modesIpc.wire({ ipcMain, dialog, getWin: () => win, find, typeInto, changed: () => { buildMenu(); broadcast(); } });
@@ -1071,7 +1082,7 @@ function wireIpc() {
   });
   // Held until the overseer's prompt is up, so an early message keeps its Enter.
   ipcMain.on('overseer:input', (_e, d) => { const o = overseer; o?.ready.then(() => { if (overseer === o) o.pty.write(d); }); });
-  ipcMain.on('overseer:resize', (_e, { cols, rows }) => { try { overseer?.pty.resize(cols, rows); } catch {} });
+  ipcMain.on('overseer:resize', (_e, { cols, rows }) => { overseerSize = { cols, rows }; try { overseer?.pty.resize(cols, rows); } catch {} });
   ipcMain.on('overseer:restart', () => {
     if (overseer) { const p = overseer.pty; overseer = null; lifecycle.killPty(p); }
     send('overseer:clear');
@@ -1105,7 +1116,9 @@ function wireIpc() {
   // Once only, and saved straight away, so closing the app mid-intro never brings it back.
   ipcMain.handle('intro:first', () => {
     const show = firstLaunch && (!process.env.HANGAR_DEV_OFFSCREEN || !!process.env.HANGAR_DEV_INTRO);
+    if (show) settings.tips = {};  // one-time tips are for new installs only (renderer/tips.js)
     if (firstLaunch) { firstLaunch = false; saveJSON(paths.settingsFile(), settings); }
+    if (show) broadcast();
     return show;
   });
   ipcMain.handle('feedback:open', async (_e, kind) => { await shell.openExternal(feedback.issueUrl(kind, await debugText())); });

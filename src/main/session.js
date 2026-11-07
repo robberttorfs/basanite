@@ -9,6 +9,7 @@ const timer = require('./timer');
 const modes = require('./modes');
 const guards = require('./guards');
 const paths = require('../shared/paths');
+const { unwrapPasted } = require('../shared/pasted');
 const { migrate: migrateColor } = require('../shared/palette');
 const { Doing, EDIT_TOOLS } = require('./doing');
 
@@ -247,7 +248,7 @@ class Session {
       }
       case 'UserPromptSubmit':
         // Agent hand-backs and other system turns also arrive as prompts; keep the human one.
-        if (typeof hook.prompt === 'string' && !hook.prompt.trimStart().startsWith('<')) this.lastPrompt = hook.prompt.slice(0, 200);
+        if (typeof hook.prompt === 'string') { const said = unwrapPasted(hook.prompt); if (!said.startsWith('<')) this.lastPrompt = said.slice(0, 200); }
         if (typeof hook.prompt === 'string') context.push(...this.modeContext(hook.prompt), ...this.addonContext());
         this.turnStartedAt = Date.now();
         this.doing.clear();
@@ -530,6 +531,8 @@ function hookSettings(tileId, server, ctlCommand, platform = process.platform) {
     },
     statusLine: {
       type: 'command', padding: 0,
+      // Otherwise it only runs on a new message, so cost and limits freeze while a subagent works.
+      refreshInterval: 10,
       command: platform === 'win32' ? `${ctlCommand} statusline`
         : `curl -s -m 2 -H 'Content-Type: application/json' --data-binary @- '${statusUrl}' || true`,
     },

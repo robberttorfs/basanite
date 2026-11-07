@@ -2,6 +2,7 @@
 // overseer. Tool calls, tool results and subagent lines are skipped, and
 // only the tail of the file is read.
 const fs = require('fs');
+const { unwrapPasted } = require('../shared/pasted');
 
 function textOf(content) {
   if (typeof content === 'string') return content;
@@ -25,7 +26,7 @@ function readLog(file, count) {
     try { j = JSON.parse(line); } catch { continue; }
     if (j.isSidechain || !j.message || (j.type !== 'user' && j.type !== 'assistant')) continue;
     if (j.isMeta) continue;
-    let body = textOf(j.message.content).trim();
+    let body = unwrapPasted(textOf(j.message.content));
     if (!body || body.startsWith('<') || body.startsWith('[Request interrupted')) continue;
     if (body.length > 600) body = body.slice(0, 600) + '…';
     msgs.push(`${j.type === 'user' ? 'USER' : 'CLAUDE'}: ${body}`);

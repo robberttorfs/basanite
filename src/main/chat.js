@@ -4,6 +4,7 @@
 // internal to Claude Code, so every field is treated as optional.
 const fs = require('fs');
 const path = require('path');
+const { unwrapPasted } = require('../shared/pasted');
 
 const MAX_ITEMS = 1500;
 const clip = (s, n) => (s.length > n ? `${s.slice(0, n)}…` : s);
@@ -143,7 +144,7 @@ class ChatFeed {
       }
       return;
     }
-    let text = textOf(content).trim();
+    let text = unwrapPasted(textOf(content));
     if (!text) return;
     if (/^\[Request interrupted/.test(text)) { this.push({ k: 'note', text: 'Stopped' }); return; }
     const cmd = /<command-name>([^<]+)<\/command-name>/.exec(text);

@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { StringDecoder } = require('string_decoder');
 const paths = require('../shared/paths');
+const { unwrapPasted } = require('../shared/pasted');
 
 /** Claude Code's folder name for a working directory: every non-alphanumeric becomes "-". */
 function slugFor(cwd) {
@@ -18,8 +19,8 @@ function projectDir(cwd, root) {
 /** The visible text of a user entry, or '' for tool results and non-text. */
 function userText(j) {
   const c = j && j.message && j.message.content;
-  if (typeof c === 'string') return c;
-  if (Array.isArray(c)) return c.filter((x) => x && x.type === 'text').map((x) => x.text).join(' ');
+  if (typeof c === 'string') return unwrapPasted(c);
+  if (Array.isArray(c)) return unwrapPasted(c.filter((x) => x && x.type === 'text').map((x) => x.text).join(' '));
   return '';
 }
 
@@ -32,7 +33,7 @@ function isRealPrompt(j) {
   return true;
 }
 
-function clean(t, n) { return t.replace(/\s+/g, ' ').trim().slice(0, n); }
+function clean(t, n) { return unwrapPasted(t).replace(/\s+/g, ' ').trim().slice(0, n); }
 
 const COUNT_RE = /"type":"(?:user|assistant)"|"tool_result"|"isMeta":true|"content":"<(?:command-|local-command)/g;
 
