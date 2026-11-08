@@ -12,14 +12,21 @@
   const TOP = [
     ['session.new', 'session.new-terminal'],
     ['view.overview', 'app.palette', '@workspaces'],
-    ['app.usage', 'app.overseer', 'app.settings'],
-    ['@more'],
+    ['@session', '@modes', '@view', '@theme'],
+    ['app.usage', 'app.overseer'],
+    ['app.settings', '@help'],
   ];
-  const FOOT = ['app.shortcuts', 'app.intro', 'app.report-bug', 'app.feedback', '@about', '@update'];
-  // In More: every native-menu command that isn't shown elsewhere, by menu. Single modes,
-  // add-ons and Session 1-9 stay in the mode picker, the palette and the filter.
-  const MORE_MENUS = ['Session', 'Modes', 'View', 'Window', 'Help'];
-  const skipInMore = (c) => /^(mode\.set|addon\.toggle):/.test(c.id) || c.isMode || /^window\.session-/.test(c.id);
+  const FOOT = ['@update'];
+  // Each flyout is one short column. What is rarely needed (session IDs, window controls) stays
+  // in the search box and the palette.
+  const SUBS = {
+    session: [['session.rename', 'session.zoom', 'session.pin', 'session.timer', 'session.fresh'], ['session.files', 'session.changes', 'session.history', 'session.fork'],
+      ['session.reveal', 'session.open-editor', 'session.copy-path'], ['session.close', 'session.reopen']],
+    modes: [['mode.choose', 'mode.none'], ['mode.edit', 'mode.import']],
+    view: [['view.clean', 'view.reset-sizes', 'session.next-waiting'], ['view.text-bigger', 'view.text-smaller'], ['view.ui-bigger', 'view.ui-smaller', 'view.ui-actual'], ['@fullscreen']],
+    help: [['app.shortcuts', 'app.intro'], ['app.report-bug', 'app.feedback', 'app.copy-debug'], ['@about']],
+  };
+  const SUB_ROWS = { '@workspaces': ['Workspaces', 'layers', 'workspaces'], '@session': ['Session', 'grid', 'session'], '@modes': ['Modes', 'sliders', 'modes'], '@view': ['View', 'eye', 'view'], '@theme': ['Theme', 'palette', 'theme'], '@help': ['Help', 'info', 'help'] };
   // Window controls the native template adds itself (they're not commands).
   const NATIVE = [
     { id: '@fullscreen', label: 'Full screen', group: 'Window', menuName: 'Window', role: 'fullscreen', shortcut: 'F11' },
@@ -27,36 +34,29 @@
     { id: '@maximize', label: 'Maximize', group: 'Window', menuName: 'Window', role: 'maximize' },
   ];
 
-  /** { top: [[cmd]], workspaces: [cmd], more: [{ name, items: [cmd] }], foot: [cmd], all: [cmd] } */
+  /** { top: [[cmd]], workspaces: [cmd], subs: { name: [[cmd]] }, themes: [cmd], foot: [cmd], all: [cmd] } */
   function model(C, extra = {}) {
-    const byId = new Map(C.all().map((c) => [c.id, c]));
-    const used = new Set();
+    const all = C.all();
+    const byId = new Map(all.map((c) => [c.id, c]));
     const pick = (id) => {
-      if (id === '@workspaces') return { id, label: 'Workspaces', icon: 'layers', sub: 'workspaces' };
-      if (id === '@more') return { id, label: 'More', icon: 'more', sub: 'more' };
+      if (SUB_ROWS[id]) { const [label, icon, sub] = SUB_ROWS[id]; return { id, label, icon, sub }; }
       if (id === '@about') return { id, label: `About ${extra.appName || 'Basanite'}`, icon: 'info', role: 'about' };
       if (id === '@update') return extra.update ? { id, label: extra.update, icon: 'update', role: 'update' } : null;
-      const c = byId.get(id);
-      if (c) used.add(id);
-      return c || null;
+      if (id === '@fullscreen') return NATIVE[0];
+      return byId.get(id) || null;
     };
-    const top = TOP.map((g) => g.map(pick).filter(Boolean)).filter((g) => g.length);
+    const groups = (list) => list.map((g) => g.map(pick).filter(Boolean)).filter((g) => g.length);
+    const top = groups(TOP);
     const foot = FOOT.map(pick).filter(Boolean);
-    const workspaces = C.all().filter((c) => c.menu?.menu === 'Workspace');
-    workspaces.forEach((c) => used.add(c.id));
-    const more = MORE_MENUS.map((name) => ({
-      name,
-      items: [
-        ...C.all().filter((c) => c.menu?.menu === name && !used.has(c.id) && !skipInMore(c)),
-        ...NATIVE.filter((n) => n.menuName === name),
-      ],
-    })).filter((s) => s.items.length);
-    // The filter searches everything above plus the single modes and the App/Help leftovers.
+    const workspaces = all.filter((c) => c.menu?.menu === 'Workspace');
+    const subs = Object.fromEntries(Object.entries(SUBS).map(([k, v]) => [k, groups(v)]));
+    const themes = all.filter((c) => c.isTheme);
+    // The search covers everything: the rows above, plus single modes, add-ons and the rarer commands.
     const seen = new Set();
-    const all = [...top.flat(), ...workspaces, ...more.flatMap((s) => s.items), ...foot,
-      ...C.all().filter((c) => c.menu && !/^window\.session-/.test(c.id))]
+    const every = [...top.flat(), ...workspaces, ...Object.values(subs).flat(2), ...themes, ...foot,
+      ...all.filter((c) => c.menu && !/^window\.session-/.test(c.id)), ...NATIVE]
       .filter((c) => !c.sub && !seen.has(c.id) && seen.add(c.id));
-    return { top, workspaces, more, foot, all };
+    return { top, workspaces, subs, themes, foot, all: every };
   }
 
   /** Items matching the query, best first (ignores palette: false, which is for the palette only). */
@@ -67,7 +67,7 @@
       .sort((a, b) => b.s - a.s || a.i - b.i).map((x) => x.c);
   }
 
-  const api = { model, filter, TOP, FOOT };
+  const api = { model, filter, TOP, FOOT, SUBS };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
 
   // ---------- the popover ----------
@@ -87,6 +87,7 @@
     chat: SVG('<path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z"/>'),
     update: SVG('<path d="M8 2.5v7M5 6.5l3 3 3-3M3 12.5h10"/>'),
     check: SVG('<path d="M3.5 8.5l3 3 6-7"/>'),
+    palette: SVG('<circle cx="8" cy="8" r="5.5"/><path class="half" d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor" stroke="none"/>'),
   };
   for (const [k, v] of Object.entries(ICONS)) if (!ICON[k]) ICON[k] = v;
 
@@ -103,15 +104,16 @@
   };
   function iconHtml(c) {
     if (c.isMode && c.color) return `<span class="am-ic" aria-hidden="true"><span class="mdot" style="--c:${esc(c.color)}"></span></span>`;
+    if (c.isTheme) { const t = c.themeId === 'system' ? null : HangarLook.themeById(c.themeId); return `<span class="am-ic" aria-hidden="true"><span class="mdot" style="--c:${t ? t.ui.accent : 'var(--muted)'}"></span></span>`; }
     if (c.color && /^addon\.toggle:/.test(c.id)) return `<span class="am-ic" aria-hidden="true"><span class="mdot" style="--c:${esc(c.color)}"></span></span>`;
     return `<span class="am-ic" aria-hidden="true">${ICON[c.icon] || ''}</span>`;
   }
-  const activeWs = (c) => c.id === `workspace.go.${state.activeWs}`;
+  const activeWs = (c) => c.id === `workspace.go.${state.activeWs}` || (c.isTheme && c.themeId === HangarLook.themeId());
 
   function row(c, opts = {}) {
-    const ok = c.role || c.sub || C.ok(c);
+    const ok = c.role || c.sub || c.id === '@themes' || C.ok(c);
     const checked = activeWs(c);
-    const label = c.menu?.label && opts.short ? c.menu.label : c.label;
+    const label = opts.short ? c.short || c.menu?.label || c.label : c.label;
     const b = h('button', `item am-row${c.sub ? ' has-sub' : ''}`,
       `${checked ? `<span class="am-ic am-ck" aria-hidden="true">${ICON.check}</span>` : iconHtml(c)}` +
       `<span class="am-l">${esc(label)}</span>` +
@@ -136,6 +138,7 @@
 
   function runItem(c) {
     closePop();
+    if (c.id === '@themes') { HangarSettings.open('appearance'); return; }
     if (c.role) { hangar.menuRole?.(c.role); return; }
     C.run(c.id);
   }
@@ -159,7 +162,7 @@
     body.innerHTML = '';
     const hits = filter(C, m.all, q).filter((c) => c.role || C.ok(c) || activeWs(c));
     if (!hits.length) { body.appendChild(h('div', 'am-none', '–')); return; }
-    const ctxOf = (c) => (c.isMode ? 'Mode' : c.context === 'Add-on' ? 'Add-on' : c.menu?.menu === 'Workspace' ? 'Workspace' : '');
+    const ctxOf = (c) => (c.isMode ? 'Mode' : c.isTheme ? 'Theme' : c.context === 'Add-on' ? 'Add-on' : c.menu?.menu === 'Workspace' ? 'Workspace' : '');
     for (const c of hits.slice(0, 40)) body.appendChild(row(c, { ctx: ctxOf(c) }));
   }
 
@@ -177,19 +180,21 @@
     const m = model(C, { appName: hangar.appName, update });
     const s = h('div', 'pop menu sub-menu am-sub');
     s.setAttribute('role', 'menu');
-    s.setAttribute('aria-label', rowEl.dataset.sub === 'more' ? 'More' : 'Workspaces');
-    if (rowEl.dataset.sub === 'workspaces') {
+    const kind = rowEl.dataset.sub;
+    s.setAttribute('aria-label', kind);
+    if (kind === 'workspaces') {
       const go = m.workspaces.filter((c) => /^workspace\.(go|reopen)\./.test(c.id));
       section(s, go.filter((c) => c.id.startsWith('workspace.go.')).map((c) => row(c, { short: true })));
       section(s, go.filter((c) => c.id.startsWith('workspace.reopen.')).map((c) => row(c)));
       // Only what applies now: with one workspace, next, previous, put away and close have nothing to do.
       section(s, m.workspaces.filter((c) => !go.includes(c) && C.ok(c)).map((c) => row(c)));
+    } else if (kind === 'theme') {
+      s.classList.add('am-themes');
+      section(s, m.themes.map((c) => row(c, { short: true })));
+      section(s, [row({ id: '@themes', label: 'Customise themes…', icon: 'sliders', run: true }, {})]);
     } else {
-      // Two columns, so the rarer items fit on screen without scrolling: Session, then the rest.
-      s.classList.add('am-cols');
-      const cols = [h('div', 'am-col'), h('div', 'am-col')];
-      for (const g of m.more) section(cols[g.name === 'Session' ? 0 : 1], g.items.map((c) => row(c)), g.name);
-      s.append(...cols.filter((c) => c.childElementCount));
+      // Only what applies right now; the rest would just be grey noise.
+      for (const g of m.subs[kind] || []) section(s, g.filter((c) => c.role || C.ok(c)).map((c) => row(c)));
     }
     el.appendChild(s);
     sub = { el: s, row: rowEl };

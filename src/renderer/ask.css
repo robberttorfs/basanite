@@ -57,8 +57,8 @@
 .qc-foot .grow { flex: 1; }
 .qc-link { padding: 4px 8px; background: none; border: 0; border-radius: 6px; font-size: 12px; color: var(--muted); cursor: pointer; }
 .qc-link:hover { background: var(--hover); color: var(--text); }
-.qc-go { padding: 4px 14px; border: 0; border-radius: 7px; background: #2a3550; color: #dbe6ff; font-size: 12.5px; font-weight: 500; cursor: pointer; }
-.qc-go:hover { background: #34426a; }
+.qc-go { padding: 4px 14px; border: 0; border-radius: 7px; background: var(--accent-soft-2); color: var(--accent-text); font-size: 12.5px; font-weight: 500; cursor: pointer; }
+.qc-go:hover { background: var(--accent-soft-3); }
 .qc-go:disabled { background: var(--hover); color: var(--faint); cursor: default; }
 
 /* Folded: one line, so the conversation has the room. */
@@ -72,12 +72,7 @@
 /* Feed: what was asked and what you said, once it is answered. */
 .asked { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; margin-bottom: 10px; }
 .asked .aq { font-size: 12.5px; line-height: 1.45; color: var(--muted); overflow-wrap: anywhere; }
-.asked .aa { align-self: flex-end; max-width: 85%; margin-top: 4px; padding: 5px 11px; background: #1b2130; border: 1px solid #27304a; border-radius: 12px; font-size: 13.5px; line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; user-select: text; width: fit-content; margin-left: auto; }
+.asked .aa { align-self: flex-end; max-width: 85%; margin-top: 4px; padding: 5px 11px; background: var(--accent-faint); border: 1px solid var(--accent-line); border-radius: 12px; font-size: 13.5px; line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; user-select: text; width: fit-content; margin-left: auto; }
 .asked .aa.skip { background: none; border-style: dashed; border-color: var(--line); color: var(--faint); }
 .asked .apair { display: flex; flex-direction: column; }
 
-@media (prefers-color-scheme: light) {
-  .qc-go { background: #dfe8fb; color: #1d3f86; }
-  .qc-go:hover { background: #d0ddf8; }
-  .asked .aa { background: #edf2fc; border-color: #d6e0f3; }
-}

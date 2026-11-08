@@ -99,22 +99,18 @@ const visibleModes = () => state.modes.filter((m) => !m.hidden && m.kind !== 'ad
 
 // ---------- terminals ----------
 
-const THEME = {
-  background: '#121318', foreground: '#d8dbe2', cursor: '#d8dbe2', cursorAccent: '#121318',
-  selectionBackground: '#33415c', selectionInactiveBackground: '#2a3040',
-  black: '#1c1e24', red: '#ff7b7b', green: '#7bd88f', yellow: '#f2c66d', blue: '#7aa7ff',
-  magenta: '#c49cff', cyan: '#6fd4e0', white: '#c9ccd3',
-  brightBlack: '#5b616d', brightRed: '#ff9a9a', brightGreen: '#9ae6ab', brightYellow: '#f7d88f',
-  brightBlue: '#9cbfff', brightMagenta: '#d7bbff', brightCyan: '#95e3ec', brightWhite: '#f1f2f5',
-};
 
 // Polished terminal: a little more air between lines, softer greys for Claude Code's dim text.
-const POLISH = { foreground: '#d3d7df', brightBlack: '#6c7280', black: '#22252c' };
+const termLookKey = (s) => [s.polishTerm !== false, s.termFont, s.termLineHeight, s.cursorStyle, s.cursorBlink].join('|');
 const polished = () => state.settings.polishTerm !== false;
+const DEFAULT_FONT = isMac ? '"SF Mono", Menlo, monospace' : 'Consolas, "Cascadia Mono", "Courier New", monospace';
+const fontStack = (f) => (f ? `"${f.replace(/["\\]/g, '')}", ${DEFAULT_FONT}` : DEFAULT_FONT);
 function termLook(bg) {
-  const theme = { ...THEME, ...(polished() ? POLISH : {}) };
-  const out = { lineHeight: polished() ? 1.24 : 1.15, theme: bg ? { ...theme, background: bg, cursorAccent: bg } : theme };
-  return window.HangarLook ? HangarLook.term(out, bg) : out;  // light theme swaps the palette
+  const s = state.settings;
+  return HangarLook.term({
+    lineHeight: s.termLineHeight || (polished() ? 1.24 : 1.15), fontFamily: fontStack(s.termFont),
+    cursorStyle: s.cursorStyle || 'block', cursorBlink: !!s.cursorBlink,
+  }, bg);
 }
 
 /**
@@ -147,7 +143,6 @@ function copyOnSelect(term, container) {
 
 function makeTerm(container, onInput, onResize, bg) {
   const term = new Terminal({
-    fontFamily: isMac ? '"SF Mono", Menlo, monospace' : 'Consolas, "Cascadia Mono", "Courier New", monospace',
     fontSize: state.settings.fontSize || 13,
     ...termLook(bg),
     scrollback: 20000,
@@ -259,7 +254,7 @@ function createTile(snap) {
       <button class="hbtn pin" aria-label="Pin as main">${ICON.pin}</button>
       <button class="hbtn more" aria-label="More" title="More">${ICON.more}</button>
     </div>
-    <div class="agents"></div>
+    <div class="agents" role="button" tabindex="0"></div>
     <div class="term"></div>
     <div class="chat-slot"></div>
     <div class="overlay"><div class="msg"></div><div class="row">
@@ -452,10 +447,7 @@ function updateTile(tile, snap) {
   // Only say something when it matters: quiet tiles show just their dot.
   let label = snap.status === 'idle' ? '' : STATUS_LABEL[snap.status] || snap.status;
   if (shell) label = snap.status === 'exited' ? 'Ended' : '';
-  else if (snap.status === 'working') {
-    const running = snap.agents.filter((a) => a.running).length;
-    label = running ? `${running} agent${running > 1 ? 's' : ''} working` : `Working ${dur(since)}`;
-  }
+  else if (snap.status === 'working') label = `Working ${dur(since)}`;
   // The ✕ already says error, so a leading "API error:" is dropped (the word appears once).
   if (snap.status === 'error' && snap.error) label = `Error: ${String(snap.error).replace(/^(api\s+)?error:\s*/i, '')}`.slice(0, 60);
   if (snap.handover) label = { queued: 'Fresh start after this turn', writing: 'Writing handover', clearing: 'Clearing context', continuing: 'Continuing' }[snap.handover] || label;
@@ -505,17 +497,7 @@ function updateTile(tile, snap) {
   lk.hidden = !snap.lock;
   lk.title = 'Unlock size';
 
-  // Agents strip
-  const strip = $('.agents', el);
-  const agents = snap.agents;
-  const maxChips = Math.max(1, Math.floor((tile.lastRect?.w || 600) / 190));
-  const html = agents.slice(0, maxChips).map((a) => {
-    const time = a.running ? dur(Date.now() - a.startedAt) : a.endedAt > a.startedAt ? dur(a.endedAt - a.startedAt) : '';
-    return `<span class="chip${a.running ? '' : ' done'}" title="${esc(`${a.type || 'agent'}: ${a.desc || ''}\n${k(a.output)} output tokens`)}">` +
-      `<span class="cd"></span><span class="ct">${esc(a.type || 'agent')}</span>` +
-      `${a.desc ? `<span class="cdsc">${esc(a.desc)}</span>` : ''}<span class="cn">${[time, a.output ? k(a.output) : ''].filter(Boolean).join('  ')}</span></span>`;
-  }).join('') + (agents.length > maxChips ? `<span class="chip more">+${agents.length - maxChips}</span>` : '');
-  if (strip.innerHTML !== html) strip.innerHTML = html;
+  HangarAgents.draw($('.agents', el), snap, tile.lastRect?.w || 600);
   if (tile.chat?.on) {
     // Menus and permission prompts need the real terminal; the chat comes back after.
     // A question Basanite is holding is answered on the card instead.
@@ -826,7 +808,6 @@ function renderBar() {
   const uh = u.length ? u.join('') : `<span class="u">${ICON.chart}</span>`;
   if ($('#usage').innerHTML !== uh) $('#usage').innerHTML = uh;
   $('#usage').classList.toggle('icon-only', !u.length);
-  $('#ov-model').textContent = state.settings.overseerModel || '';
 }
 
 // One workspace with a few sessions: "needs you" jumps straight there, as before. Otherwise the counts open the overview.
@@ -1324,38 +1305,10 @@ async function openNew() {
   $('[data-home]', el).onclick = () => { closePop(); start(null, 'shell'); };
 }
 
-const PERMISSION_LABELS = [
-  ['default', 'Ask first'], ['acceptEdits', 'Accept edits'], ['plan', 'Plan mode'],
-  ['auto', 'Auto'], ['bypassPermissions', 'Skip all prompts'],
-];
-
-function openSettings(anchorEl) {
-  const s = state.settings;
-  const el = h('div', 'pop');
-  el.style.width = '310px';
-  el.innerHTML = `<h3>Notifications</h3>
-    <label class="opt">Session needs you<input type="checkbox" data-k="needsInput" ${s.notify.needsInput ? 'checked' : ''}></label>
-    <label class="opt">Session finished a task<input type="checkbox" data-k="done" ${s.notify.done ? 'checked' : ''}></label>
-    <label class="opt">Sound<input type="checkbox" data-k="sound" ${s.notify.sound ? 'checked' : ''}></label>
-    <label class="opt">Context fuller than (%)<input type="number" min="0" max="100" data-n="contextPct" value="${s.notify.contextPct || ''}" placeholder="Off"></label>
-    <label class="opt">Plan usage above (%)<input type="number" min="0" max="100" data-n="usagePct" value="${s.notify.usagePct || ''}" placeholder="Off"></label>
-    <div class="sep"></div><h3>Sessions</h3>
-    <label class="opt">Permissions<select data-perm>${PERMISSION_LABELS.map(([v, l]) => `<option value="${v}" ${(s.permissionMode || 'default') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-    <label class="opt">New sessions open in clean view<input type="checkbox" data-s="cleanDefault" ${s.cleanDefault ? 'checked' : ''}></label>
-    <label class="opt">Polished terminal<input type="checkbox" data-s="polishTerm" ${s.polishTerm !== false ? 'checked' : ''}></label>
-    <div class="sep"></div><h3>Overseer</h3>
-    <label class="opt">Model<select data-model>${['haiku', 'sonnet', 'opus'].map((m) => `<option ${s.overseerModel === m ? 'selected' : ''}>${m}</option>`).join('')}</select></label>`;
-  window.HangarLook?.settingsRows(el);
-  openPop(el, anchorEl);
-  el.querySelectorAll('[data-k]').forEach((c) => { c.onchange = () => hangar.setSettings({ notify: { [c.dataset.k]: c.checked } }); });
-  el.querySelectorAll('[data-s]').forEach((c) => { c.onchange = () => hangar.setSettings({ [c.dataset.s]: c.checked }); });
-  el.querySelectorAll('[data-n]').forEach((c) => { c.onchange = () => hangar.setSettings({ notify: { [c.dataset.n]: Number(c.value) || 0 } }); });
-  $('[data-model]', el).onchange = (e) => hangar.setSettings({ overseerModel: e.target.value });
-  $('[data-perm]', el).onchange = (e) => hangar.setSettings({ permissionMode: e.target.value });
-}
+function openSettings(page) { HangarSettings.open(typeof page === 'string' ? page : undefined); }
 
 $('#btn-new').onclick = openNew;
-$('#btn-settings').onclick = (e) => openSettings(e.currentTarget);
+$('#btn-settings').onclick = () => openSettings();
 
 // ---------- overseer ----------
 
@@ -1379,13 +1332,45 @@ function toggleOverseer(force, prompt) {
   }
   if (open && prompt) hangar.overseerAsk(prompt);
   else if (open && !state.overseerRunning) hangar.overseerStart();
-  // An instant switch with a short fade: the tiles re-fit once, behind the fade, and never slide.
-  const st = $('#stage');
-  st.classList.add('swap');
+  // The tiles jump to their new size, the same as when the window is resized. No fade, no slide.
+  document.body.classList.add('win-resizing');
   layout(true);
-  requestAnimationFrame(() => requestAnimationFrame(() => st.classList.remove('swap')));
+  clearTimeout(winResizeTimer);
+  winResizeTimer = setTimeout(() => document.body.classList.remove('win-resizing'), 200);
   if (open) setTimeout(() => { ov?.fit(); focusOverseer(); }, 30);
 }
+
+/** Drag the panel's left edge. The sessions refit once when the drag ends. */
+(() => {
+  const panel = $('#overseer'), g = $('#ov-grip'), KEY = 'hangar.overseerWidth';
+  try { const w = Number(localStorage.getItem(KEY)); if (w) panel.style.setProperty('--ov-w', `${w}px`); } catch {}
+  const remember = (w) => { try { if (w) localStorage.setItem(KEY, String(w)); else localStorage.removeItem(KEY); } catch {} };
+  g.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    g.setPointerCapture(e.pointerId);
+    document.body.classList.add('resizing', 'resizing-x');
+    const main = $('#main').getBoundingClientRect();
+    const v = document.querySelector('.viewer');
+    const viewer = v && !document.body.classList.contains('viewer-full') ? v.getBoundingClientRect().width : 0;
+    let w = 0;
+    const move = (ev) => {
+      w = Math.round(Math.max(320, Math.min(main.width - viewer - 380, main.right - ev.clientX)));
+      panel.style.setProperty('--ov-w', `${w}px`);
+      layout(true);
+    };
+    const up = () => {
+      g.removeEventListener('pointermove', move);
+      document.body.classList.remove('resizing', 'resizing-x');
+      if (w) remember(w);
+      layout(true);
+      ov?.fitSoon(60);
+    };
+    g.addEventListener('pointermove', move);
+    g.addEventListener('pointerup', up, { once: true });
+    g.addEventListener('pointercancel', up, { once: true });
+  });
+  g.addEventListener('dblclick', () => { panel.style.removeProperty('--ov-w'); remember(0); layout(true); ov?.fitSoon(60); });
+})();
 
 let ovChat = null;
 let ovChatOn = false;
@@ -1467,7 +1452,7 @@ hangar.onState((s) => {
     for (const t of s.tiles) { const cur = state.tiles.find((x) => x.id === t.id); if (cur) t.lock = cur.lock; }
   }
   state = window.HangarWs ? HangarWs.view(s) : s;
-  const look = `${s.settings.polishTerm !== false}`;
+  const look = termLookKey(s.settings);
   if (lastLook !== null && lastLook !== look) {
     for (const t of [...tiles.values(), ov].filter(Boolean)) { Object.assign(t.term.options, termLook(t.bg)); t.fit(); }
   }
@@ -1536,7 +1521,7 @@ setInterval(() => {
 hangar.init().then((s) => {
   state = window.HangarWs ? HangarWs.view(s) : s;
   lastFont = s.settings.fontSize;
-  lastLook = `${s.settings.polishTerm !== false}`;
+  lastLook = termLookKey(s.settings);
   document.body.classList.toggle('polish', s.settings.polishTerm !== false);
   render();
   window.HangarCommands?.changed();

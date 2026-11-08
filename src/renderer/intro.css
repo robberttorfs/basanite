@@ -1,10 +1,10 @@
 /* The intro: both pages share one fixed size, so nothing jumps when you switch. */
 .pop.modal.intro-pop { top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; width: min(720px, calc(100vw - 48px)); height: min(600px, calc(100vh - 48px)); padding: 0; overflow: hidden; }
-.in-close { position: absolute; top: 10px; right: 10px; z-index: 1; height: 26px; min-width: 26px; padding: 0 5px; color: #c4c8d0; }
+.in-close { position: absolute; top: 10px; right: 10px; z-index: 1; height: 26px; min-width: 26px; padding: 0 5px; color: var(--muted); }
 .intro-pop:has(.in-welcome[hidden]) .in-close { color: var(--muted); }
 .in-page { display: flex; flex-direction: column; flex: 1; min-height: 0; animation: in-fade .16s ease-out; }
 .in-page[hidden] { display: none; }
-.in-shot { display: flex; align-items: center; justify-content: center; flex: 1; min-height: 0; padding: 18px; background: #0c0d11; border-bottom: 1px solid var(--line-soft); }
+.in-shot { display: flex; align-items: center; justify-content: center; flex: 1; min-height: 0; padding: 18px; background: var(--sunk); border-bottom: 1px solid var(--line-soft); }
 .in-shot img { display: block; max-width: 100%; max-height: 100%; border-radius: 8px; }
 .intro-pop h2 { margin: 0; font-size: 19px; font-weight: 600; color: var(--text); }
 .in-text { flex: none; padding: 18px 24px 4px; }

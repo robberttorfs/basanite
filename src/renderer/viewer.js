@@ -483,6 +483,9 @@ const HangarViewer = (() => {
   const before = (a, b) => a.y < b.y || (a.y === b.y && a.x <= b.x);
   const overlaps = (a, b) => before(a.start, b.end) && before(b.start, a.end);
 
+  /** Ctrl+click (Cmd+click on Mac) shows the file in its folder instead of the viewer. */
+  const toFolder = (e) => !!(e && (e.ctrlKey || e.metaKey));
+
   /** Paths in the session's terminal become links that open in the viewer. */
   function attachTerm(term, getCwd, tileId) {
     term.registerLinkProvider({
@@ -512,7 +515,7 @@ const HangarViewer = (() => {
             text: f.raw,
             range: f.range,
             decorations: { underline: true, pointerCursor: true },
-            activate: () => open(infos[f.raw], { cwd: dir }),
+            activate: (e) => (toFolder(e) ? hangar.fileReveal(infos[f.raw].path) : open(infos[f.raw], { cwd: dir })),
           }))];
           done(links.length ? links : undefined);
         }).catch(() => done(web.length ? web : undefined));
@@ -527,7 +530,9 @@ const HangarViewer = (() => {
     const a = e.target.closest('a[data-file], [data-thumb]');
     if (!a) return false;
     e.preventDefault();
-    open({ raw: a.dataset.file || a.dataset.thumb, cwd: a.dataset.cwd || dir });
+    const raw = a.dataset.file || a.dataset.thumb, cwd = a.dataset.cwd || dir;
+    if (toFolder(e)) resolveAll([raw], cwd).then((i) => { if (i[raw]) hangar.fileReveal(i[raw].path); });
+    else open({ raw, cwd });
     return true;
   }
 

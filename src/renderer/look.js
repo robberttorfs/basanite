@@ -6,35 +6,54 @@
 'use strict';
 
 (() => {
-  // Light terminal. Claude Code paints some text in its own colours; xterm's minimum
-  // contrast ratio keeps those readable on a light background.
-  const LIGHT_TERM = {
-    background: '#ffffff', foreground: '#1f232b', cursor: '#1f232b', cursorAccent: '#ffffff',
-    selectionBackground: '#cfdcf5', selectionInactiveBackground: '#e2e7f0',
-    black: '#1f232b', red: '#c4352d', green: '#1d8340', yellow: '#946200', blue: '#2b5fc7',
-    magenta: '#8448c9', cyan: '#0e7b8a', white: '#5f6672',
-    brightBlack: '#7a818d', brightRed: '#d8433a', brightGreen: '#239a4c', brightYellow: '#a87300',
-    brightBlue: '#3a70dd', brightMagenta: '#9a5ddf', brightCyan: '#118ea0', brightWhite: '#2b2f36',
-  };
-  const BG_LIGHT = { '#16141c': '#f6f3fc' }; // the overseer keeps its own tint
-
+  const T = HangarThemes;
   const mqLight = matchMedia('(prefers-color-scheme: light)');
   const mqCalm = matchMedia('(prefers-reduced-motion: reduce)');
   let settings = {};
   let hc = false;
-  const light = () => mqLight.matches;
+  let customs = [];
+  let trial = null;   // a theme being tried out from the Studio
+  const CACHE = 'basanite.theme';
+  const root = document.documentElement;
+
+  // The last theme, before anything else draws, so a restart doesn't flash the wrong colours.
+  try {
+    const c = JSON.parse(localStorage.getItem(CACHE));
+    if (c) { for (const [k, v] of Object.entries(c.vars)) root.style.setProperty(k, v); root.style.colorScheme = c.base; document.body.classList.toggle('light', c.base === 'light'); }
+  } catch {}
+
+  const active = () => trial || T.resolve(settings.theme, customs, mqLight.matches);
+  const light = () => active().base === 'light';
 
   function term(out, bg) {
-    if (!light()) return { ...out, minimumContrastRatio: hc ? 7 : 1 };
-    const b = (bg && BG_LIGHT[bg]) || LIGHT_TERM.background;
-    return { ...out, minimumContrastRatio: hc ? 7 : 4.5, theme: { ...LIGHT_TERM, background: b, cursorAccent: b } };
+    const t = active();
+    const floor = hc ? 7 : t.base === 'light' ? 4.5 : t.id === 'dark' ? 1 : 3;
+    return { ...out, minimumContrastRatio: floor, theme: T.toXterm(t, !!bg) };
   }
+  let reThemeQueued = false;
   function retheme() {
-    if (typeof tiles === 'undefined') return;
-    for (const t of [...tiles.values(), ov].filter(Boolean)) {
-      try { t.term.options.minimumContrastRatio = 1; Object.assign(t.term.options, termLook(t.bg)); } catch {}
-    }
+    if (reThemeQueued) return;
+    reThemeQueued = true;
+    requestAnimationFrame(() => {
+      reThemeQueued = false;
+      if (typeof tiles === 'undefined') return;
+      for (const t of [...tiles.values(), ov].filter(Boolean)) {
+        try { Object.assign(t.term.options, termLook(t.bg)); } catch {}
+      }
+    });
   }
+  /** One write of the CSS variables and one palette per terminal: nothing runs per frame. */
+  function paint() {
+    const t = active();
+    const vars = T.toVars(t);
+    for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
+    root.style.colorScheme = t.base;
+    document.body.classList.toggle('light', t.base === 'light');
+    if (!trial) try { localStorage.setItem(CACHE, JSON.stringify({ vars, base: t.base })); } catch {}
+    retheme();
+  }
+  /** Show a theme everywhere without saving it; null goes back. */
+  function preview(t) { trial = t; paint(); }
 
   function applyBody() {
     const b = document.body.classList;
@@ -42,7 +61,6 @@
     b.toggle('compact', compact);
     b.toggle('calm', !!settings.reduceMotion || mqCalm.matches);
     b.toggle('hc', hc);
-    b.toggle('light', light());
     const gap = compact ? 4 : 8;
     if (typeof layout === 'function' && GAP !== gap) { GAP = gap; if (tiles.size) layout(true); }
   }
@@ -75,43 +93,27 @@
   }
 
   hangar.onState((s) => {
-    const before = `${settings.theme}|${settings.density}|${settings.reduceMotion}`;
+    const before = `${settings.density}|${settings.reduceMotion}`, was = settings.theme;
     settings = s.settings || {};
-    if (`${settings.theme}|${settings.density}|${settings.reduceMotion}` !== before) applyBody();
+    if (`${settings.density}|${settings.reduceMotion}` !== before) applyBody();
+    if (settings.theme !== was) { paint(); C.changed?.(); }
     watchStatus(s);
   });
-  hangar.init().then((s) => { settings = s.settings || {}; applyBody(); watchStatus(s); });
+  hangar.init().then(async (s) => { settings = s.settings || {}; customs = await hangar.themes(); applyBody(); paint(); watchStatus(s); });
+  hangar.onThemes((l) => { customs = l; paint(); C.changed?.(); });
   hangar.look?.().then((i) => { hc = !!i?.highContrast; applyBody(); retheme(); }).catch(() => {});
   hangar.onLook?.((i) => { hc = !!i?.highContrast; applyBody(); retheme(); });
-  mqLight.addEventListener('change', () => { applyBody(); retheme(); });
+  mqLight.addEventListener('change', () => { applyBody(); paint(); });
   mqCalm.addEventListener('change', applyBody);
 
-  // ---------- settings rows and commands ----------
+  // ---------- commands ----------
   const set = (patch) => hangar.setSettings(patch);
-  function settingsRows(el) {
-    const s = settings;
-    const theme = s.theme || 'system';
-    const html = `<h3>Appearance</h3>
-      <label class="opt">Theme<select data-look="theme">${[['system', 'System'], ['light', 'Light'], ['dark', 'Dark']]
-        .map(([v, l]) => `<option value="${v}" ${theme === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-      <label class="opt">Density<select data-look="density">${[['comfortable', 'Comfortable'], ['compact', 'Compact']]
-        .map(([v, l]) => `<option value="${v}" ${(s.density || 'comfortable') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-      <label class="opt">Reduce motion<input type="checkbox" data-look-calm ${s.reduceMotion ? 'checked' : ''}></label>
-      <div class="sep"></div>`;
-    el.insertAdjacentHTML('afterbegin', html);
-    el.querySelectorAll('select[data-look]').forEach((c) => { c.onchange = () => set({ [c.dataset.look]: c.value }); });
-    el.querySelector('[data-look-calm]').onchange = (e) => set({ reduceMotion: e.target.checked });
-  }
-
   const C = HangarCommands;
-  const themeIs = (t) => (settings.theme || 'system') === t;
+  C.provide('themes', () => [{ id: 'system', name: 'System' }, ...T.PRESETS, ...customs].map((t) => ({
+    id: `theme.set:${t.id}`, label: t.id === 'system' ? 'System theme' : `${t.name} theme`, short: t.name, group: 'App', aliases: ['theme', 'appearance', 'colour'],
+    isTheme: true, themeId: t.id, run: () => set({ theme: t.id }),
+  })));
   C.register([
-    { id: 'view.theme-system', label: 'System theme', group: 'App', aliases: ['theme', 'auto', 'appearance'],
-      menu: { menu: 'View', section: 'look' }, when: () => !themeIs('system'), run: () => set({ theme: 'system' }) },
-    { id: 'view.theme-light', label: 'Light theme', group: 'App', aliases: ['theme', 'appearance', 'bright'],
-      menu: { menu: 'View', section: 'look' }, when: () => !themeIs('light'), run: () => set({ theme: 'light' }) },
-    { id: 'view.theme-dark', label: 'Dark theme', group: 'App', aliases: ['theme', 'appearance', 'night'],
-      menu: { menu: 'View', section: 'look' }, when: () => !themeIs('dark'), run: () => set({ theme: 'dark' }) },
     { id: 'view.density-compact', label: 'Compact density', group: 'App', aliases: ['density', 'small', 'dense'],
       menu: { menu: 'View', section: 'look' }, when: () => settings.density !== 'compact', run: () => set({ density: 'compact' }) },
     { id: 'view.density-comfortable', label: 'Comfortable density', group: 'App', aliases: ['density', 'roomy'],
@@ -120,5 +122,5 @@
       menu: { menu: 'View', section: 'look' }, run: () => set({ reduceMotion: !settings.reduceMotion }) },
   ]);
 
-  window.HangarLook = { term, light, settingsRows, retheme, watchStatus };
+  window.HangarLook = { term, light, retheme, watchStatus, preview, active, customs: () => customs, themeById: (id) => T.PRESETS.find((p) => p.id === id) || customs.find((c) => c.id === id), themeId: () => settings.theme || 'system' };
 })();

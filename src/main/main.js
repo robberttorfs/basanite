@@ -1,5 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog, Notification, Menu, shell, nativeTheme, protocol } = require('electron');
+const { execFile } = require('child_process');
 const look = require('./look');
+const themeStore = require('./themes');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -162,6 +164,20 @@ function spawnShell(cwd, env, cols, rows) {
     args = ['--init-file', path.join(dir, 'bash-init.sh'), '-i'];
   }
   return pty.spawn(shell, args, { name: 'xterm-256color', cols, rows, cwd, env });
+}
+
+/** One non-interactive `claude` call through the user's shell; resolves with its stdout. */
+function runClaudeOnce(args, cwd, timeout = 90000) {
+  return new Promise((resolve, reject) => {
+    const env = cleanEnv({});
+    const done = (err, out) => (err ? reject(new Error(err.killed ? 'Claude took too long to answer. Try again.' : 'Claude Code could not be started. Check that `claude` works in a terminal.')) : resolve(String(out)));
+    const opts = { cwd, env, timeout, windowsHide: true, maxBuffer: 4 * 1024 * 1024 };
+    if (isWin) {
+      execFile('powershell.exe', ['-NoLogo', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', `& claude ${args.map((a) => (a === '' ? "'\"\"'" : psQuote(a))).join(' ')}`], opts, done);
+    } else {
+      execFile(process.env.SHELL || '/bin/zsh', ['-l', '-c', `exec claude ${args.map(shQuote).join(' ')}`], opts, done);
+    }
+  });
 }
 
 function transcriptExists(s) {
@@ -1158,6 +1174,32 @@ function wireIpc() {
     saveJSON(paths.settingsFile(), settings);
     if ('theme' in patch) look.apply(settings);
     broadcast();
+  });
+  ipcMain.handle('themes:list', () => themeStore.list());
+  const themesChanged = () => { send('themes', themeStore.list()); look.apply(settings); };
+  ipcMain.handle('themes:save', (_e, t) => { const saved = themeStore.save(t); themesChanged(); return saved; });
+  ipcMain.handle('themes:delete', (_e, id) => {
+    themeStore.remove(id);
+    if (settings.theme === id) { settings = { ...settings, theme: 'system' }; saveJSON(paths.settingsFile(), settings); broadcast(); }
+    themesChanged();
+  });
+  ipcMain.handle('themes:export', async (_e, t) => {
+    const name = String(t?.name || 'theme').replace(/[^\w -]/g, '').trim() || 'theme';
+    const r = await dialog.showSaveDialog(win, { defaultPath: `${name}.basanite-theme.json`, filters: [{ name: 'Basanite theme', extensions: ['json'] }] });
+    if (r.canceled || !r.filePath) return false;
+    const { id, preset, ...plain } = t;
+    fs.writeFileSync(r.filePath, `${JSON.stringify(plain, null, 2)}\n`);
+    return true;
+  });
+  ipcMain.handle('themes:import', async () => {
+    const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: 'Basanite theme', extensions: ['json'] }] });
+    if (r.canceled || !r.filePaths[0]) return null;
+    try { const t = themeStore.save({ ...JSON.parse(fs.readFileSync(r.filePaths[0], 'utf8')), id: null }); themesChanged(); return { theme: t }; }
+    catch { return { error: 'That file is not a Basanite theme.' }; }
+  });
+  ipcMain.handle('themes:generate', async (_e, req) => {
+    try { return await themeStore.generate(req, (args, dir) => runClaudeOnce(args, dir)); }
+    catch (e) { return { error: e.message }; }
   });
 }
 

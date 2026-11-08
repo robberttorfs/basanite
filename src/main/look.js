@@ -1,22 +1,23 @@
-// Theme for the native side: Light, Dark or System (the default), the window background,
-// the Windows title-bar buttons, and telling the page about high contrast.
-// The page itself follows prefers-color-scheme, which nativeTheme.themeSource drives.
+// Theme for the native side: the window background, the Windows title-bar buttons, and telling
+// the page about high contrast. The active theme comes from themes.js; 'system' follows the OS.
 const { nativeTheme, ipcMain } = require('electron');
+const T = require('../shared/themes');
+const store = require('./themes');
 
-const BG = { dark: '#0e0f12', light: '#f6f7f9' };
-const SYMBOL = { dark: '#9aa0aa', light: '#4f5663' };
-const THEMES = ['system', 'light', 'dark'];
-
-const themeOf = (settings) => (THEMES.includes(settings?.theme) ? settings.theme : 'system');
+const themeOf = (settings) => (T.known(settings?.theme, store.list()) ? settings.theme : 'system');
 const dark = () => nativeTheme.shouldUseDarkColors;
 const info = () => ({ dark: dark(), highContrast: nativeTheme.shouldUseHighContrastColors });
-const background = () => BG[dark() ? 'dark' : 'light'];
+let current = () => ({});
+const active = () => T.resolve(themeOf(current()), store.list(), !dark());
+const background = () => active().ui.bg;
 /** Options for new BrowserWindow(): the right colours before the page paints. */
-const overlay = (height = 40) => ({ color: background(), symbolColor: SYMBOL[dark() ? 'dark' : 'light'], height });
+const overlay = (height = 40) => ({ color: background(), symbolColor: active().ui.muted, height });
+/** What Electron and the OS should treat the app as. */
+const source = (settings) => { const id = themeOf(settings); return id === 'system' ? 'system' : T.resolve(id, store.list(), false).base; };
 
 let getWin = () => null;
 function apply(settings) {
-  const want = themeOf(settings);
+  const want = source(settings);
   if (nativeTheme.themeSource !== want) nativeTheme.themeSource = want;
   paint();
 }
@@ -32,7 +33,8 @@ function paint() {
 /** Call once at startup, before the window exists. */
 function init({ settings, win, send }) {
   getWin = win;
-  nativeTheme.themeSource = themeOf(settings());
+  current = settings;
+  nativeTheme.themeSource = source(settings());
   nativeTheme.on('updated', () => { paint(); send('look', info()); });
   ipcMain.handle('look', () => info());
 }

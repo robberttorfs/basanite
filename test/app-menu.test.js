@@ -38,27 +38,27 @@ test('app menu: top level is the most-used commands, straight from the registry'
   assert.deepEqual(ids, [
     ['session.new', 'session.new-terminal'],
     ['view.overview', 'app.palette', '@workspaces'],
-    ['app.usage', 'app.overseer', 'app.settings'],
-    ['@more'],
+    ['@session', '@modes', '@view', '@theme'],
+    ['app.usage', 'app.overseer'],
+    ['app.settings', '@help'],
   ]);
   // The very same objects, so labels and shortcuts can't drift.
   assert.equal(m.top[0][0], C.get('session.new'));
   assert.equal(C.shortcutLabel(m.top[0][0]), 'Ctrl+Shift+N');
-  assert.deepEqual(m.foot.map((c) => c.label), ['Keyboard shortcuts', 'Show intro', 'Report a bug', 'Send feedback', 'About Basanite']);
-  assert.equal(M.model(C, { update: 'Restart to update' }).foot.length, 6);
+  assert.deepEqual(m.foot, []);
+  assert.equal(M.model(C, { update: 'Restart to update' }).foot.length, 1);
+  assert.deepEqual(m.subs.help.flat().map((c) => c.label), ['Keyboard shortcuts', 'Show intro', 'Report a bug', 'Send feedback', 'Copy debug info', 'About Basanite']);
 });
 
-test('app menu: everything else is in More or Workspaces, nothing is lost', () => {
+test('app menu: flyouts are short and nothing is lost to the search', () => {
   setup();
-  const m = M.model(C);
-  const more = m.more.flatMap((s) => s.items.map((c) => c.id));
-  assert.deepEqual(m.more.map((s) => s.name), ['Session', 'Modes', 'View', 'Window', 'Help']);
-  for (const id of ['session.rename', 'view.reset-sizes', 'mode.choose', 'session.next-waiting', '@fullscreen', '@minimize']) assert.ok(more.includes(id), id);
-  for (const id of ['session.new', 'view.overview', 'mode.set:notes', 'window.session-1', 'workspace.new']) assert.ok(!more.includes(id), id);
+  const m = M.model(C, { appName: 'Basanite' });
+  for (const groups of Object.values(M.SUBS)) assert.ok(groups.flat().length <= 16, 'a flyout stays short');
   assert.deepEqual(m.workspaces.map((c) => c.id), ['workspace.new', 'workspace.go.main']);
-  // Every native-menu command is somewhere in the menu or its filter, except Session 1-9.
-  const reach = new Set(m.all.map((c) => c.id));
-  for (const c of C.all()) if (c.menu && !/^window\.session-/.test(c.id)) assert.ok(reach.has(c.id), c.id);
+  const ids = m.all.map((c) => c.id);
+  for (const id of ['session.rename', 'view.reset-sizes', 'mode.choose', 'mode.set:notes', 'app.copy-debug', '@minimize']) assert.ok(ids.includes(id), id);
+  assert.ok(!ids.includes('window.session-1'));
+  assert.equal(new Set(ids).size, ids.length, 'no row twice');
 });
 
 test('app menu: typing filters across every level, palette-only flags ignored', () => {

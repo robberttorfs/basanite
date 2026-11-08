@@ -75,7 +75,7 @@
     { id: 'view.ui-actual', label: 'Actual size', group: 'App', aliases: ['zoom reset'],
       shortcut: 'CmdOrCtrl+0', menu: { menu: 'View', section: 'ui' }, run: () => hangar.zoom(0) },
     { id: 'app.settings', label: 'Settings…', group: 'App', icon: 'sliders', aliases: ['preferences', 'options'],
-      shortcut: { mac: 'Cmd+,', win: null }, menu: { menu: 'App' }, run: () => openSettings($('#btn-settings')) },
+      shortcut: 'CmdOrCtrl+,', menu: { menu: 'App' }, run: () => openSettings() },
     { id: 'app.shortcuts', label: 'Keyboard shortcuts', group: 'App', icon: 'keyboard', aliases: ['keys', 'help', '?'],
       menu: { menu: 'Help' }, run: () => HangarPalette.openShortcuts() },
     { id: 'app.report-bug', label: 'Report a bug', group: 'App', icon: 'bug', aliases: ['issue', 'problem', 'broken'],

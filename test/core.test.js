@@ -344,3 +344,14 @@ test('session: a startup dialog (folder trust) needs you, but the session stays 
   s.onStatusline({ model: { display_name: 'Opus' } });
   assert.equal(s.snapshot().booting, false);
 });
+
+test('agents: each one reports its own current tool, not another agent\'s', () => {
+  const s = new Session({ id: 't', name: 'x', cwd: '/tmp' });
+  s.onHook({ hook_event_name: 'UserPromptSubmit', prompt: 'go' });
+  s.onHook({ hook_event_name: 'SubagentStart', agent_id: 'a1', agent_type: 'general-purpose' });
+  s.onHook({ hook_event_name: 'SubagentStart', agent_id: 'a2', agent_type: 'general-purpose' });
+  s.onHook({ hook_event_name: 'PreToolUse', agent_id: 'a1', tool_name: 'Edit', tool_input: { file_path: 'src/cart.js' } });
+  const by = Object.fromEntries(s.snapshot().agents.map((a) => [a.id, a.doing]));
+  assert.equal(by.a1, 'Editing cart.js');
+  assert.equal(by.a2, null);
+});

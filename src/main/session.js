@@ -273,6 +273,8 @@ class Session {
         this.setStatus('working');
         break;
       case 'PreToolUse': {
+        const sub = agent && this.agents.get(agent);
+        if (sub && hook.tool_name) (sub.doing ||= new Doing()).tool(hook.tool_name, hook.tool_input);
         // A guard mode stops the tool for real. Nothing is returned otherwise, so no tokens.
         const reason = guards.check(this.guard(), modes.get(this.mode)?.name, hook.tool_name, hook.tool_input || {});
         if (reason) return guards.denyBody(reason);
@@ -428,6 +430,7 @@ class Session {
           } catch {}
         }
         if (a.reader.poll()) changed = true;
+        if (a.running) { try { a.lastAt = fs.statSync(file).mtimeMs; } catch {} }
       }
     }
 
@@ -467,6 +470,8 @@ class Session {
         id, type: a.type, desc: a.desc, running: a.running,
         startedAt: a.startedAt, endedAt: a.endedAt,
         context: a.reader?.contextTokens || 0, output: a.reader?.outputTokens || 0,
+        doing: a.running && a.doing ? a.doing.get(true, now) : null,
+        quiet: a.running && a.lastAt ? Math.max(0, now - a.lastAt) : 0,
       }));
     const snap = {
       id: this.id, name: this.name, cwd: this.cwd, sessionId: this.sessionId,

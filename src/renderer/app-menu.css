@@ -30,5 +30,8 @@
 .am-col { min-width: 0; }
 @media (max-width: 900px) { .am-sub.am-cols { width: 290px; grid-template-columns: 1fr; } }
 .am-sub .sep + .am-h { padding-top: 2px; }
-#btn-menu[aria-expanded="true"] { background: var(--panel); border-color: #333844; }
-@media (prefers-color-scheme: light) { #btn-menu[aria-expanded="true"] { border-color: #c6ccd6; } }
+#btn-menu[aria-expanded="true"] { background: var(--panel); border-color: var(--line-strong); }
+
+/* Flyouts are one short column. A long theme list scrolls rather than growing past the window. */
+.am-sub { width: 270px; overflow-y: auto; }
+.am-themes { width: 220px; }

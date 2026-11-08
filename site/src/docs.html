@@ -52,6 +52,7 @@
         <li><a href="#overseer">Overseer</a></li>
         <li><a href="#budgets">Time budgets</a></li>
         <li><a href="#fresh">Fresh start</a></li>
+        <li><a href="#themes">Themes</a></li>
         <li><a href="#usage">Usage</a></li>
         <li><a href="#privacy">Privacy and tokens</a></li>
         <li><a href="#faq">FAQ</a></li>
@@ -94,7 +95,7 @@
       <li><strong>Arrange:</strong> drag a tile by its header onto another to swap them. Drag the gap between tiles to resize; that size holds (a lock shows) until you click the lock or double-click the edge. Pin a session to keep it big on the left.</li>
       <li><strong>Name and colour:</strong> double-click a name, or press <kbd>⇧⌘R</kbd>.</li>
       <li><strong>At a glance:</strong> a quiet line with the latest step ("Editing routes.ts"), the git branch with a dot for uncommitted changes, and a read-only peek at the changed files. If two sessions edit the same file, both tiles say so.</li>
-      <li><strong>Agents:</strong> subagents show as chips under the header with their job, run time and tokens.</li>
+      <li><strong>Agents:</strong> running subagents show as chips under the header with their job and run time. Click the row for what each one is doing, its tokens, and the finished ones.</li>
       <li><strong>Clean view:</strong> the speech-bubble icon (<kbd>⇧⌘L</kbd>) flips a tile to a tidy chat. Tool calls fold into one line you can open. What you type goes into the same session, and permission menus switch back to the terminal by themselves.</li>
       <li><strong>History and branches:</strong> the tile menu lists past conversations in that folder, so you can resume one. <strong>Branch</strong> forks the conversation into a second tile (it re-reads the context once, so it costs tokens). <strong>Own branch</strong> on New starts a session in its own git worktree.</li>
     </ul>
@@ -171,6 +172,10 @@
     <h2 id="fresh">Fresh start</h2>
     <p>When a session's context gets full, the tile offers <strong>Fresh start</strong> (from 60% context). It's also in the tile menu and the palette. Claude writes a handover, the context is cleared, and the session carries on from the handover. If Claude is busy, it waits for the turn to end.</p>
     <p>Writing the handover costs a turn's worth of tokens. Everything after it starts from a much smaller context.</p>
+
+    <h2 id="themes">Themes</h2>
+    <p>Open Settings with <kbd>Ctrl+,</kbd> (<kbd>⌘,</kbd> on Mac), or pick a theme from the menu. A theme colours the whole app and the inside of every terminal.</p>
+    <p>To make your own, choose <strong>Create with Claude</strong> and describe the look. Each message is one small Claude Code request, about 1,800 tokens on Haiku, using your own login. You can also set every colour by hand under <strong>Colours</strong>, try a theme on the whole app before saving, and export it as a file to share.</p>
 
     <h2 id="usage">Usage</h2>
     <p>The top bar shows your plan's 5-hour and weekly usage. Click it (<kbd>⇧⌘Y</kbd>) for when each limit resets, what every open session has used, and a chart of tokens per day and per project.</p>

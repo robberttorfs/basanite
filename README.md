@@ -29,7 +29,8 @@ Each tile is the real `claude` command in a real terminal, with your own login, 
 - **Usage.** Your plan's 5-hour and weekly limits, per-session cost, and a 14-day history (costs are estimates at API prices).
 - **History.** Search a folder's past conversations and resume one in a tile, or branch a session into a second tile.
 - **Terminals too.** A plain shell tile, and if you run `claude` in it, it becomes a full session.
-- **Light, dark or system**, high contrast, reduced motion, and a compact density.
+- **Themes.** Twelve built in, or make your own: describe the look to Claude and watch it change live, or set every colour by hand, including the inside of the terminal. Share themes as files.
+- **Settings** in one searchable place. High contrast, reduced motion, compact density, terminal font and cursor.
 
 ## Install
 
@@ -98,5 +99,7 @@ Tagged pushes (`v*`) build every platform in GitHub Actions and attach the files
 ## Licence
 
 MIT. See [LICENSE](LICENSE). The name and logo are not covered by the licence.
+
+The Nord, Dracula, Gruvbox, Solarized, Tokyo Night and Catppuccin colour palettes are by their respective authors, used under their MIT licences.
 
 Not made by or affiliated with Anthropic.
