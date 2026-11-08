@@ -418,10 +418,10 @@ const HangarViewer = (() => {
    * real line breaks and an indent, so a line that reaches the edge counts as continuing.
    * A wrong join is harmless: a path only becomes a link if that file exists.
    */
-  function textAround(term, y) {
+  function textAround(term, y, edge = 6) {
     const b = term.buffer.active;
     const raw = (n) => b.getLine(n - 1)?.translateToString(true) ?? '';
-    const reachesEdge = (n) => raw(n).length >= term.cols - 6 && !/\s$/.test(raw(n));
+    const reachesEdge = (n) => raw(n).length >= term.cols - edge && !/\s$/.test(raw(n));
     const joins = (n) => !!b.getLine(n - 1)?.isWrapped || reachesEdge(n - 1);   // line n continues line n-1
     let top = y;
     while (y - top < 4 && top > 1 && joins(top)) top--;
@@ -461,6 +461,25 @@ const HangarViewer = (() => {
     return out;
   }
 
+  // Web addresses, and localhost with a port even without http://.
+  const URL_RE = /\bhttps?:\/\/[^\s"'<>\x60]+|(?<![\w./-])(?:localhost|127\.0\.0\.1):\d{2,5}(?:\/[^\s"'<>\x60]*)?/gi;
+  /** Web addresses touching line y. No file check can catch a wrong join here, so only a line truly at the edge continues. */
+  function urlsOn(term, y) {
+    const { text, segs } = textAround(term, y, 1);
+    const out = [];
+    URL_RE.lastIndex = 0;
+    let m;
+    while ((m = URL_RE.exec(text)) && out.length < 12) {
+      let raw = m[0].replace(/[.,;:!?'"*_\]]+$/, '');
+      // A closing bracket belongs to the address only if it also opens one.
+      while (raw.endsWith(')') && (raw.match(/\)/g).length > (raw.match(/\(/g) || []).length)) raw = raw.slice(0, -1).replace(/[.,;:!?]+$/, '');
+      const start = cellAt(segs, m.index);
+      const end = cellAt(segs, m.index + raw.length - 1);
+      if (start.y <= y && end.y >= y) out.push({ raw, range: { start, end }, url: /^https?:/i.test(raw) ? raw : `http://${raw}` });
+    }
+    return out;
+  }
+
   const before = (a, b) => a.y < b.y || (a.y === b.y && a.x <= b.x);
   const overlaps = (a, b) => before(a.start, b.end) && before(b.start, a.end);
 
@@ -473,21 +492,30 @@ const HangarViewer = (() => {
         const joined = textAround(term, y);
         const single = { text: line.translateToString(true), segs: [{ n: y, skip: 0, start: 0 }] };
         const found = [...candidates(joined, y), ...(joined.segs.length > 1 ? candidates(single, y) : [])];
-        if (!found.length) return done(undefined);
+        const urls = urlsOn(term, y);
+        const web = urls.map((u) => ({
+          text: u.raw,
+          range: u.range,
+          decorations: { underline: true, pointerCursor: true },
+          activate: () => window.open(u.url),
+        }));
+        if (!found.length) return done(web.length ? web : undefined);
         const dir = getCwd();
         resolveAll([...new Set(found.map((f) => f.raw))], dir, tileId).then((infos) => {
-          const picked = [];
+          const picked = urls.map((u) => ({ range: u.range }));   // a web address wins over a path inside it
+          const skip = picked.length;
           // The longest real file wins where pieces overlap.
           for (const f of found.filter((c) => infos[c.raw]).sort((a, b) => b.len - a.len)) {
             if (!picked.some((p) => overlaps(p.range, f.range))) picked.push(f);
           }
-          done(picked.length ? picked.map((f) => ({
+          const links = [...web, ...picked.slice(skip).map((f) => ({
             text: f.raw,
             range: f.range,
             decorations: { underline: true, pointerCursor: true },
             activate: () => open(infos[f.raw], { cwd: dir }),
-          })) : undefined);
-        }).catch(() => done(undefined));
+          }))];
+          done(links.length ? links : undefined);
+        }).catch(() => done(web.length ? web : undefined));
       },
     });
   }
