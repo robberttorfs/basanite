@@ -116,6 +116,34 @@ function termLook(bg) {
   return window.HangarLook ? HangarLook.term(out, bg) : out;  // light theme swaps the palette
 }
 
+/**
+ * Selecting with the mouse copies, as in Windows Terminal. The message stays as long
+ * as the selection does and goes with it (a click, typing, new output clearing it).
+ */
+function copyOnSelect(term, container) {
+  const note = h('div', 'term-copied');
+  note.setAttribute('role', 'status');
+  note.hidden = true;
+  container.appendChild(note);
+  let selecting = false;
+  container.addEventListener('mousedown', (e) => { if (e.button === 0) selecting = true; }, true);
+  window.addEventListener('mouseup', () => {
+    if (!selecting) return;
+    selecting = false;
+    // xterm finishes the selection in its own mouseup.
+    setTimeout(() => {
+      const text = term.hasSelection() ? term.getSelection() : '';
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        if (!term.hasSelection()) return;
+        note.textContent = `Copied ${text.length} character${text.length === 1 ? '' : 's'}`;
+        note.hidden = false;
+      }).catch(() => {});
+    }, 0);
+  });
+  term.onSelectionChange(() => { if (!term.hasSelection()) note.hidden = true; });
+}
+
 function makeTerm(container, onInput, onResize, bg) {
   const term = new Terminal({
     fontFamily: isMac ? '"SF Mono", Menlo, monospace' : 'Consolas, "Cascadia Mono", "Courier New", monospace',
@@ -157,6 +185,7 @@ function makeTerm(container, onInput, onResize, bg) {
     return true;
   });
   term.onData(onInput);
+  copyOnSelect(term, container);
   // Pasting a picture or a copied file: hand Claude Code its path, which it turns into an attachment.
   container.addEventListener('paste', (e) => {
     const files = [...(e.clipboardData?.files || [])];
@@ -239,7 +268,7 @@ function createTile(snap) {
   const t = makeTerm($('.term', el), (d) => hangar.input(snap.id, d), (c, r) => hangar.resize(snap.id, c, r));
   const tile = { el, ...t, snap, handles: makeHandles(snap.id), chat: null };
   tiles.set(snap.id, tile);
-  window.HangarViewer?.attachTerm(t.term, () => tile.snap.cwd);
+  window.HangarViewer?.attachTerm(t.term, () => tile.snap.cwd, snap.id);
   if (snap.kind !== 'shell' && viewPref(snap.id)) setView(snap.id, true, tile);
 
   el.addEventListener('mousedown', () => setFocus(snap.id, false), true);

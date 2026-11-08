@@ -20,11 +20,13 @@ function register({ ipcMain, shell, protocol, find, send }) {
     return p ? withUrl(files.info(p)) : null;
   });
   // Several at once (a terminal line, a reply): raw -> info or null.
-  ipcMain.handle('file:resolve-many', (_e, list, cwd) => {
+  ipcMain.handle('file:resolve-many', (_e, list, cwd, tileId) => {
+    const known = find(tileId)?.files;
     const out = {};
     for (const raw of (Array.isArray(list) ? list : []).slice(0, 40)) {
       const p = files.clean(raw, cwd);
-      out[raw] = p ? withUrl(files.info(p)) : null;
+      // A bare name the session worked on somewhere below its start folder.
+      out[raw] = withUrl((p && files.info(p)) || (known && known.match(raw)) || null);
     }
     return out;
   });

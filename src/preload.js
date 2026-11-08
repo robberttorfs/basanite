@@ -18,7 +18,7 @@ contextBridge.exposeInMainWorld('hangar', {
   saveImage: (bytes, type) => ipcRenderer.invoke('image:save', { bytes, type }),
   // File viewer
   fileResolve: (raw, cwd) => ipcRenderer.invoke('file:resolve', raw, cwd),
-  fileResolveMany: (list, cwd) => ipcRenderer.invoke('file:resolve-many', list, cwd),
+  fileResolveMany: (list, cwd, tileId) => ipcRenderer.invoke('file:resolve-many', list, cwd, tileId),
   fileRead: (p) => ipcRenderer.invoke('file:read', p),
   filesList: (id) => ipcRenderer.invoke('files:list', id),
   fileWatch: (p) => ipcRenderer.send('file:watch', p || null),

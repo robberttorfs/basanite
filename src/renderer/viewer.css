@@ -1,5 +1,9 @@
-/* The file viewer. Same surface as a tile, over the sessions. */
-.viewer { display: none; position: absolute; inset: 0; z-index: 40; flex-direction: column; background: var(--tile); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+/* The file viewer. Same surface as a tile, in a panel beside the sessions. */
+.viewer { display: none; position: relative; flex: 0 0 var(--viewer-w, 46%); min-width: 0; margin: 8px 8px 8px 0; flex-direction: column; background: var(--tile); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+body.viewer-full .viewer { position: absolute; inset: 8px; margin: 0; z-index: 40; }
+.vgrip { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; z-index: 2; cursor: col-resize; }
+body.viewer-full .vgrip { display: none; }
+body.resizing .viewer iframe, body.resizing .viewer video { pointer-events: none; }
 body.viewing .viewer { display: flex; animation: viewer-in .1s linear; }
 @keyframes viewer-in { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { body.viewing .viewer { animation: none; } }
@@ -7,7 +11,7 @@ body.viewing .viewer { display: flex; animation: viewer-in .1s linear; }
 
 .vbar { display: flex; align-items: center; gap: 4px; height: 38px; flex: none; padding: 0 6px 0 12px; border-bottom: 1px solid var(--line-soft); }
 .vnav { display: inline-flex; margin: 0 6px 0 -6px; }
-.vname { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; min-width: 40px; }
+.vname { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 0 auto; max-width: 55%; }
 .vdir { color: var(--faint); font-size: 12px; margin-left: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: rtl; text-align: left; flex: 0 3 auto; min-width: 0; user-select: text; }
 .vseg { display: inline-flex; flex: none; gap: 2px; margin-right: 6px; }
 .vs { height: 24px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; }
@@ -66,3 +70,6 @@ body.viewing .viewer { display: flex; animation: viewer-in .1s linear; }
 /* While an update installs */
 .update-cover { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--muted); }
 .vpic { max-width: 100%; border-radius: 6px; display: block; margin: 6px 0; }
+
+/* Copied by selecting in a terminal */
+.term-copied { position: absolute; right: 10px; bottom: 8px; z-index: 12; padding: 3px 9px; border-radius: 7px; border: 1px solid var(--line); background: var(--pop); color: var(--muted); font-size: 12px; pointer-events: none; }

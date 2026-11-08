@@ -195,6 +195,13 @@ class FileList {
     for (const m of list) if (info(m.path)) changed = this.add(m.path, 'Mentioned', m.at) || changed;
     return changed;
   }
+  /** The newest listed file whose path ends with this relative name, or null. */
+  match(raw) {
+    const tail = String(raw).replace(/:\d+(:\d+)?$/, '').replace(/^\.[\\/]/, '').replace(/\\/g, '/').toLowerCase();
+    if (!tail || /^([a-z]:)?\//.test(tail)) return null;
+    const hit = this.items.find((x) => { const p = x.path.replace(/\\/g, '/').toLowerCase(); return p === tail || p.endsWith(`/${tail}`); });
+    return hit ? info(hit.path) : null;
+  }
   /** For the viewer: what still exists, with its kind. */
   list() {
     return this.items.map((x) => { const i = info(x.path); return i && { ...i, verb: x.verb, at: x.at }; }).filter(Boolean);

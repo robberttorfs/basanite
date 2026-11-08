@@ -2,7 +2,8 @@
 /* exported HangarViewer */
 'use strict';
 
-// The file viewer: a file a session made or mentioned, shown over the sessions.
+// The file viewer: a file a session made or mentioned, in a panel beside the sessions
+// (one button makes it full size).
 // Pictures, markdown, HTML pages (sandboxed), PDF, video, audio and text; anything
 // else gets Open and Show in folder. It follows the file as it changes on disk.
 // Ways in: a path in a terminal or the clean view, the Files list in a session's
@@ -15,6 +16,8 @@ const HangarViewer = (() => {
     open: '<svg viewBox="0 0 16 16"><path d="M9 2.5h4.5V7M13.5 2.5L7.5 8.5M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3"/></svg>',
     folder: '<svg viewBox="0 0 16 16"><path d="M2.5 4.5a1 1 0 0 1 1-1h3l1.5 1.5h4.5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1z"/></svg>',
     close: '<svg viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>',
+    full: '<svg viewBox="0 0 16 16"><path d="M9.5 2.5h4v4M13.5 2.5L9 7M6.5 13.5h-4v-4M2.5 13.5L7 9"/></svg>',
+    dock: '<svg viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="M9 3v10"/></svg>',
     file: '<svg viewBox="0 0 16 16"><path d="M4 2.5h5l3 3v8H4z"/><path d="M9 2.5v3h3"/></svg>',
     image: '<svg viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><circle cx="6" cy="6.5" r="1.1"/><path d="M3 12l3.5-3.5 2.5 2.5 1.5-1.5 2.5 2.5"/></svg>',
     page: '<svg viewBox="0 0 16 16"><path d="M4 2.5h5l3 3v8H4z"/><path d="M6 8.5h4M6 11h4"/></svg>',
@@ -29,6 +32,7 @@ const HangarViewer = (() => {
   let mode = null;        // markdown/html: 'view' | 'source'; image: 'fit' | 'full'
   let lastFocus = null;
   let offChange = null;
+  let full = false;       // the viewer's full-size choice, remembered
 
   const size = (n) => (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(n < 10240 ? 1 : 0)} KB` : `${(n / 1048576).toFixed(1)} MB`);
 
@@ -37,13 +41,14 @@ const HangarViewer = (() => {
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-label', 'File');
     el.tabIndex = -1;
-    el.innerHTML = `<div class="vbar">
+    el.innerHTML = `<div class="vgrip" aria-hidden="true"></div><div class="vbar">
         <span class="vnav"><button class="hbtn vprev" aria-label="Previous file" title="Previous (←)">${IC.prev}</button><button class="hbtn vnext" aria-label="Next file" title="Next (→)">${IC.next}</button></span>
         <span class="vname"></span><span class="vdir"></span>
         <span class="grow"></span>
         <span class="vseg" role="group"></span>
         <button class="hbtn vopen" aria-label="Open in its app" title="Open in its app">${IC.open}</button>
         <button class="hbtn vreveal" aria-label="Show in folder" title="Show in folder">${IC.folder}</button>
+        <button class="hbtn vsize"></button>
         <button class="hbtn vclose" aria-label="Close" title="Close (Esc)">${IC.close}</button>
       </div><div class="vbody"></div>`;
     el.querySelector('.vprev').onclick = () => step(-1);
@@ -51,21 +56,70 @@ const HangarViewer = (() => {
     el.querySelector('.vopen').onclick = () => cur && hangar.fileOpen(cur.path);
     el.querySelector('.vreveal').onclick = () => cur && hangar.fileReveal(cur.path);
     el.querySelector('.vclose').onclick = close;
+    el.querySelector('.vsize').onclick = () => { full = !full; store('viewerFull', full ? '1' : ''); applySize(); };
+    grip(el.querySelector('.vgrip'));
     el.querySelector('.vbody').addEventListener('click', (e) => {
       if (onFeedClick(e, cur?.dir)) return;
       const a = e.target.closest('a[href]');
       if (a) { e.preventDefault(); window.open(a.href); }
     });
     window.addEventListener('keydown', (e) => {
-      if (!isOpen() || document.getElementById('layer').classList.contains('open')) return;
+      // Only while the panel has the keyboard: beside a session, Esc still belongs to the session.
+      if (!isOpen() || document.getElementById('layer').classList.contains('open') || !hasKeys()) return;
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); return; }
       const media = e.target.closest?.('video, audio, iframe');
       if (!media && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && list.length > 1) {
         e.preventDefault(); e.stopPropagation(); step(e.key === 'ArrowLeft' ? -1 : 1);
       }
     }, true);
-    document.getElementById('stage').appendChild(el);
+    document.getElementById('main').insertBefore(el, document.getElementById('overseer'));
+    const w = Number(load('viewerWidth'));
+    if (w) el.style.setProperty('--viewer-w', `${w}px`);
+    full = load('viewerFull') === '1';
     offChange = hangar.onFileChanged(({ path, info }) => { if (cur && path === cur.path) { if (info) { cur = info; draw(true); } else drawMissing(cur.path); } });
+  }
+
+  const load = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+  const store = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+  const hasKeys = () => el.contains(document.activeElement) || document.activeElement === document.body;
+  const relayout = () => { if (typeof layout === 'function') layout(true); };
+
+  /** Beside the sessions, or full size (always full size when there is no room). */
+  function applySize() {
+    const big = full || window.innerWidth < 1000;
+    document.body.classList.toggle('viewer-full', big);
+    const b = el.querySelector('.vsize');
+    b.innerHTML = big ? IC.dock : IC.full;
+    b.title = big ? 'Beside sessions' : 'Full size';
+    b.setAttribute('aria-label', b.title);
+    b.hidden = window.innerWidth < 1000;
+    relayout();
+  }
+
+  /** Drag the panel's left edge. The sessions refit once when the drag ends. */
+  function grip(g) {
+    g.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      g.setPointerCapture(e.pointerId);
+      document.body.classList.add('resizing', 'resizing-x');
+      const main = document.getElementById('main').getBoundingClientRect();
+      const ov = document.getElementById('overseer').getBoundingClientRect().width;
+      const move = (ev) => {
+        const w = Math.max(320, Math.min(main.width - ov - 380, main.right - ov - 8 - ev.clientX));
+        el.style.setProperty('--viewer-w', `${Math.round(w)}px`);
+        relayout();
+      };
+      const up = () => {
+        g.removeEventListener('pointermove', move);
+        document.body.classList.remove('resizing', 'resizing-x');
+        store('viewerWidth', String(parseInt(el.style.getPropertyValue('--viewer-w'), 10) || ''));
+        relayout();
+      };
+      g.addEventListener('pointermove', move);
+      g.addEventListener('pointerup', up, { once: true });
+      g.addEventListener('pointercancel', up, { once: true });
+    });
+    window.addEventListener('resize', () => { if (isOpen()) applySize(); });
   }
 
   function step(d) {
@@ -84,6 +138,7 @@ const HangarViewer = (() => {
     if (!el) build();
     if (!document.body.classList.contains('viewing')) lastFocus = document.activeElement;
     document.body.classList.add('viewing');
+    applySize();
     if (!info) { drawMissing(target?.raw || ''); el.focus(); return; }
     if (!list.some((f) => f.path === info.path)) list = list.length ? [info, ...list] : [info];
     show(info);
@@ -192,12 +247,14 @@ const HangarViewer = (() => {
 
   function close() {
     if (!el || !document.body.classList.contains('viewing')) return;
-    document.body.classList.remove('viewing');
+    const had = hasKeys();
+    document.body.classList.remove('viewing', 'viewer-full');
+    relayout();
     hangar.fileWatch(null);
     const body = el.querySelector('.vbody');
     body.innerHTML = '';   // stops media and pages
     cur = null;
-    try { lastFocus?.focus?.({ preventScroll: true }); } catch {}
+    if (had) try { lastFocus?.focus?.({ preventScroll: true }); } catch {}
     lastFocus = null;
   }
 
@@ -235,48 +292,100 @@ const HangarViewer = (() => {
   const EXT = 'png|jpe?g|gif|webp|bmp|ico|avif|svg|md|markdown|mdx|html?|pdf|mp4|webm|mov|m4v|mp3|wav|ogg|m4a|flac|txt|log|json|jsonl|csv|tsv|ya?ml|toml|xml|diff|patch|js|mjs|cjs|ts|tsx|jsx|py|rb|go|rs|java|kt|swift|c|h|cpp|hpp|cs|css|scss|sh|ps1|sql|lua|php|vue|svelte';
   // Absolute (C:\x, /x, ~/x), relative with a folder (src/a.js, ./a.png), or a bare name with a known extension.
   const PATH_RE = new RegExp(String.raw`(?:[A-Za-z]:[\\/]|~[\\/]|\.{1,2}[\\/]|/)?(?:[\w.@+-]+[\\/])*[\w.@+-]+\.(?:${EXT})(?::\d+(?::\d+)?)?(?![\w/\\])`, 'gi');
+  // An absolute path that may hold spaces runs up to the first known extension.
+  const SPACED_RE = new RegExp(String.raw`(?:[A-Za-z]:[\\/]|(?<![\w.])(?:~[\\/]|/))[^\n"'\x60<>|*?]*?\.(?:${EXT})(?![\w])`, 'gi');
   const cache = new Map();   // cwd|raw -> { at, info }
 
-  async function resolveAll(raws, dir) {
+  async function resolveAll(raws, dir, tileId) {
     const need = [];
     const out = {};
     const now = Date.now();
     for (const r of raws) {
-      const c = cache.get(`${dir}|${r}`);
+      const c = cache.get(`${tileId || dir}|${r}`);
       if (c && now - c.at < 5000) out[r] = c.info; else need.push(r);
     }
     if (need.length) {
-      const got = await hangar.fileResolveMany(need, dir);
-      for (const r of need) { out[r] = got[r] || null; cache.set(`${dir}|${r}`, { at: now, info: out[r] }); }
+      const got = await hangar.fileResolveMany(need, dir, tileId);
+      for (const r of need) { out[r] = got[r] || null; cache.set(`${tileId || dir}|${r}`, { at: now, info: out[r] }); }
       if (cache.size > 500) cache.clear();
     }
     return out;
   }
 
+  /**
+   * The lines around y that belong together. Claude Code breaks long lines itself with
+   * real line breaks and an indent, so a line that reaches the edge counts as continuing.
+   * A wrong join is harmless: a path only becomes a link if that file exists.
+   */
+  function textAround(term, y) {
+    const b = term.buffer.active;
+    const raw = (n) => b.getLine(n - 1)?.translateToString(true) ?? '';
+    const reachesEdge = (n) => raw(n).length >= term.cols - 6 && !/\s$/.test(raw(n));
+    const joins = (n) => !!b.getLine(n - 1)?.isWrapped || reachesEdge(n - 1);   // line n continues line n-1
+    let top = y;
+    while (y - top < 4 && top > 1 && joins(top)) top--;
+    let bottom = y;
+    while (bottom - y < 4 && bottom < b.length && raw(bottom + 1) && joins(bottom + 1)) bottom++;
+    let text = '';
+    const segs = [];
+    for (let n = top; n <= bottom; n++) {
+      const line = raw(n);
+      const skip = n === top ? 0 : line.length - line.trimStart().length;   // Claude Code indents its continuation lines
+      segs.push({ n, skip, start: text.length });
+      text += line.slice(skip);
+    }
+    return { text, segs };
+  }
+
+  const cellAt = (segs, i) => {
+    let s = segs[0];
+    for (const x of segs) if (x.start <= i) s = x;
+    return { x: i - s.start + s.skip + 1, y: s.n };
+  };
+
+  /** Path-like pieces of a text that touch line y: { raw, range, len }. */
+  function candidates({ text, segs }, y) {
+    const out = [];
+    for (const re of [PATH_RE, SPACED_RE]) {
+      re.lastIndex = 0;
+      let m;
+      while ((m = re.exec(text)) && out.length < 30) {
+        if (/:\/\/$/.test(text.slice(Math.max(0, m.index - 3), m.index)) || /^https?:/i.test(text.slice(Math.max(0, m.index - 6), m.index + 2))) continue;
+        const raw = m[0].trim();
+        const start = cellAt(segs, m.index);
+        const end = cellAt(segs, m.index + raw.length - 1);
+        if (start.y <= y && end.y >= y) out.push({ raw, range: { start, end }, len: raw.length });
+      }
+    }
+    return out;
+  }
+
+  const before = (a, b) => a.y < b.y || (a.y === b.y && a.x <= b.x);
+  const overlaps = (a, b) => before(a.start, b.end) && before(b.start, a.end);
+
   /** Paths in the session's terminal become links that open in the viewer. */
-  function attachTerm(term, getCwd) {
+  function attachTerm(term, getCwd, tileId) {
     term.registerLinkProvider({
       provideLinks(y, done) {
         const line = term.buffer.active.getLine(y - 1);
         if (!line) return done(undefined);
-        const text = line.translateToString(true);
-        const found = [];
-        PATH_RE.lastIndex = 0;
-        let m;
-        while ((m = PATH_RE.exec(text)) && found.length < 12) {
-          if (/^https?:|:\/\//.test(text.slice(Math.max(0, m.index - 8), m.index + 3))) continue;  // part of a URL
-          found.push({ raw: m[0], at: m.index });
-        }
+        const joined = textAround(term, y);
+        const single = { text: line.translateToString(true), segs: [{ n: y, skip: 0, start: 0 }] };
+        const found = [...candidates(joined, y), ...(joined.segs.length > 1 ? candidates(single, y) : [])];
         if (!found.length) return done(undefined);
         const dir = getCwd();
-        resolveAll([...new Set(found.map((f) => f.raw))], dir).then((infos) => {
-          const links = found.filter((f) => infos[f.raw]).map((f) => ({
+        resolveAll([...new Set(found.map((f) => f.raw))], dir, tileId).then((infos) => {
+          const picked = [];
+          // The longest real file wins where pieces overlap.
+          for (const f of found.filter((c) => infos[c.raw]).sort((a, b) => b.len - a.len)) {
+            if (!picked.some((p) => overlaps(p.range, f.range))) picked.push(f);
+          }
+          done(picked.length ? picked.map((f) => ({
             text: f.raw,
-            range: { start: { x: f.at + 1, y }, end: { x: f.at + f.raw.length, y } },
+            range: f.range,
             decorations: { underline: true, pointerCursor: true },
             activate: () => open(infos[f.raw], { cwd: dir }),
-          }));
-          done(links.length ? links : undefined);
+          })) : undefined);
         }).catch(() => done(undefined));
       },
     });
