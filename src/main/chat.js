@@ -63,6 +63,7 @@ class ChatFeed {
     this.offset = 0;
     this.partial = '';
     this.changed = new Map();  // items to send on the next flush
+    this.delivered = new Set(); // queued messages already shown
   }
 
   /** Follows the session to a new transcript (after /clear), keeping what came before. */
@@ -109,9 +110,18 @@ class ChatFeed {
     return out;
   }
 
+  /** A message you sent while Claude was working is stored as an attachment, not a user line. */
+  queued(a) {
+    if (a?.type !== 'queued_command' || a.commandMode !== 'prompt' || a.origin?.kind !== 'human') return;
+    if (a.delivery_id) { if (this.delivered.has(a.delivery_id)) return; this.delivered.add(a.delivery_id); }
+    const text = unwrapPasted(textOf(a.prompt)).replace(/\n*<system-reminder>[\s\S]*?<\/system-reminder>\n*/g, '').trim();
+    if (text && !text.startsWith('<')) this.push({ k: 'you', text });
+  }
+
   ingest(line) {
     let j;
     try { j = JSON.parse(line); } catch { return; }
+    if (j.type === 'attachment' && !j.isSidechain) { this.queued(j.attachment); return; }
     if (j.isSidechain || !j.message || (j.type !== 'user' && j.type !== 'assistant')) return;
     const content = j.message.content;
     if (j.type === 'assistant') {
