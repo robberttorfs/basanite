@@ -207,4 +207,26 @@ async function readNew(file, size, rec) {
   return rec.offset !== start;
 }
 
-module.exports = { Usage, costOf, ingest, dayOf, readNew, transcriptFiles };
+/**
+ * Sessions each report the limits from their own last request, so one can be a little behind
+ * another. Usage only rises within a window: keep the highest, and start over when a window resets.
+ */
+function mergeLimits(prev, next, now = Date.now()) {
+  if (!prev) return next;
+  const HOUR = 3600000;
+  const at = (r) => (r?.resets_at ? r.resets_at * (r.resets_at < 1e12 ? 1000 : 1) : 0);
+  const out = { ...prev };
+  for (const [key, b] of Object.entries(next || {})) {
+    const a = prev[key];
+    if (b?.used_percentage == null) continue;
+    const ta = at(a), tb = at(b);
+    if (a?.used_percentage == null) out[key] = b;
+    else if (tb > ta + HOUR && ta) out[key] = b;              // a new window
+    else if (ta && tb && tb < ta - HOUR) continue;            // a session still on the old one
+    else if (ta && !tb && ta <= now) out[key] = b;            // the window is over and this one has no date
+    else if (b.used_percentage >= a.used_percentage) out[key] = b;
+  }
+  return out;
+}
+
+module.exports = { mergeLimits, Usage, costOf, ingest, dayOf, readNew, transcriptFiles };

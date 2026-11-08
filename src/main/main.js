@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, Notification, Menu, shell, nativeTh
 const { execFile } = require('child_process');
 const look = require('./look');
 const themeStore = require('./themes');
+const { mergeLimits } = require('./usage');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -1229,7 +1230,7 @@ const serverHandlers = {
     const s = find(tileId);
     if (!s) return;
     s.onStatusline(body);
-    if (body?.rate_limits) rateLimits = body.rate_limits;
+    if (body?.rate_limits) rateLimits = mergeLimits(rateLimits, body.rate_limits);
     scheduleBroadcast();
     return statuslineText(body);
   },

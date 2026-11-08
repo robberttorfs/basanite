@@ -40,3 +40,28 @@ test('usage: subagent transcripts under <session>/subagents are scanned', async 
     assert.equal(r.total.messages, 2);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
+
+test('limits: a session that is behind never pulls the number back', () => {
+  const { mergeLimits } = require('../src/main/usage');
+  const w = (p, at = 2000000000) => ({ seven_day: { used_percentage: p, resets_at: at } });
+  let cur = mergeLimits(null, w(69.4));
+  for (const p of [70.1, 69.4, 70.1, 69.4]) cur = mergeLimits(cur, w(p));
+  assert.equal(cur.seven_day.used_percentage, 70.1);
+});
+
+test('limits: a new window starts over, and an old one cannot come back', () => {
+  const { mergeLimits } = require('../src/main/usage');
+  const w = (p, at) => ({ seven_day: { used_percentage: p, resets_at: at } });
+  let cur = mergeLimits(w(90, 2000000000), w(3, 2000604800));
+  assert.equal(cur.seven_day.used_percentage, 3);
+  cur = mergeLimits(cur, w(90, 2000000000));
+  assert.equal(cur.seven_day.used_percentage, 3);
+});
+
+test('limits: a report with only one window keeps the other', () => {
+  const { mergeLimits } = require('../src/main/usage');
+  const prev = { five_hour: { used_percentage: 20, resets_at: 2000000000 }, seven_day: { used_percentage: 70, resets_at: 2000000000 } };
+  const cur = mergeLimits(prev, { five_hour: { used_percentage: 21, resets_at: 2000000000 } });
+  assert.equal(cur.five_hour.used_percentage, 21);
+  assert.equal(cur.seven_day.used_percentage, 70);
+});
