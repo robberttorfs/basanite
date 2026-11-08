@@ -239,6 +239,7 @@ function createTile(snap) {
   const t = makeTerm($('.term', el), (d) => hangar.input(snap.id, d), (c, r) => hangar.resize(snap.id, c, r));
   const tile = { el, ...t, snap, handles: makeHandles(snap.id), chat: null };
   tiles.set(snap.id, tile);
+  window.HangarViewer?.attachTerm(t.term, () => tile.snap.cwd);
   if (snap.kind !== 'shell' && viewPref(snap.id)) setView(snap.id, true, tile);
 
   el.addEventListener('mousedown', () => setFocus(snap.id, false), true);
@@ -371,6 +372,7 @@ function setView(id, on, tile = tiles.get(id)) {
       send: (text, files) => whenReady(id, () => typeMessage((d) => hangar.input(id, d), text, files)),
       answer: (question, picks) => hangar.askAnswer(id, question, picks),
       takeFiles: pastedFiles,
+      fileDir: () => tile.snap.cwd,
       interrupt: () => hangar.input(id, '\x1b'),
       empty: '',
     });
@@ -936,6 +938,7 @@ function openMore(id, anchorEl) {
     ...(shell || snap.status === 'exited' ? [] : [{ label: 'Fresh start…', run: () => openFresh(id) }]),
     ...(shell || snap.status === 'exited' || !asks ? [] : [{ label: snap.snoozed ? 'Glow again' : 'Snooze…', run: () => (snap.snoozed ? hangar.snooze(id, 'off') : window.HangarOverview?.snoozeMenu(id)) }]),
     ...(snap.status === 'exited' ? [{ label: shell ? 'Reopen' : snap.sessionId ? 'Resume' : 'Restart', run: () => hangar.restart(id) }] : []),
+    ...(!shell && snap.files ? [{ label: 'Files', run: () => window.HangarViewer?.filesMenu(id, anchorEl) }] : []),
     null,
     ...extra.items,
     null,

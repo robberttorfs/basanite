@@ -128,7 +128,8 @@ class ChatFeed {
           if (c.id) this.byTool.set(c.id, it);
         } else if (c.type === 'tool_use') {
           const t = toolTitle(c.name || 'Tool', c.input || {});
-          const it = this.push({ k: 'tool', name: c.name, verb: t.verb, obj: t.obj, detail: toolDetail(c.name, c.input || {}), done: false });
+          const fp = c.input && (c.input.file_path || c.input.notebook_path);
+          const it = this.push({ k: 'tool', name: c.name, verb: t.verb, obj: t.obj, file: typeof fp === 'string' ? fp : undefined, detail: toolDetail(c.name, c.input || {}), done: false });
           if (c.id) this.byTool.set(c.id, it);
         }
       }

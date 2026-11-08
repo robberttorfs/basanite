@@ -1,0 +1,323 @@
+/* global hangar, HangarChat, HangarCommands, openPop, closePop, h, esc, arrowNav, state, tiles */
+/* exported HangarViewer */
+'use strict';
+
+// The file viewer: a file a session made or mentioned, shown over the sessions.
+// Pictures, markdown, HTML pages (sandboxed), PDF, video, audio and text; anything
+// else gets Open and Show in folder. It follows the file as it changes on disk.
+// Ways in: a path in a terminal or the clean view, the Files list in a session's
+// ⋯ menu, and the palette.
+
+const HangarViewer = (() => {
+  const IC = {
+    prev: '<svg viewBox="0 0 16 16"><path d="M10 3.5L5.5 8l4.5 4.5"/></svg>',
+    next: '<svg viewBox="0 0 16 16"><path d="M6 3.5L10.5 8 6 12.5"/></svg>',
+    open: '<svg viewBox="0 0 16 16"><path d="M9 2.5h4.5V7M13.5 2.5L7.5 8.5M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3"/></svg>',
+    folder: '<svg viewBox="0 0 16 16"><path d="M2.5 4.5a1 1 0 0 1 1-1h3l1.5 1.5h4.5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1z"/></svg>',
+    close: '<svg viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>',
+    file: '<svg viewBox="0 0 16 16"><path d="M4 2.5h5l3 3v8H4z"/><path d="M9 2.5v3h3"/></svg>',
+    image: '<svg viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><circle cx="6" cy="6.5" r="1.1"/><path d="M3 12l3.5-3.5 2.5 2.5 1.5-1.5 2.5 2.5"/></svg>',
+    page: '<svg viewBox="0 0 16 16"><path d="M4 2.5h5l3 3v8H4z"/><path d="M6 8.5h4M6 11h4"/></svg>',
+    play: '<svg viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="M7 6.2v3.6L10 8z"/></svg>',
+  };
+  const KIND_ICON = { image: IC.image, markdown: IC.page, html: IC.page, pdf: IC.page, text: IC.page, video: IC.play, audio: IC.play };
+
+  let el = null;          // the open viewer
+  let cur = null;         // info of the file on show
+  let list = [];          // files to step through with ← →
+  let cwd = null;
+  let mode = null;        // markdown/html: 'view' | 'source'; image: 'fit' | 'full'
+  let lastFocus = null;
+  let offChange = null;
+
+  const size = (n) => (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(n < 10240 ? 1 : 0)} KB` : `${(n / 1048576).toFixed(1)} MB`);
+
+  function build() {
+    el = h('div', 'viewer');
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-label', 'File');
+    el.tabIndex = -1;
+    el.innerHTML = `<div class="vbar">
+        <span class="vnav"><button class="hbtn vprev" aria-label="Previous file" title="Previous (←)">${IC.prev}</button><button class="hbtn vnext" aria-label="Next file" title="Next (→)">${IC.next}</button></span>
+        <span class="vname"></span><span class="vdir"></span>
+        <span class="grow"></span>
+        <span class="vseg" role="group"></span>
+        <button class="hbtn vopen" aria-label="Open in its app" title="Open in its app">${IC.open}</button>
+        <button class="hbtn vreveal" aria-label="Show in folder" title="Show in folder">${IC.folder}</button>
+        <button class="hbtn vclose" aria-label="Close" title="Close (Esc)">${IC.close}</button>
+      </div><div class="vbody"></div>`;
+    el.querySelector('.vprev').onclick = () => step(-1);
+    el.querySelector('.vnext').onclick = () => step(1);
+    el.querySelector('.vopen').onclick = () => cur && hangar.fileOpen(cur.path);
+    el.querySelector('.vreveal').onclick = () => cur && hangar.fileReveal(cur.path);
+    el.querySelector('.vclose').onclick = close;
+    el.querySelector('.vbody').addEventListener('click', (e) => {
+      if (onFeedClick(e, cur?.dir)) return;
+      const a = e.target.closest('a[href]');
+      if (a) { e.preventDefault(); window.open(a.href); }
+    });
+    window.addEventListener('keydown', (e) => {
+      if (!isOpen() || document.getElementById('layer').classList.contains('open')) return;
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); return; }
+      const media = e.target.closest?.('video, audio, iframe');
+      if (!media && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && list.length > 1) {
+        e.preventDefault(); e.stopPropagation(); step(e.key === 'ArrowLeft' ? -1 : 1);
+      }
+    }, true);
+    document.getElementById('stage').appendChild(el);
+    offChange = hangar.onFileChanged(({ path, info }) => { if (cur && path === cur.path) { if (info) { cur = info; draw(true); } else drawMissing(cur.path); } });
+  }
+
+  function step(d) {
+    if (!cur || list.length < 2) return;
+    const i = list.findIndex((f) => f.path === cur.path);
+    const next = list[(i + d + list.length) % list.length];
+    show(next);
+  }
+
+  /** Opens the viewer. target: a file info (from the main process) or { raw, cwd }. */
+  async function open(target, opts = {}) {
+    let info = target && target.url ? target : null;
+    cwd = opts.cwd ?? target?.cwd ?? cwd;
+    if (!info && target?.raw) info = await hangar.fileResolve(target.raw, cwd);
+    list = (opts.list || []).filter(Boolean);
+    if (!el) build();
+    if (!document.body.classList.contains('viewing')) lastFocus = document.activeElement;
+    document.body.classList.add('viewing');
+    if (!info) { drawMissing(target?.raw || ''); el.focus(); return; }
+    if (!list.some((f) => f.path === info.path)) list = list.length ? [info, ...list] : [info];
+    show(info);
+    el.focus({ preventScroll: true });
+  }
+
+  function show(info) {
+    cur = info;
+    mode = info.kind === 'image' ? 'fit' : (info.kind === 'markdown' || info.kind === 'html') ? 'view' : null;
+    hangar.fileWatch(info.path);
+    draw(false);
+  }
+
+  function header() {
+    el.querySelector('.vnav').hidden = list.length < 2;
+    el.querySelector('.vname').textContent = cur ? cur.name : '';
+    const dir = el.querySelector('.vdir');
+    dir.textContent = cur ? cur.dir : '';
+    dir.title = cur ? cur.path : '';
+    el.querySelector('.vopen').hidden = el.querySelector('.vreveal').hidden = !cur;
+    const seg = el.querySelector('.vseg');
+    const opts = !cur ? [] : cur.kind === 'image' ? [['fit', 'Fit'], ['full', '100%']]
+      : cur.kind === 'markdown' ? [['view', 'Preview'], ['source', 'Source']]
+      : cur.kind === 'html' ? [['view', 'Page'], ['source', 'Source']] : [];
+    seg.hidden = !opts.length;
+    seg.innerHTML = opts.map(([k, l]) => `<button class="vs${mode === k ? ' on' : ''}" data-m="${k}" aria-pressed="${mode === k}">${l}</button>`).join('');
+    seg.querySelectorAll('[data-m]').forEach((b) => { b.onclick = () => { mode = b.dataset.m; draw(false); }; });
+  }
+
+  /** Draws the file. keep: a reload of the same file (keeps the scroll position). */
+  async function draw(keep) {
+    const body = el.querySelector('.vbody');
+    const scroll = keep ? body.scrollTop : 0;
+    const i = cur;
+    header();
+    if (i.kind === 'image') {
+      body.className = `vbody vimg ${mode}`;
+      body.innerHTML = `<img src="${esc(i.url)}" alt="${esc(i.name)}" draggable="false">`;
+      const img = body.querySelector('img');
+      img.onclick = () => { mode = mode === 'fit' ? 'full' : 'fit'; draw(false); };
+      img.onerror = () => drawOther(body, i);
+    } else if (i.kind === 'video') {
+      body.className = 'vbody vmedia';
+      body.innerHTML = `<video controls src="${esc(i.url)}"></video>`;
+    } else if (i.kind === 'audio') {
+      body.className = 'vbody vmedia';
+      body.innerHTML = `<audio controls src="${esc(i.url)}"></audio>`;
+    } else if (i.kind === 'pdf') {
+      body.className = 'vbody vframe';
+      body.innerHTML = `<iframe src="${esc(i.url)}" title="${esc(i.name)}"></iframe>`;
+    } else if (i.kind === 'html' && mode === 'view') {
+      body.className = 'vbody vframe page';
+      // Scripts run, but the page gets its own opaque origin: no app, no other files.
+      body.innerHTML = `<iframe sandbox="allow-scripts allow-forms" src="${esc(i.url)}" title="${esc(i.name)}"></iframe>`;
+    } else if (i.kind === 'markdown' || i.kind === 'html' || i.kind === 'text') {
+      const r = await hangar.fileRead(i.path);
+      if (cur !== i) return;
+      if (!r) { drawOther(body, i); return; }
+      if (i.kind === 'markdown' && mode === 'view') {
+        body.className = 'vbody vdoc';
+        body.innerHTML = `<div class="msg vmd">${HangarChat.md(r.text, { headings: true })}</div>${r.cut ? '<div class="vcut">First 2 MB</div>' : ''}`;
+        linkFiles(body, i.dir);
+      } else {
+        body.className = 'vbody vtext';
+        body.innerHTML = `<pre>${esc(r.text)}</pre>${r.cut ? '<div class="vcut">First 2 MB</div>' : ''}`;
+      }
+    } else drawOther(body, i);
+    body.scrollTop = scroll;
+  }
+
+  function drawOther(body, i) {
+    body.className = 'vbody vother';
+    body.innerHTML = `<div class="vcard">${KIND_ICON[i.kind] || IC.file}<div class="vcn">${esc(i.name)}</div><div class="vcs">${size(i.size)}</div>
+      <div class="row"><button class="btn small primary" data-open>Open</button><button class="btn small" data-reveal>Show in folder</button></div></div>`;
+    body.querySelector('[data-open]').onclick = () => hangar.fileOpen(i.path);
+    body.querySelector('[data-reveal]').onclick = () => hangar.fileReveal(i.path);
+  }
+
+  function drawMissing(raw) {
+    cur = null;
+    list = [];
+    hangar.fileWatch(null);
+    header();
+    el.querySelector('.vname').textContent = String(raw).split(/[\\/]/).pop() || 'File';
+    const body = el.querySelector('.vbody');
+    body.className = 'vbody vother';
+    body.innerHTML = '<div class="vcard">' + IC.file + '<div class="vcn">Not found</div></div>';
+  }
+
+  /** In a rendered markdown file, local links open here (relative to that file) and pictures show. */
+  async function linkFiles(root, base) {
+    root.querySelectorAll('a[data-file]').forEach((a) => { a.dataset.cwd = base; });
+    const pics = [...root.querySelectorAll('a.pic[data-file]')];
+    if (!pics.length) return;
+    const infos = await resolveAll([...new Set(pics.map((a) => a.dataset.file))], base);
+    for (const a of pics) {
+      const i = infos[a.dataset.file];
+      if (i?.kind !== 'image' || !a.isConnected) continue;
+      const img = h('img');
+      img.src = i.url;
+      img.alt = a.textContent;
+      img.className = 'vpic';
+      a.replaceChildren(img);
+    }
+  }
+
+  function close() {
+    if (!el || !document.body.classList.contains('viewing')) return;
+    document.body.classList.remove('viewing');
+    hangar.fileWatch(null);
+    const body = el.querySelector('.vbody');
+    body.innerHTML = '';   // stops media and pages
+    cur = null;
+    try { lastFocus?.focus?.({ preventScroll: true }); } catch {}
+    lastFocus = null;
+  }
+
+  const isOpen = () => document.body.classList.contains('viewing');
+
+  // ---------- a session's files ----------
+
+  const ago = (t) => {
+    const s = Math.max(0, (Date.now() - t) / 1000);
+    return s < 60 ? 'now' : s < 3600 ? `${Math.floor(s / 60)}m` : s < 86400 ? `${Math.floor(s / 3600)}h` : `${Math.floor(s / 86400)}d`;
+  };
+
+  /** The Files list for a session, as a small menu by the anchor. */
+  async function filesMenu(id, anchorEl) {
+    const snap = state.tiles.find((t) => t.id === id);
+    if (!snap) return;
+    const items = await hangar.filesList(id);
+    const pop = h('div', 'pop menu files-menu');
+    pop.setAttribute('aria-label', 'Files');
+    if (!items.length) pop.innerHTML = '<div class="fm-empty">No files yet</div>';
+    for (const f of items) {
+      const b = h('button', 'item', `${KIND_ICON[f.kind] || IC.file}<span class="fm-n">${esc(f.name)}</span><span class="kb">${esc(ago(f.at))}</span>`);
+      b.title = f.path;
+      b.onclick = () => { closePop(); open(f, { list: items, cwd: snap.cwd }); };
+      pop.appendChild(b);
+    }
+    const anchor = anchorEl || tiles.get(id)?.el.querySelector('.more');
+    const nav = arrowNav(pop);
+    openPop(pop, anchor, { onKey: nav });
+    pop.querySelector('.item')?.focus();
+  }
+
+  // ---------- paths in a terminal ----------
+
+  const EXT = 'png|jpe?g|gif|webp|bmp|ico|avif|svg|md|markdown|mdx|html?|pdf|mp4|webm|mov|m4v|mp3|wav|ogg|m4a|flac|txt|log|json|jsonl|csv|tsv|ya?ml|toml|xml|diff|patch|js|mjs|cjs|ts|tsx|jsx|py|rb|go|rs|java|kt|swift|c|h|cpp|hpp|cs|css|scss|sh|ps1|sql|lua|php|vue|svelte';
+  // Absolute (C:\x, /x, ~/x), relative with a folder (src/a.js, ./a.png), or a bare name with a known extension.
+  const PATH_RE = new RegExp(String.raw`(?:[A-Za-z]:[\\/]|~[\\/]|\.{1,2}[\\/]|/)?(?:[\w.@+-]+[\\/])*[\w.@+-]+\.(?:${EXT})(?::\d+(?::\d+)?)?(?![\w/\\])`, 'gi');
+  const cache = new Map();   // cwd|raw -> { at, info }
+
+  async function resolveAll(raws, dir) {
+    const need = [];
+    const out = {};
+    const now = Date.now();
+    for (const r of raws) {
+      const c = cache.get(`${dir}|${r}`);
+      if (c && now - c.at < 5000) out[r] = c.info; else need.push(r);
+    }
+    if (need.length) {
+      const got = await hangar.fileResolveMany(need, dir);
+      for (const r of need) { out[r] = got[r] || null; cache.set(`${dir}|${r}`, { at: now, info: out[r] }); }
+      if (cache.size > 500) cache.clear();
+    }
+    return out;
+  }
+
+  /** Paths in the session's terminal become links that open in the viewer. */
+  function attachTerm(term, getCwd) {
+    term.registerLinkProvider({
+      provideLinks(y, done) {
+        const line = term.buffer.active.getLine(y - 1);
+        if (!line) return done(undefined);
+        const text = line.translateToString(true);
+        const found = [];
+        PATH_RE.lastIndex = 0;
+        let m;
+        while ((m = PATH_RE.exec(text)) && found.length < 12) {
+          if (/^https?:|:\/\//.test(text.slice(Math.max(0, m.index - 8), m.index + 3))) continue;  // part of a URL
+          found.push({ raw: m[0], at: m.index });
+        }
+        if (!found.length) return done(undefined);
+        const dir = getCwd();
+        resolveAll([...new Set(found.map((f) => f.raw))], dir).then((infos) => {
+          const links = found.filter((f) => infos[f.raw]).map((f) => ({
+            text: f.raw,
+            range: { start: { x: f.at + 1, y }, end: { x: f.at + f.raw.length, y } },
+            decorations: { underline: true, pointerCursor: true },
+            activate: () => open(infos[f.raw], { cwd: dir }),
+          }));
+          done(links.length ? links : undefined);
+        }).catch(() => done(undefined));
+      },
+    });
+  }
+
+  // ---------- the clean view ----------
+
+  /** Clicks on file links in a clean view feed. */
+  function onFeedClick(e, dir) {
+    const a = e.target.closest('a[data-file], [data-thumb]');
+    if (!a) return false;
+    e.preventDefault();
+    open({ raw: a.dataset.file || a.dataset.thumb, cwd: a.dataset.cwd || dir });
+    return true;
+  }
+
+  /** Small previews under a reply for the pictures it names. */
+  async function thumbs(node, dir) {
+    const raws = [...new Set([...node.querySelectorAll('a[data-file]')].map((a) => a.dataset.file)
+      .filter((r) => /\.(png|jpe?g|gif|webp|bmp|avif|svg)$/i.test(r)))].slice(0, 6);
+    if (!raws.length || node.querySelector('.thumbs')) return;
+    const infos = await resolveAll(raws, dir);
+    const ok = raws.filter((r) => infos[r]?.kind === 'image');
+    if (!ok.length || !node.isConnected || node.querySelector('.thumbs')) return;
+    const row = h('div', 'thumbs');
+    row.innerHTML = ok.map((r) => `<button class="thumb" data-thumb="${esc(r)}" title="${esc(infos[r].path)}" aria-label="${esc(infos[r].name)}"><img src="${esc(infos[r].url)}" alt="" loading="lazy" draggable="false"></button>`).join('');
+    row.querySelectorAll('img').forEach((img) => { img.onerror = () => img.parentElement.remove(); });
+    node.appendChild(row);
+  }
+
+  // ---------- commands ----------
+
+  if (window.HangarCommands) {
+    HangarCommands.register({
+      id: 'session.files', label: 'Files', group: 'Actions', aliases: ['file', 'image', 'picture', 'screenshot', 'viewer', 'open file'],
+      menu: { menu: 'Session', section: 'edit' },
+      when: (cx) => !!cx.snap && cx.snap.kind !== 'shell',
+      run: (cx) => filesMenu(cx.id),
+    });
+  }
+
+  return { open, close, isOpen, filesMenu, attachTerm, onFeedClick, thumbs, _re: PATH_RE };
+})();
+window.HangarViewer = HangarViewer;

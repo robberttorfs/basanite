@@ -7,6 +7,13 @@
   hangar.onUpdate((st) => {
     el?.remove();
     el = null;
+    if (st && st.kind === 'installing') {
+      const cover = document.createElement('div');
+      cover.className = 'update-cover';
+      cover.textContent = 'Updating';
+      document.body.appendChild(cover);
+      return;
+    }
     const label = NAMES[st && st.kind];
     if (!label) return;
     // The app's one window notice (app.js windowNotice): in the top bar, same look as every other.

@@ -51,6 +51,8 @@ for (const k of ['pnpm', 'yarn', 'bun']) PKG[k] = PKG.npm;
 PKG.pip3 = PKG.pip; PKG['apt-get'] = PKG.apt;
 const DEPLOYERS = new Set(['vercel', 'netlify', 'firebase', 'fly', 'flyctl', 'heroku', 'wrangler', 'railway', 'surge']);
 const DB_CLIENTS = new Set(['psql', 'mysql', 'mariadb', 'sqlite3', 'sqlcmd', 'duckdb', 'clickhouse', 'clickhouse-client', 'cockroach', 'mongosh', 'mongo', 'redis-cli']);
+// PowerShell reaching .NET directly: [IO.File]::Move(...), [System.IO.Directory]::Delete(...).
+const DOTNET_WRITE = /\[(System\.)?IO\.(File|Directory|FileInfo|DirectoryInfo)\]::(Move|Delete|Copy|Replace|Create\w*|Write\w*|Append\w*|Encrypt|Decrypt|SetAttributes)\b/i;
 const SQL_RISKY = /\b(DROP|TRUNCATE)\s+(TABLE|DATABASE|SCHEMA)\b|\bDELETE\s+FROM\b|\bFLUSHALL\b|\bdropDatabase\b/i;
 
 const REASON = {
@@ -114,6 +116,15 @@ function classify(words, seg, flavour, depth) {
     return out;
   }
 
+  // PowerShell script blocks ({ ... } after ForEach-Object, Where-Object, Invoke-Command,
+  // & or .) are commands too: read what is inside.
+  if (isPs && depth < 4) {
+    const k = words.indexOf('{');
+    if (k >= 0) {
+      const end = words.lastIndexOf('}');
+      add(analyse(words.slice(k + 1, end > k ? end : undefined).join(' '), 'ps', depth + 1));
+    }
+  }
   if (WRITE_CMDS.has(name)) out.write = true;
   // rm -rf (and PowerShell's rm/del -Recurse, cmd's rd /s) cannot be undone.
   if (name === 'rm' && !isPs) {
@@ -194,6 +205,7 @@ function gitCheck(args) {
 /** Reads a whole command line: { write, risky }. */
 function analyse(cmd, flavour = 'sh', depth = 0) {
   const out = { write: false, risky: false };
+  if (flavour === 'ps' && DOTNET_WRITE.test(cmd)) out.write = true;
   for (const seg of parse(cmd, flavour)) {
     const words = seg.words.map((w) => w.text);
     if (words[0] !== '[[') { // [[ a > b ]] compares strings

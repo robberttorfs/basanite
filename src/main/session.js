@@ -13,6 +13,7 @@ const paths = require('../shared/paths');
 const { unwrapPasted } = require('../shared/pasted');
 const { migrate: migrateColor } = require('../shared/palette');
 const { Doing, EDIT_TOOLS } = require('./doing');
+const { FileList } = require('./files');
 
 // Set by main.js: { onEdit(session, absFile), enrich(session, snapshot) }.
 const services = { onEdit: null, onStop: null, enrich: null };
@@ -51,6 +52,7 @@ class Session {
     this.turnStartedAt = null;
     this.transcriptPath = null;
     this.reader = null;
+    this.files = new FileList();    // files the session wrote, edited or mentioned, for the viewer
     this.agents = new Map();        // agent id -> { type, desc, startedAt, endedAt, running, reader }
     this.pendingDescs = [];
     this.statusline = null;
@@ -77,7 +79,9 @@ class Session {
     this.transcriptPath = p;
     this.reader = new TranscriptReader(p);
     this.reader.poll();
-    this.reader.drainTools();       // history, not current work
+    // History: not current work, but its files go in the session's file list.
+    this.files.fromTools(this.reader.drainTools());
+    this.files.fromMentions(this.reader.drainMentions());
   }
 
   get subagentDir() {
@@ -92,7 +96,7 @@ class Session {
     if (id === this.mode) return;
     if (!modes.get(id)?.goal) this.clearGoal();
     const cur = modes.get(this.mode);
-    if (cur && this.modeApplied) this.modeFrom = { id: cur.id, name: cur.name };
+    if (cur && this.modeApplied) this.modeFrom = { id: cur.id, name: cur.name, guard: cur.guard || null };
     this.mode = id;
     this.modeApplied = false;
     if (this.modeFrom?.id === id) { this.modeApplied = true; this.modeFrom = null; }
@@ -394,6 +398,8 @@ class Session {
     if (this.reader) {
       const tools = this.reader.drainTools();
       if (this.status === 'working') for (const t of tools) this.doing.tool(t.name, t.input);
+      if (this.files.fromTools(tools)) changed = true;
+      if (this.files.fromMentions(this.reader.drainMentions())) changed = true;
     }
 
     // Subagents: pick up ones started before Basanite saw them, read their tokens.
@@ -471,7 +477,7 @@ class Session {
       question: this.question,
       lastPrompt: this.lastPrompt, lastText: this.reader?.lastText || null,
       model: this.statusline?.model || this.reader?.model || null,
-      tokens: this.tokens(), agents, error: this.error,
+      tokens: this.tokens(), agents, error: this.error, files: this.files.size,
       doing: this.doing.get(this.status === 'working', now),
       ...this.cacheSnapshot(now),
       timer: this.timer && {

@@ -200,3 +200,10 @@ test('Until done is never a folder or workspace default', () => {
   assert.equal(startMode('default:until-done', '/nowhere', null), null);
   assert.equal(startMode('until-done', '/nowhere', null), 'until-done', 'an explicit pick in New still works');
 });
+
+test('plan mode switched off without a go-ahead still asks before changes', () => {
+  const plan = modes.get('plan');
+  assert.match(modes.endContext(plan), /wait for the user's explicit yes/);
+  assert.doesNotMatch(modes.endContext(plan, 'go ahead'), /explicit yes/);
+  assert.match(plan.instructions, /Do not act on it/);
+});

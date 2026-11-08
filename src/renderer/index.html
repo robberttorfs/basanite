@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data: blob:">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data: blob: basanite-file:; media-src basanite-file:; frame-src basanite-file:">
   <title>Basanite</title>
   <link rel="stylesheet" href="../../node_modules/@xterm/xterm/css/xterm.css">
   <link rel="stylesheet" href="style.css">
@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="look.css">
   <link rel="stylesheet" href="app-menu.css">
   <link rel="stylesheet" href="intro.css">
+  <link rel="stylesheet" href="viewer.css">
 </head>
 <body>
   <header id="bar">
@@ -76,6 +77,7 @@
   <script src="../shared/attention.js"></script>
   <script src="../shared/palette.js"></script>
   <script src="app.js"></script>
+  <script src="viewer.js"></script>
   <script src="app-commands.js"></script>
   <script src="modes-ui.js"></script>
   <script src="palette.js"></script>

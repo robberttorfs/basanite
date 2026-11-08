@@ -10,18 +10,32 @@ const HangarChat = (() => {
 
   // ---------- a small, safe markdown renderer ----------
 
+  // File paths become links to the viewer: anything path-like in a code span,
+  // and in plain text only what has a folder in it.
+  const EXT = 'png|jpe?g|gif|webp|bmp|ico|avif|svg|md|markdown|mdx|html?|pdf|mp4|webm|mov|m4v|mp3|wav|ogg|m4a|flac|txt|log|json|jsonl|csv|tsv|ya?ml|toml|xml|diff|patch|js|mjs|cjs|ts|tsx|jsx|py|rb|go|rs|java|kt|swift|c|h|cpp|hpp|cs|css|scss|sh|ps1|sql|lua|php|vue|svelte';
+  const CODE_FILE = new RegExp(String.raw`^(?:[A-Za-z]:[\\/].*|[~.]?/.*|\S+)\.(?:${EXT})(?::\d+){0,2}$`, 'i');
+  const TEXT_FILE = new RegExp(String.raw`(?<![\w/\\.:])(?:(?:[A-Za-z]:[\\/]|~/|/)(?:[\w.@+-]+[\\/])*|(?:\.{1,2}/)?(?:[\w.@+-]+[\\/])+)[\w.@+-]+\.(?:${EXT})(?::\d+){0,2}(?![\w/\\])`, 'gi');
+  const fileLink = (p, label = p) => `<a class="flink" data-file="${p}">${label}</a>`;
+  // Outside tags and existing links only.
+  const linkPaths = (html) => html.split(/(<a [^>]*>.*?<\/a>|<[^>]+>)/).map((x, i) => (i % 2 ? x : x.replace(TEXT_FILE, (m) => fileLink(m)))).join('');
+
   function inline(raw) {
     return raw.split(/(`[^`\n]+`)/).map((part, i) => {
-      if (i % 2) return `<code>${esc(part.slice(1, -1))}</code>`;
-      return esc(part)
+      if (i % 2) {
+        const code = part.slice(1, -1);
+        return CODE_FILE.test(code.trim()) ? `<code>${fileLink(esc(code.trim()))}</code>` : `<code>${esc(code)}</code>`;
+      }
+      return linkPaths(esc(part)
         .replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>')
         .replace(/(^|[\s(])\*([^*\s][^*\n]*)\*(?=[\s).,!?:;]|$)/g, '$1<i>$2</i>')
+        .replace(/!\[([^\]\n]*)\]\(([^)\s]+)\)/g, (m, alt, src) => (/^https?:/i.test(src) ? `<a href="${src}">${alt || src}</a>` : `<a class="flink pic" data-file="${src}">${alt || src}</a>`))
         .replace(/\[([^\]\n]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2">$1</a>')
-        .replace(/(^|[\s(])(https?:\/\/[^\s<)]+[^\s<).,;:!?])/g, '$1<a href="$2">$2</a>');
+        .replace(/\[([^\]\n]+)\]\((?!#)([^)\s]+\.[A-Za-z0-9]{1,8})\)/g, '<a class="flink" data-file="$2">$1</a>')
+        .replace(/(^|[\s(])(https?:\/\/[^\s<)]+[^\s<).,;:!?])/g, '$1<a href="$2">$2</a>'));
     }).join('');
   }
 
-  function md(text) {
+  function md(text, opts = {}) {
     const lines = text.replace(/\r/g, '').split('\n');
     const out = [];
     let para = [];
@@ -38,7 +52,7 @@ const HangarChat = (() => {
       }
       if (!line.trim()) { flush(); continue; }
       const head = /^(#{1,6})\s+(.*)$/.exec(line);
-      if (head) { flush(); out.push(`<h4>${inline(head[2])}</h4>`); continue; }
+      if (head) { flush(); const tag = opts.headings ? `h${head[1].length}` : 'h4'; out.push(`<${tag}>${inline(head[2])}</${tag}>`); continue; }
       if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(line)) { flush(); out.push('<hr>'); continue; }
       if (/^\s*\|/.test(line)) {
         flush();
@@ -56,7 +70,7 @@ const HangarChat = (() => {
         const q = [];
         for (; i < lines.length && /^\s*>/.test(lines[i]); i++) q.push(lines[i].replace(/^\s*>\s?/, ''));
         i--;
-        out.push(`<blockquote>${md(q.join('\n'))}</blockquote>`);
+        out.push(`<blockquote>${md(q.join('\n'), opts)}</blockquote>`);
         continue;
       }
       const li = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/.exec(line);
@@ -104,7 +118,7 @@ const HangarChat = (() => {
 
   // ---------- the view ----------
 
-  function create({ send, interrupt, answer, takeFiles, placeholder = 'Message Claude', empty = 'No messages yet.' }) {
+  function create({ send, interrupt, answer, takeFiles, fileDir, placeholder = 'Message Claude', empty = 'No messages yet.' }) {
     const el = document.createElement('div');
     el.className = 'chat';
     el.innerHTML = `<div class="feed" role="log" aria-live="polite"></div>
@@ -185,6 +199,7 @@ const HangarChat = (() => {
     }
 
     feed.addEventListener('click', (e) => {
+      if (window.HangarViewer?.onFeedClick(e, fileDir?.())) return;
       const a = e.target.closest('a[href]');
       if (a) { e.preventDefault(); window.open(a.href); return; }
       const t = e.target.closest('[data-toggle]');
@@ -252,6 +267,7 @@ const HangarChat = (() => {
             node = tmp.firstElementChild;
             node.dataset.key = b.key;
             node._html = b.html;
+            if (node.classList.contains('claude')) window.HangarViewer?.thumbs(node, fileDir?.());
           }
           have.delete(b.key);
           const want = prev ? prev.nextSibling : feed.firstChild;

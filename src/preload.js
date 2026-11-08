@@ -16,6 +16,15 @@ contextBridge.exposeInMainWorld('hangar', {
   pickFolder: () => ipcRenderer.invoke('pick-folder'),
   pathForFile: (file) => webUtils.getPathForFile(file),
   saveImage: (bytes, type) => ipcRenderer.invoke('image:save', { bytes, type }),
+  // File viewer
+  fileResolve: (raw, cwd) => ipcRenderer.invoke('file:resolve', raw, cwd),
+  fileResolveMany: (list, cwd) => ipcRenderer.invoke('file:resolve-many', list, cwd),
+  fileRead: (p) => ipcRenderer.invoke('file:read', p),
+  filesList: (id) => ipcRenderer.invoke('files:list', id),
+  fileWatch: (p) => ipcRenderer.send('file:watch', p || null),
+  fileOpen: (p) => ipcRenderer.invoke('file:open', p),
+  fileReveal: (p) => ipcRenderer.invoke('file:reveal', p),
+  onFileChanged: on('file:changed'),
 
   create: (cwd, mode, sessionMode, ws) => ipcRenderer.invoke('tile:create', { cwd, mode, sessionMode, ws }),
   // Workspaces

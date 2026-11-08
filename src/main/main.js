@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Notification, Menu, shell, nativeTheme } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Notification, Menu, shell, nativeTheme, protocol } = require('electron');
 const look = require('./look');
 const fs = require('fs');
 const os = require('os');
@@ -20,6 +20,7 @@ const lifecycle = require('./lifecycle');
 const updaterMod = require('./updater');
 const dataIpc = require('./data-ipc');
 const feedback = require('./feedback');
+const files = require('./files');
 let data = null;
 let updater = null;
 
@@ -35,6 +36,7 @@ if (isWin) app.setAppUserModelId(brand.appId);
 // A second launch only wakes the first. Stop here, before anything starts a server
 // or touches server.json (app.quit() alone would let whenReady still run).
 if (!app.requestSingleInstanceLock()) { app.exit(0); return; }
+files.registerScheme(protocol);   // the file viewer's basanite-file:// (before ready)
 
 let win = null;
 let server = null;
@@ -731,7 +733,7 @@ function createWindow() {
     // run from source, the taskbar would show electron.exe's icon; an installed build takes it from its own .exe
     icon: isWin && !app.isPackaged ? path.join(__dirname, '..', '..', 'build', 'icon.ico') : undefined,
     show: false,
-    webPreferences: { preload: path.join(__dirname, '..', 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: false },
+    webPreferences: { preload: path.join(__dirname, '..', 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: false, plugins: true },
   });
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
   win.once('ready-to-show', () => {
@@ -1293,8 +1295,10 @@ app.whenReady().then(async () => {
   wireIpc();
   ipcMain.on('update:action', () => updater?.act());
   require('./shellops').register({ ipcMain, shell });
+  require('./files-ipc').register({ ipcMain, shell, protocol, find, send });
   data = dataIpc.register({ ipcMain, sessions, find, addSession, uniqueName, send, broadcast, defaultWs: () => workspaces.active, hasConversation: (s) => !!s.transcriptPath || transcriptExists(s) });
-  updater = updaterMod.init({ app, onChange: (st) => { buildMenu(); send('update:state', st); }, confirmInstall: () => (quitConfirmed = confirmBusyQuit()) });
+  updater = updaterMod.init({ app, onChange: (st) => { buildMenu(); send('update:state', st); }, confirmInstall: () => (quitConfirmed = confirmBusyQuit()),
+    prepareInstall: () => closeEverything(), dataDir: paths.dataDir() });
   pruneImages();
   buildMenu();
   createWindow();
@@ -1326,20 +1330,24 @@ function confirmBusyQuit() {
   });
   return r !== 1;
 }
-app.on('before-quit', (e) => {
-  if (ptysClosed) return;
-  if (quitting) { e.preventDefault(); return; }
-  if (!quitConfirmed && !confirmBusyQuit()) { e.preventDefault(); return; }
+/** Saves the workspace and ends every session, waiting for each to exit. Used by quitting and updating. */
+function closeEverything() {
   quitting = true;
   saveWorkspace();
   try { fs.unlinkSync(paths.serverFile()); } catch {}
   // Kill each pty once and wait for its exit before the app goes, so the native
   // ConPTY teardown never runs inside a dying process (the 5 Nov crash).
-  e.preventDefault();
   const all = [...ptys.values()];
   if (overseer) all.push(overseer.pty);
   ptys.clear();
-  lifecycle.shutdownPtys(all).finally(() => { ptysClosed = true; app.quit(); });
+  return lifecycle.shutdownPtys(all).finally(() => { ptysClosed = true; });
+}
+app.on('before-quit', (e) => {
+  if (ptysClosed) return;
+  if (quitting) { e.preventDefault(); return; }
+  if (!quitConfirmed && !confirmBusyQuit()) { e.preventDefault(); return; }
+  e.preventDefault();
+  closeEverything().finally(() => app.quit());
 });
 
 // Windows logoff or shutdown: the system ends the process within seconds, so only

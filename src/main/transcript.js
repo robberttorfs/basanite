@@ -2,6 +2,7 @@
 // are read on each poll. The format is internal to Claude Code, so every
 // field is treated as optional and unknown lines are skipped.
 const fs = require('fs');
+const { pathsIn } = require('./files');
 
 class TranscriptReader {
   constructor(file) {
@@ -18,9 +19,11 @@ class TranscriptReader {
     this.lastAssistantAt = 0;   // timestamp of the latest assistant entry
     this.cacheTtlMs = 5 * 60 * 1000;  // prompt-cache lifetime seen in the latest usage
     this.tools = [];            // tool_use entries since the last drainTools(): { name, input, at }
+    this.mentions = [];         // file paths in Claude's replies since the last drainMentions(): { path, at }
   }
 
   drainTools() { const t = this.tools; this.tools = []; return t; }
+  drainMentions() { const m = this.mentions; this.mentions = []; return m; }
 
   poll() {
     let st;
@@ -68,6 +71,7 @@ class TranscriptReader {
         for (const c of m.content) if (c && c.type === 'tool_use' && c.name && this.tools.length < 200) this.tools.push({ name: c.name, input: c.input || {}, at: at || Date.now() });
         const t = m.content.filter((c) => c.type === 'text').map((c) => c.text).join(' ').trim();
         if (t) this.lastText = t.slice(0, 300);
+        if (t && this.mentions.length < 200) for (const p of pathsIn(t)) this.mentions.push({ path: p, at: at || Date.now() });
       }
       this.interrupted = false;
     } else if (j.type === 'user' && m) {

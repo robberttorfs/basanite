@@ -31,11 +31,12 @@ const BUILTIN = [
     description: 'Discuss and plan only. No changes until you say go ahead.',
     exitPhrases: ['go ahead', 'go', 'start', 'build it', 'do it'],
     instructions: `Planning and discussion only. File changes are blocked until the user says go ahead.
-- Read whatever you need. Do not change files or state.
+- Read whatever you need. Change nothing: no edits, moves, deletes, installs, commits, pushes or messages.
+- This holds even when a message reads like an order to act ("delete these", "move them all"). Do not act on it. Reply with exactly what you would change, each file, folder or command, and ask the user to confirm with go ahead.
 - When there is a choice, recommend one option and say why in a sentence.
 - Keep answers short and plain. Use a small table to compare.
 - Ask questions only when the answer changes the plan, all at once.
-- When the user says go ahead, build the agreed plan.`,
+- Only an explicit go ahead starts the work. Then do exactly what was confirmed, nothing more.`,
   },
   {
     id: 'build', name: 'Build', color: '#b9d36c', icon: 'hammer', cost: 1, shelf: 3,
@@ -350,7 +351,12 @@ function addonEndContext(names) {
 }
 
 function endContext(mode, said) {
-  return `[Basanite mode] ${mode.name} mode has ended${said ? ` (the user said "${said}")` : ''}. Its rules no longer apply; follow the user's message.`;
+  const head = `[Basanite mode] ${mode.name} mode has ended${said ? ` (the user said "${said}")` : ''}. Its rules no longer apply`;
+  // A read-only mode switched off without a go-ahead: the next change still needs one.
+  if (mode.guard === 'readonly' && !said) {
+    return `${head}. Before changing anything, say exactly what you will change (each file, folder or command) and wait for the user's explicit yes, unless this message already gives that exact go-ahead.`;
+  }
+  return `${head}; follow the user's message.`;
 }
 
 const FILLER = new Set(['ok', 'okay', 'alright', 'right', 'yes', 'yeah', 'so', 'now', 'then', 'please', 'cool', 'great', 'good', 'perfect', 'lets', 'let', 'us', 'we', 'can', 'you', 'thanks']);

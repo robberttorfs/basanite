@@ -75,3 +75,11 @@ test('guards: risky commands are blocked in Careful, local writes are not', () =
     assert.equal(careful(c), null, c);
   }
 });
+
+test('powershell script blocks and .NET calls are read too', () => {
+  assert.ok(ro('Get-ChildItem *.zip | ForEach-Object { Move-Item $_ D:/old }', 'PowerShell'));
+  assert.ok(ro('[IO.File]::Move("a", "b")', 'PowerShell'));
+  assert.ok(ro('[System.IO.Directory]::Delete("x", $true)', 'PowerShell'));
+  assert.equal(ro('Get-ChildItem | Where-Object { $_.Length -gt 5 } | Select-Object Name', 'PowerShell'), null);
+  assert.equal(ro('[IO.File]::ReadAllText("a")', 'PowerShell'), null);
+});
