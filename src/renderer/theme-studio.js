@@ -167,7 +167,7 @@ ${['brightRed', 'brightGreen', 'brightYellow', 'brightBlue', 'brightMagenta', 'b
       f.appendChild(ideas);
     }
     const c = h('div', 'ts-comp');
-    c.innerHTML = `<textarea class="ts-in" rows="2" maxlength="800" placeholder="Make the background darker, use teal as the accent…" aria-label="Describe your theme"></textarea>
+    c.innerHTML = `<textarea class="ts-in" rows="4" maxlength="800" placeholder="Make the background darker, use teal as the accent…" aria-label="Describe your theme"></textarea>
       <div class="ts-row"><select class="st-select" data-model aria-label="Model"><option value="haiku">Haiku: fastest</option><option value="sonnet">Sonnet: more careful</option></select><span class="ts-meter"></span><div class="grow"></div><button class="btn small primary ts-go">Send</button></div>`;
     pane.appendChild(c);
     const box = $('.ts-in', c);

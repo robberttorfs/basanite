@@ -19,21 +19,47 @@ const HangarChat = (() => {
   // Outside tags and existing links only.
   const linkPaths = (html) => html.split(/(<a [^>]*>.*?<\/a>|<[^>]+>)/).map((x, i) => (i % 2 ? x : x.replace(TEXT_FILE, (m) => fileLink(m)))).join('');
 
+  // Code spans and backslash escapes are set aside first, so emphasis can run across them.
   function inline(raw) {
-    return raw.split(/(`[^`\n]+`)/).map((part, i) => {
-      if (i % 2) {
-        const code = part.slice(1, -1);
-        return CODE_FILE.test(code.trim()) ? `<code>${fileLink(esc(code.trim()))}</code>` : `<code>${esc(code)}</code>`;
-      }
-      return linkPaths(esc(part)
-        .replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>')
-        .replace(/(^|[\s(])\*([^*\s][^*\n]*)\*(?=[\s).,!?:;]|$)/g, '$1<i>$2</i>')
-        .replace(/!\[([^\]\n]*)\]\(([^)\s]+)\)/g, (m, alt, src) => (/^https?:/i.test(src) ? `<a href="${src}">${alt || src}</a>` : `<a class="flink pic" data-file="${src}">${alt || src}</a>`))
-        .replace(/\[([^\]\n]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2">$1</a>')
-        .replace(/\[([^\]\n]+)\]\((?!#)([^)\s]+\.[A-Za-z0-9]{1,8})\)/g, '<a class="flink" data-file="$2">$1</a>')
-        .replace(/(^|[\s(])(https?:\/\/[^\s<)]+[^\s<).,;:!?])/g, '$1<a href="$2">$2</a>'));
-    }).join('');
+    const held = [];
+    const hold = (html) => { held.push(html); return `${held.length - 1}`; };
+    const text = raw
+      .replace(/\\([*`~])/g, (m, c) => hold(c))
+      .replace(/(``[^\n]+?``|`[^`\n]+`)/g, (part) => {
+        const code = part.replace(/^`+|`+$/g, '');
+        return hold(CODE_FILE.test(code.trim()) ? `<code>${fileLink(esc(code.trim()))}</code>` : `<code>${esc(code)}</code>`);
+      });
+    return linkPaths(esc(text)
+      .replace(/\*\*\*(?=\S)([^\n]+?)(?<=\S)\*\*\*/g, '<b><i>$1</i></b>')
+      .replace(/\*\*(?=\S)([^\n]+?)(?<=\S)\*\*/g, '<b>$1</b>')
+      .replace(/(^|[^\w_])__(?=\S)([^\n]+?)(?<=\S)__(?![\w_])/g, '$1<b>$2</b>')
+      .replace(/~~(?=\S)([^~\n]+?)(?<=\S)~~/g, '<s>$1</s>')
+      .replace(/(^|[\s(>])\*([^*\s][^*\n]*?)\*(?=[\s).,!?:;<]|$)/g, '$1<i>$2</i>')
+      .replace(/(^|[\s(>])_([^_\s][^_\n]*?)_(?=[\s).,!?:;<]|$)/g, '$1<i>$2</i>')
+      .replace(/!\[([^\]\n]*)\]\(([^)\s]+)\)/g, (m, alt, src) => (/^https?:/i.test(src) ? `<a href="${src}">${alt || src}</a>` : `<a class="flink pic" data-file="${src}">${alt || src}</a>`))
+      .replace(/\[([^\]\n]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2">$1</a>')
+      .replace(/\[([^\]\n]+)\]\((?!#)([^)\s]+\.[A-Za-z0-9]{1,8})\)/g, '<a class="flink" data-file="$2">$1</a>')
+      .replace(/(^|[\s(])(https?:\/\/[^\s<)]+[^\s<).,;:!?])/g, '$1<a href="$2">$2</a>'))
+      .replace(/(\d+)/g, (m, n) => held[n]);
   }
+
+  /** A table row's cells. A | inside a code span or after a backslash stays in the cell. */
+  function cells(line) {
+    const out = [];
+    let cur = '', code = false;
+    const t = line.trim().replace(/^\|/, '');
+    for (let i = 0; i < t.length; i++) {
+      if (t[i] === '\\' && t[i + 1] === '|') { cur += '|'; i++; continue; }
+      if (t[i] === '`') code = !code;
+      if (t[i] === '|' && !code) { out.push(cur.trim()); cur = ''; continue; }
+      cur += t[i];
+    }
+    if (cur.trim()) out.push(cur.trim());
+    return out;
+  }
+  const SEP = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-*:?\s*)*\|?\s*$/;
+  const isTable = (lines, i) => /^\s*\|/.test(lines[i]) || (lines[i].includes('|') && lines[i + 1]?.includes('-') && lines[i + 1].includes('|') && SEP.test(lines[i + 1]));
+  const taskBox = (html) => html.replace(/^\[([ xX])\]\s+/, (m, c) => (c === ' ' ? '☐ ' : '☑ '));
 
   function md(text, opts = {}) {
     const lines = text.replace(/\r/g, '').split('\n');
@@ -54,12 +80,12 @@ const HangarChat = (() => {
       const head = /^(#{1,6})\s+(.*)$/.exec(line);
       if (head) { flush(); const tag = opts.headings ? `h${head[1].length}` : 'h4'; out.push(`<${tag}>${inline(head[2])}</${tag}>`); continue; }
       if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(line)) { flush(); out.push('<hr>'); continue; }
-      if (/^\s*\|/.test(line)) {
+      if (isTable(lines, i)) {
         flush();
         const rows = [];
-        for (; i < lines.length && /^\s*\|/.test(lines[i]); i++) {
-          if (/^\s*\|[\s:|-]+\|?\s*$/.test(lines[i])) continue;
-          rows.push(lines[i].trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim()));
+        for (; i < lines.length && lines[i].trim() && lines[i].includes('|'); i++) {
+          if (/^[\s:|-]+$/.test(lines[i]) && lines[i].includes('-')) continue;
+          rows.push(cells(lines[i]));
         }
         i--;
         out.push(`<div class="tbl"><table>${rows.map((r, ri) => `<tr>${r.map((c) => (ri ? `<td>${inline(c)}</td>` : `<th>${inline(c)}</th>`)).join('')}</tr>`).join('')}</table></div>`);
@@ -77,6 +103,7 @@ const HangarChat = (() => {
       if (li) {
         flush();
         const ordered = /\d/.test(li[2]);
+        const first = ordered ? parseInt(li[2], 10) : 1;
         const items = [];
         for (; i < lines.length; i++) {
           const m = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/.exec(lines[i]);
@@ -86,7 +113,7 @@ const HangarChat = (() => {
         }
         i--;
         const tag = ordered ? 'ol' : 'ul';
-        out.push(`<${tag}>${items.map((it) => `<li${it.depth ? ` style="margin-left:${it.depth * 16}px"` : ''}>${inline(it.text)}</li>`).join('')}</${tag}>`);
+        out.push(`<${tag}${first > 1 ? ` start="${first}"` : ''}>${items.map((it) => `<li${it.depth ? ` style="margin-left:${it.depth * 16}px"` : ''}>${taskBox(inline(it.text))}</li>`).join('')}</${tag}>`);
         continue;
       }
       para.push(line);

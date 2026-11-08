@@ -105,6 +105,10 @@ body.win #bar, body.linux #bar { padding-left: 8px; }
 /* Overseer: its own colour and surface, so it never reads as a session */
 #overseer { flex: none; width: 0; overflow: hidden; display: flex; flex-direction: column; border-left: 1px solid transparent; background: var(--ov-bg); position: relative; }
 #overseer::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: linear-gradient(90deg, var(--ov), color-mix(in srgb, var(--ov) 0%, transparent)); }
+#ov-grip { left: -8px; width: 14px; }
+#ov-grip::after { content: ""; position: absolute; left: 7px; top: 0; bottom: 0; width: 2px; background: var(--ov); opacity: 0; }
+#ov-grip:hover::after, #ov-grip:active::after { opacity: .7; }
+body.ov-open #overseer { overflow: visible; }
 body.ov-open #overseer { width: var(--ov-w, 420px); max-width: max(320px, calc(100vw - 380px)); border-left-color: color-mix(in srgb, var(--ov) 22%, transparent); }
 .ov-head { display: flex; align-items: center; gap: 8px; padding: 12px 10px 8px 14px; white-space: nowrap; }
 .ov-eye { color: var(--ov); width: 16px; height: 16px; }

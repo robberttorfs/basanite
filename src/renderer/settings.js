@@ -140,14 +140,15 @@ const HangarSettings = (() => {
     const b = h('div', `tc${on ? ' on' : ''}`);
     b.innerHTML = `<button class="tc-b" aria-pressed="${on}" aria-label="${esc(t.name)} theme">${t.split
       ? `<span class="tc-split">${mini(t.split[0])}${mini(t.split[1])}</span>` : mini(t)}<span class="tc-n">${esc(t.name)}${on ? '<span class="tc-ok" aria-hidden="true">✓</span>' : ''}</span></button>`;
-    $('.tc-b', b).onclick = () => { hangar.setSettings({ theme: t.id }); setTimeout(() => show('appearance'), 0); };
+    b.dataset.theme = t.id;
+    $('.tc-b', b).onclick = () => hangar.setSettings({ theme: t.id });
     if (opts.custom) {
       const a = h('div', 'tc-acts');
       const mk = (label, fn) => { const x = h('button', 'tc-a', esc(label)); x.onclick = (e) => { e.stopPropagation(); fn(x); }; a.appendChild(x); };
       mk('Edit', () => HangarStudio.open({ theme: t, tab: 'colours' }));
       mk('Export', () => hangar.themeExport(t));
       mk('Delete', async (x) => {
-        if (x.dataset.sure) { await hangar.themeDelete(t.id); setTimeout(() => show('appearance'), 0); return; }
+        if (x.dataset.sure) { await hangar.themeDelete(t.id); return; }
         x.dataset.sure = '1'; x.textContent = 'Sure?'; x.classList.add('danger');
       });
       b.appendChild(a);
@@ -155,7 +156,8 @@ const HangarSettings = (() => {
     return b;
   }
   function drawThemes(w) {
-    w.innerHTML = `<div class="st-th"><h3>Theme</h3><div class="grow"></div><button class="btn small" data-import>Import</button><button class="btn small" data-custom>Customise current</button><button class="btn small primary" data-claude>Create with Claude</button></div>`;
+    themesBox = w; themesDrawn = themesKey();
+    w.innerHTML = `<div class="st-th"><h3>Theme</h3><div class="grow"></div><button class="btn small" data-import>Import</button><button class="btn small" data-custom>Customise current</button></div><button class="tc-create" data-claude><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l1.5 4.2L13.7 7.2 9.5 8.7 8 13l-1.5-4.3-4.2-1.5 4.2-1.5z"/><path d="M13 11.2v3M11.5 12.7h3"/></svg>Create with Claude</button>`;
     const grid = h('div', 'tc-grid');
     const dark = T.PRESETS[0], light = T.PRESETS[1];
     grid.appendChild(card({ id: 'system', name: 'System', split: [light, dark] }));
@@ -175,9 +177,21 @@ const HangarSettings = (() => {
     $('[data-import]', w).onclick = async () => {
       const r = await hangar.themeImport();
       if (r?.error) { note.textContent = r.error; note.classList.add('bad'); return; }
-      if (r?.theme) { hangar.setSettings({ theme: r.theme.id }); setTimeout(() => show('appearance'), 50); }
+      if (r?.theme) hangar.setSettings({ theme: r.theme.id });
     };
   }
+  // The cards follow the real state, however it changed: a click, the menu, the Studio, an import.
+  let themesBox = null, themesDrawn = '';
+  const themesKey = () => `${HangarLook.themeId()}|${JSON.stringify(HangarLook.customs())}`;
+  function syncThemes() {
+    if (!themesBox?.isConnected || themesKey() === themesDrawn) return;
+    const top = body.scrollTop, focusOn = document.activeElement?.closest?.('.tc')?.dataset.theme;
+    drawThemes(themesBox);
+    body.scrollTop = top;
+    if (focusOn) themesBox.querySelector(`.tc[data-theme="${CSS.escape(focusOn)}"] .tc-b`)?.focus();
+  }
+  hangar.onState(syncThemes);
+  hangar.onThemes(syncThemes);
 
   // ---------- pages and search ----------
   function show(id) {

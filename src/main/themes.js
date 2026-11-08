@@ -59,8 +59,11 @@ async function generate({ current, history, message, model }, run) {
   const dir = path.join(paths.dataDir(), 'theme-studio');
   fs.mkdirSync(dir, { recursive: true });
   const systemFile = path.join(dir, 'system.txt');
-  fs.writeFileSync(systemFile, SYSTEM_PROMPT);
-  const out = await run(claudeArgs({ prompt: buildPrompt({ current, history, message }), systemFile, model }), dir);
+  // The colours and the request go in this file: on Windows a command line loses quotes and can stop at a line break.
+  fs.writeFileSync(systemFile, `${SYSTEM_PROMPT}
+
+${buildPrompt({ current, history, message })}`);
+  const out = await run(claudeArgs({ prompt: 'Do the Request in your instructions. Reply with only the JSON object.', systemFile, model }), dir);
   let j;
   try { j = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1)); } catch { throw new Error('Claude Code gave an answer that could not be read. Try again.'); }
   if (j.is_error) throw new Error(String(j.result || 'Claude Code reported an error.').slice(0, 240));

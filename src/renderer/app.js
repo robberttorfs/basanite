@@ -1350,11 +1350,12 @@ function toggleOverseer(force, prompt) {
     g.setPointerCapture(e.pointerId);
     document.body.classList.add('resizing', 'resizing-x');
     const main = $('#main').getBoundingClientRect();
+    const grab = panel.getBoundingClientRect().left - e.clientX;   // the edge stays under the pointer
     const v = document.querySelector('.viewer');
     const viewer = v && !document.body.classList.contains('viewer-full') ? v.getBoundingClientRect().width : 0;
     let w = 0;
     const move = (ev) => {
-      w = Math.round(Math.max(320, Math.min(main.width - viewer - 380, main.right - ev.clientX)));
+      w = Math.round(Math.max(320, Math.min(main.width - viewer - 380, main.right - ev.clientX - grab)));
       panel.style.setProperty('--ov-w', `${w}px`);
       layout(true);
     };
