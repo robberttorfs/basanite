@@ -165,7 +165,7 @@ body.resizing .term { pointer-events: none; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--idle); flex: none; }
 .st-working .dot { background: var(--working); }  /* breathes in look.css */
 .st-starting .dot { background: var(--working); opacity: .5; }
-.st-needs_input .dot { background: var(--needs); animation: pulse 1s ease-in-out infinite; }
+.st-needs_input .dot { background: var(--needs); animation: breathe 2.4s cubic-bezier(.37, 0, .63, 1) infinite; will-change: opacity; }
 .st-done .dot { background: var(--done); }
 .st-error .dot { background: var(--error); }
 .st-exited .dot { background: transparent; border: 1.5px solid var(--idle); }
@@ -173,7 +173,6 @@ body.resizing .term { pointer-events: none; }
 .tile.shell .dot { display: none; }
 .tile.shell .ticon { display: inline-flex; }
 .tile.shell.st-exited .ticon { opacity: .5; }
-@keyframes pulse { 50% { opacity: .35; } }
 
 /* The name never vanishes: it keeps about 7 characters, and the state, doing line and
    markers shrink (with an ellipsis) before it does. */
@@ -221,7 +220,7 @@ body.resizing .term { pointer-events: none; }
 .agents:hover .chip { border-color: var(--line-strong); }
 .agents:focus-visible { box-shadow: inset 0 0 0 1px var(--accent); }
 .chip { display: inline-flex; align-items: center; gap: 6px; min-width: 0; height: 22px; padding: 0 8px; border-radius: 11px; background: var(--raise); border: 1px solid var(--line); font-size: 11.5px; color: var(--text); white-space: nowrap; max-width: 300px; flex: 0 1 auto; }
-.agents .cd, .ap-row .cd { width: 6px; height: 6px; border-radius: 50%; background: var(--working); animation: pulse 1.4s ease-in-out infinite; flex: none; }
+.agents .cd, .ap-row .cd { width: 6px; height: 6px; border-radius: 50%; background: var(--working); animation: breathe 3.6s cubic-bezier(.37, 0, .63, 1) infinite; will-change: opacity; flex: none; }
 .agents .quiet .cd, .ap-row.quiet .cd { background: var(--faint); animation: none; }
 .chip .cdsc { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .chip .cn { color: var(--faint); font-variant-numeric: tabular-nums; flex: none; }

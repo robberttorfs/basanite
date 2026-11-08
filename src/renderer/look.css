@@ -16,7 +16,7 @@
 }
 /* working: filled, slow breathe */
 .st-working .head .dot::before, .summary .working .dot::before, .pal-chip.st-working .dot::before {
-  border: 0; background: var(--working); animation: breathe 2s ease-in-out infinite;
+  border: 0; background: var(--working); animation: breathe 3.6s cubic-bezier(.37, 0, .63, 1) infinite; will-change: opacity;
 }
 .st-starting .head .dot::before, .pal-chip.st-starting .dot::before { border-color: var(--working); opacity: .6; }
 /* needs you: diamond */
@@ -31,7 +31,8 @@
 .st-done .head .dot::before, .summary .done .dot::before, .pal-chip.st-done .dot::before { content: "✓"; color: var(--done); }
 .st-error .head .dot::before, .summary .error .dot::before, .pal-chip.st-error .dot::before { content: "✕"; color: var(--error); }
 .st-exited .head .dot::before { border-style: dashed; opacity: .6; }
-@keyframes breathe { 50% { opacity: .45; } }
+/* Every pulse uses this. It stops just short of full opacity, which keeps the top of the curve smooth. */
+@keyframes breathe { 0%, 100% { opacity: .96; } 50% { opacity: .42; } }
 
 /* ---------- amber means "needs you" and nothing else ---------- */
 .hbtn.timer.wrap { color: var(--text); background: var(--hover); }
