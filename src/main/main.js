@@ -756,7 +756,14 @@ function createWindow() {
     if (!win || win.isDestroyed()) return;
     saveJSON(path.join(paths.dataDir(), 'window.json'), { ...win.getNormalBounds(), maximized: win.isMaximized(), fullscreen: win.isFullScreen() });
   };
-  win.on('close', saveBounds);
+  win.on('close', (e) => {
+    // Ask while the window still exists, so Cancel can keep it open.
+    if (!quitting && !quitConfirmed) {
+      if (!confirmBusyQuit()) { e.preventDefault(); return; }
+      quitConfirmed = true;
+    }
+    saveBounds();
+  });
   win.on('focus', () => { const s = find(focusedTile); if (s && s.status === 'done') s.setStatus('idle'); });
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (e) => e.preventDefault());
@@ -1341,7 +1348,8 @@ let quitConfirmed = false;   // set when Restart to update already asked
 /** Asks before stopping busy sessions; true means go ahead. */
 function confirmBusyQuit() {
   const busy = sessions.filter((s) => s.status === 'working' || s.status === 'needs_input');
-  if (!busy.length || !win) return true;
+  // With no window left there is nothing to keep open, so never hold the quit back.
+  if (!busy.length || !win || win.isDestroyed()) return true;
   const r = dialog.showMessageBoxSync(win, {
     type: 'question', buttons: ['Quit', 'Cancel'], defaultId: 1, cancelId: 1,
     message: `${busy.length} session${busy.length > 1 ? 's are' : ' is'} still working.`,
