@@ -319,7 +319,7 @@
       };
       const del = $('[data-del]', form);
       if (del) del.onclick = async () => {
-        if (!m.builtin && !(await askInline(form, `Delete ${m.name}?`, 'Delete', true))) return;
+        if (!m.builtin && !(await askInline(`Delete ${m.name}?`, 'Delete'))) return;
         hangar.deleteMode(m.id);
         dirty = false;
         if (!m.builtin) { view = 'grid'; current = null; }
@@ -329,7 +329,7 @@
       const ex = $('[data-export]', el);
       if (ex) ex.onclick = async () => { const p = await hangar.exportMode(m.id); if (p) done(ex, 'Exported'); };
       $('[data-back]', el).onclick = async () => {
-        if (dirty && !(await askInline(form, 'Discard your changes?', 'Discard', true))) return;
+        if (dirty && !(await askInline('Your edits to this mode have not been saved.', 'Discard', { title: 'Unsaved changes', cancel: 'Keep editing' }))) return;
         dirty = false; draft = null; view = 'grid'; draw();
       };
     };

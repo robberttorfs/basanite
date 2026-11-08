@@ -864,8 +864,9 @@ function openPop(el, anchorEl, opts = {}) {
     el.style.top = `${Math.max(8, Math.min(window.innerHeight - el.offsetHeight - 8, below))}px`;
     el.style.left = `${Math.max(8, Math.min(window.innerWidth - w - 8, opts.alignLeft ? r.left : r.right - w))}px`;
   }
-  const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); opts.onEscape?.(); closePop(); return; } opts.onKey?.(e); };
-  const onDown = (e) => { if (!el.contains(e.target)) closePop(); };
+  const asking = () => !!layer.querySelector('.ask-over');   // a question on top answers its own keys and clicks
+  const onKey = (e) => { if (asking()) return; if (e.key === 'Escape') { e.stopPropagation(); opts.onEscape?.(); closePop(); return; } opts.onKey?.(e); };
+  const onDown = (e) => { if (!asking() && !el.contains(e.target)) closePop(); };
   closePop = () => {
     layer.classList.remove('open'); layer.innerHTML = '';
     window.removeEventListener('keydown', onKey, true);
@@ -1104,18 +1105,30 @@ function modeFromSession(id) { window.HangarModes?.modeFromSession(id); }
 function openModes(selectId) { window.HangarModes?.openLibrary(selectId); }
 
 /** Asks inside the given popover instead of a native dialog. Resolves true or false. */
-function askInline(container, text, okLabel = 'OK', danger = false) {
-  container.querySelector('.ask-bar')?.remove();
+/** A question in the middle of the window, over the open dialog. Resolves true for okLabel; Esc or the other button is false. */
+function askInline(text, okLabel = 'OK', { title = '', cancel = 'Cancel' } = {}) {
   return new Promise((resolve) => {
-    const bar = h('div', 'ask-bar', `<span>${esc(text)}</span><div class="grow"></div>`);
-    const no = h('button', 'btn small', 'Cancel'); no.type = 'button';
-    const yes = h('button', `btn small ${danger ? 'danger' : 'primary'}`, esc(okLabel)); yes.type = 'button';
-    const done = (v) => { bar.remove(); resolve(v); };
+    const over = h('div', 'ask-over');
+    const card = h('div', 'ask-card', `${title ? `<h3>${esc(title)}</h3>` : ''}<p>${esc(text)}</p>`);
+    card.setAttribute('role', 'alertdialog');
+    card.setAttribute('aria-modal', 'true');
+    const row = h('div', 'row end');
+    const no = h('button', 'btn small', esc(cancel)); no.type = 'button';
+    const yes = h('button', 'btn small danger', esc(okLabel)); yes.type = 'button';
+    const onKey = (e) => {
+      if (!over.isConnected) { window.removeEventListener('keydown', onKey, true); return; }
+      if (e.key === 'Escape') { e.stopPropagation(); done(false); }
+    };
+    const done = (v) => { window.removeEventListener('keydown', onKey, true); over.remove(); resolve(v); };
     no.onclick = () => done(false);
     yes.onclick = () => done(true);
-    bar.append(no, yes);
-    container.appendChild(bar);
-    yes.focus();
+    over.onmousedown = (e) => { if (e.target === over) done(false); };
+    row.append(no, yes);
+    card.appendChild(row);
+    over.appendChild(card);
+    layer.appendChild(over);
+    window.addEventListener('keydown', onKey, true);
+    no.focus();
   });
 }
 

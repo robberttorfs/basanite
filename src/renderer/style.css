@@ -581,3 +581,10 @@ body.ovw-open #btn-overview { color: var(--text); border-color: var(--accent-lin
 .ovw-menu { margin: 10px 0 0; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--needs) 45%, transparent); border-radius: 9px; background: var(--tile); font: 12px/1.5 "SF Mono", Menlo, Consolas, monospace; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 40%; overflow-y: auto; overflow-x: hidden; }
 .ovw-acts { display: flex; align-items: center; gap: 6px; padding-top: 12px; }
 .ovw-acts kbd { margin-left: 4px; border: 0; background: none; padding: 0; color: var(--muted); }
+
+.ask-over { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 62%, transparent); }
+.ask-card { width: min(360px, calc(100vw - 48px)); padding: 18px 20px 14px; background: var(--pop); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: 0 18px 50px var(--shadow); }
+.ask-card h3 { margin: 0 0 6px; font-size: 15px; font-weight: 600; color: var(--text); }
+.ask-card p { margin: 0 0 14px; font-size: 13px; line-height: 1.45; color: var(--muted); }
+.ask-card h3 + p { color: var(--muted); }
+.ask-card .row { gap: 8px; }
