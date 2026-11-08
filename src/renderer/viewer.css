@@ -20,11 +20,10 @@ body.viewing .viewer { display: flex; animation: viewer-in .1s linear; }
 
 .vbody { flex: 1; min-height: 0; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; user-select: text; }
 
-.vimg { display: flex; padding: 16px; }
-.vimg img { margin: auto; display: block; }
-.vimg.fit { overflow: hidden; }
-.vimg.fit img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; }
-.vimg.full img { max-width: none; cursor: zoom-out; flex: none; }
+.vimg { position: relative; overflow: hidden; cursor: grab; user-select: none; touch-action: none; }
+.vimg.dragging { cursor: grabbing; }
+.vimg img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; visibility: hidden; }
+.vpct { align-self: center; min-width: 40px; margin-right: 2px; text-align: right; color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }
 
 .vmedia { display: flex; align-items: center; justify-content: center; padding: 16px; }
 .vmedia video { max-width: 100%; max-height: 100%; outline: none; }

@@ -164,21 +164,24 @@ const HangarViewer = (() => {
       : cur.kind === 'markdown' ? [['view', 'Preview'], ['source', 'Source']]
       : cur.kind === 'html' ? [['view', 'Page'], ['source', 'Source']] : [];
     seg.hidden = !opts.length;
-    seg.innerHTML = opts.map(([k, l]) => `<button class="vs${mode === k ? ' on' : ''}" data-m="${k}" aria-pressed="${mode === k}">${l}</button>`).join('');
-    seg.querySelectorAll('[data-m]').forEach((b) => { b.onclick = () => { mode = b.dataset.m; draw(false); }; });
+    seg.innerHTML = (cur?.kind === 'image' ? '<span class="vpct"></span>' : '') + opts.map(([k, l]) => `<button class="vs${mode === k ? ' on' : ''}" data-m="${k}" aria-pressed="${mode === k}">${l}</button>`).join('');
+    seg.querySelectorAll('[data-m]').forEach((b) => {
+      b.onclick = () => { mode = b.dataset.m; if (cur.kind === 'image') { showMode(); marks(); } else draw(false); };
+    });
   }
 
   /** Draws the file. keep: a reload of the same file (keeps the scroll position). */
   async function draw(keep) {
     const body = el.querySelector('.vbody');
     const scroll = keep ? body.scrollTop : 0;
+    if (cur?.kind !== 'image') { pic?.ro?.disconnect(); pic = null; }
     const i = cur;
     header();
     if (i.kind === 'image') {
-      body.className = `vbody vimg ${mode}`;
+      body.className = 'vbody vimg';
       body.innerHTML = `<img src="${esc(i.url)}" alt="${esc(i.name)}" draggable="false">`;
       const img = body.querySelector('img');
-      img.onclick = () => { mode = mode === 'fit' ? 'full' : 'fit'; draw(false); };
+      img.onload = () => imageReady(body, img, keep);
       img.onerror = () => drawOther(body, i);
     } else if (i.kind === 'video') {
       body.className = 'vbody vmedia';
@@ -207,6 +210,102 @@ const HangarViewer = (() => {
       }
     } else drawOther(body, i);
     body.scrollTop = scroll;
+  }
+
+  // ---------- pictures: scroll to zoom at the pointer, drag to move, double-click for fit / 100% ----------
+
+  const MAX_ZOOM = 16;
+  let pic = null;   // { body, img, w, h, s, x, y, ro }
+
+  const fitScale = () => Math.min((pic.body.clientWidth - 32) / pic.w, (pic.body.clientHeight - 32) / pic.h, 1);
+  function paint() {
+    pic.img.style.transform = `translate(${pic.x}px, ${pic.y}px) scale(${pic.s})`;
+    pic.img.style.imageRendering = pic.s >= 4 ? 'pixelated' : 'auto';
+    const pct = el.querySelector('.vpct');
+    if (pct) pct.textContent = `${Math.round(pic.s * 100)}%`;
+  }
+  /** Scale s, centred. */
+  function centre(s) {
+    pic.s = s;
+    pic.x = Math.round((pic.body.clientWidth - pic.w * s) / 2);
+    pic.y = Math.round((pic.body.clientHeight - pic.h * s) / 2);
+    paint();
+  }
+  /** Keeps the picture from being moved out of sight. */
+  function clampPos() {
+    const W = pic.body.clientWidth, H = pic.body.clientHeight, w = pic.w * pic.s, h = pic.h * pic.s, m = 40;
+    pic.x = Math.min(W - m, Math.max(m - w, pic.x));
+    pic.y = Math.min(H - m, Math.max(m - h, pic.y));
+  }
+  function zoomAt(cx, cy, s) {
+    const next = Math.max(Math.min(fitScale(), 0.1), Math.min(MAX_ZOOM, s));
+    pic.x = cx - (cx - pic.x) * (next / pic.s);
+    pic.y = cy - (cy - pic.y) * (next / pic.s);
+    pic.s = next;
+    clampPos();
+    paint();
+  }
+  const showMode = () => { if (pic) centre(mode === 'full' ? 1 : fitScale()); };
+  function marks() {
+    el.querySelectorAll('.vs[data-m]').forEach((b) => {
+      const on = b.dataset.m === mode;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+  }
+
+  function imageReady(body, img, keep) {
+    const old = keep && pic && pic.body === body && mode === null ? pic : null;
+    pic?.ro?.disconnect();
+    pic = { body, img, w: img.naturalWidth || 800, h: img.naturalHeight || 600, s: 1, x: 0, y: 0 };
+    img.style.visibility = 'visible';
+    if (old) { pic.s = old.s; pic.x = old.x; pic.y = old.y; paint(); } else showMode();
+    const here = pic;
+    // A fitted picture stays fitted as the panel changes size.
+    pic.ro = new ResizeObserver(() => { if (pic === here && mode === 'fit') centre(fitScale()); });
+    pic.ro.observe(body);
+    if (body._zoomWired) return;
+    body._zoomWired = true;
+    const local = (e) => { const r = body.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    body.addEventListener('wheel', (e) => {
+      if (!pic || pic.body !== body || !body.classList.contains('vimg')) return;
+      e.preventDefault();
+      mode = null;
+      marks();
+      const [x, y] = local(e);
+      zoomAt(x, y, pic.s * Math.exp(-e.deltaY * 0.0015));
+    }, { passive: false });
+    body.addEventListener('dblclick', (e) => {
+      if (!pic || !body.classList.contains('vimg')) return;
+      if (mode === 'fit' || (mode === null && pic.s !== 1)) {
+        const [x, y] = local(e);
+        mode = 'full';
+        zoomAt(x, y, 1);
+      } else { mode = 'fit'; centre(fitScale()); }
+      marks();
+    });
+    body.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || !pic || !body.classList.contains('vimg')) return;
+      e.preventDefault();
+      el.focus({ preventScroll: true });
+      body.setPointerCapture(e.pointerId);
+      const sx = e.clientX - pic.x, sy = e.clientY - pic.y;
+      let moved = false;
+      const move = (ev) => {
+        if (!moved && Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) < 3) return;
+        moved = true;
+        body.classList.add('dragging');
+        pic.x = ev.clientX - sx;
+        pic.y = ev.clientY - sy;
+        clampPos();
+        paint();
+        if (mode !== null) { mode = null; marks(); }
+      };
+      const up = () => { body.removeEventListener('pointermove', move); body.classList.remove('dragging'); };
+      body.addEventListener('pointermove', move);
+      body.addEventListener('pointerup', up, { once: true });
+      body.addEventListener('pointercancel', up, { once: true });
+    });
   }
 
   function drawOther(body, i) {
@@ -253,6 +352,8 @@ const HangarViewer = (() => {
     hangar.fileWatch(null);
     const body = el.querySelector('.vbody');
     body.innerHTML = '';   // stops media and pages
+    pic?.ro?.disconnect();
+    pic = null;
     cur = null;
     if (had) try { lastFocus?.focus?.({ preventScroll: true }); } catch {}
     lastFocus = null;

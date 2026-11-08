@@ -735,6 +735,16 @@ function createWindow() {
     show: false,
     webPreferences: { preload: path.join(__dirname, '..', 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: false, plugins: true },
   });
+  // Run from source the program is electron.exe, whose icon Windows would show in the taskbar.
+  if (isWin && !app.isPackaged) {
+    win.setAppDetails({
+      appId: brand.appId,
+      appIconPath: path.join(__dirname, '..', '..', 'build', 'icon.ico'),
+      appIconIndex: 0,
+      relaunchCommand: `"${process.execPath}" "${app.getAppPath()}"`,
+      relaunchDisplayName: brand.name,
+    });
+  }
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
   win.once('ready-to-show', () => {
     if (saved.maximized !== false) win.maximize();
@@ -1286,7 +1296,16 @@ const serverHandlers = {
 
 // ---------- lifecycle ----------
 
-app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
+let reopenQueued = false;
+app.on('second-instance', () => {
+  // Reopened while the last window is closing: start again as soon as this copy has gone.
+  // (The window closes first; ending the sessions takes a few more seconds.)
+  if (quitting || (win && win.isDestroyed())) {
+    if (!reopenQueued && updater?.state.kind !== 'installing') { reopenQueued = true; app.relaunch(); }
+    return;
+  }
+  if (win) { if (win.isMinimized()) win.restore(); win.focus(); }
+});
 
 app.whenReady().then(async () => {
   look.init({ settings: () => settings, win: () => win, send });

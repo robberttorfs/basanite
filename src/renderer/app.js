@@ -38,6 +38,7 @@ window.addEventListener('mousedown', () => { altAlone = false; }, true);
 let zoomAcc = 0;
 window.addEventListener('wheel', (e) => {
   if (!(e.ctrlKey || e.metaKey)) return;
+  if (e.target.closest?.('.vimg')) return;   // over a picture in the viewer, the wheel zooms the picture
   e.preventDefault();
   e.stopPropagation();
   zoomAcc += e.deltaY;
