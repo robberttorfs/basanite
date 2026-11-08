@@ -13,7 +13,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const { shell } = require('electron');
 const brand = require('../shared/brand');
 
 const CHECK_FIRST_MS = 30 * 1000;
@@ -47,7 +46,7 @@ function enabled({ feed, packaged, dev }) {
  */
 function createUpdater(opts) {
   const { autoUpdater, feed, platform, onChange } = opts;
-  const openUrl = opts.openUrl || ((u) => shell.openExternal(u));
+  const openUrl = opts.openUrl || ((u) => require('electron').shell.openExternal(u));
   const on = enabled(opts);
   const isMac = platform === 'darwin';
   let state = { kind: 'none' };
