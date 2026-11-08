@@ -355,6 +355,14 @@ class Session {
 
   /** A Claude Code dialog appeared or went away at the bottom of the terminal. */
   onDialog(open) {
+    const answered = !open && this.dialogSeen && !this.question;
+    this.dialogSeen = open;
+    // An approved request sends no event until its command ends, so the prompt going away is the signal.
+    if (answered && this.status === 'needs_input' && this.waitingOn !== 'dialog') {
+      this.waitingOn = null;
+      this.setStatus('working');
+      return;
+    }
     if (open && (this.status === 'idle' || this.status === 'done' || this.status === 'starting')) {
       this.waitingOn = 'dialog';
       this.setStatus('needs_input');

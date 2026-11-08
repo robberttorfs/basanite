@@ -355,3 +355,21 @@ test('agents: each one reports its own current tool, not another agent\'s', () =
   assert.equal(by.a1, 'Editing cart.js');
   assert.equal(by.a2, null);
 });
+
+test('needs you: approving a request clears it while the command is still running', () => {
+  const s = new Session({ id: 't', name: 'x', cwd: '/tmp' });
+  s.onHook({ hook_event_name: 'UserPromptSubmit', prompt: 'go' });
+  s.onHook({ hook_event_name: 'PermissionRequest', tool_name: 'Bash' });
+  s.onDialog(true);
+  assert.equal(s.status, 'needs_input');
+  s.onDialog(false);
+  assert.equal(s.status, 'working');
+});
+
+test('needs you: a prompt that was never on screen does not clear it', () => {
+  const s = new Session({ id: 't', name: 'x', cwd: '/tmp' });
+  s.onHook({ hook_event_name: 'UserPromptSubmit', prompt: 'go' });
+  s.onHook({ hook_event_name: 'PermissionRequest', tool_name: 'Bash' });
+  s.onDialog(false);
+  assert.equal(s.status, 'needs_input');
+});

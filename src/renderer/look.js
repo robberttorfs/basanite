@@ -30,6 +30,23 @@
     const floor = hc ? 7 : t.base === 'light' ? 4.5 : t.id === 'dark' ? 1 : 3;
     return { ...out, minimumContrastRatio: floor, theme: T.toXterm(t, !!bg) };
   }
+  // After a palette change, small tiles could stay soft until hidden and shown again. Do that
+  // here, inside one frame so nothing flickers, once a run of changes (a colour drag) has ended.
+  let repaintTimer = 0;
+  function repaintTerms() {
+    clearTimeout(repaintTimer);
+    repaintTimer = setTimeout(() => {
+      if (typeof tiles === 'undefined') return;
+      for (const t of [...tiles.values(), ov].filter(Boolean)) {
+        try {
+          const box = t.term.element?.parentElement;
+          if (box?.offsetParent) { box.style.display = 'none'; void box.offsetHeight; box.style.display = ''; }
+          t.term.clearTextureAtlas();
+          t.term.refresh(0, t.term.rows - 1);
+        } catch {}
+      }
+    }, 120);
+  }
   let reThemeQueued = false;
   function retheme() {
     if (reThemeQueued) return;
@@ -40,6 +57,7 @@
       for (const t of [...tiles.values(), ov].filter(Boolean)) {
         try { Object.assign(t.term.options, termLook(t.bg)); } catch {}
       }
+      repaintTerms();
     });
   }
   /** One write of the CSS variables and one palette per terminal: nothing runs per frame. */
