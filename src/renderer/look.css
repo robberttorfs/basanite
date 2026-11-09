@@ -67,9 +67,6 @@ body.compact #stage { margin: 4px; }
 
 /* ---------- what still depends on a theme being light ---------- */
 body.light { --shadow: rgba(20, 30, 50, .14); }
-body.light .overlay { background: color-mix(in srgb, var(--bg) 70%, transparent); }
-body.light #dropzone { background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
-body.light #dropzone.hover { background: color-mix(in srgb, var(--accent) 18%, var(--bg)); }
 body.light #layer.open:has(> .modal) { background: rgba(20, 30, 50, .14); }
 /* Mode colours are tuned for dark; on light they get a darker text tone so chips never look disabled. */
 body.light .mode-chip.set { color: color-mix(in srgb, var(--mc) 55%, #000); background: color-mix(in srgb, var(--mc) 18%, transparent); border-color: color-mix(in srgb, var(--mc) 60%, transparent); }

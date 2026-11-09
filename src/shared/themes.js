@@ -19,7 +19,7 @@
   /** fg, moved only as far towards white or black as it takes to reach the ratio on bg. */
   function ensure(fg, bg, ratio) {
     if (contrast(fg, bg) >= ratio) return fg;
-    const target = lum(bg) < 0.4 ? '#ffffff' : '#000000';
+    const target = contrast('#ffffff', bg) >= contrast('#000000', bg) ? '#ffffff' : '#000000';
     for (let t = 0.05; t <= 1; t += 0.05) { const c = mix(fg, target, t); if (contrast(c, bg) >= ratio) return c; }
     return target;
   }
@@ -46,15 +46,19 @@
     const base = baseOf({ base: raw.base, bg: firstBg });
     const bg = firstBg;
     const text = ensure(seedHex(raw.text, base === 'dark' ? '#dcdfe5' : '#1f232b'), bg, 7);
-    const surface = seedHex(raw.surface, mix(bg, text, 0.035));
-    const tile = seedHex(raw.tile, surface);
+    // A seed's surfaces are only used if the text can be read on them.
+    const shade = (t) => { const c = mix(bg, text, t); return contrast(text, c) >= 4.5 ? c : bg; };
+    const derived = shade(0.035);
+    const readable = (c) => (contrast(text, c) >= 4.5 ? c : derived);
+    const surface = readable(seedHex(raw.surface, derived));
+    const tile = readable(seedHex(raw.tile, surface));
     const st = STATUS[base];
     const accent = ensure(seedHex(raw.accent, base === 'dark' ? '#8ab4ff' : '#2b62c9'), tile, 3);
     const faint = ensure(mix(text, bg, 0.55), bg, 3);
     const ov = ensure(seedHex(raw.ov, st.ov), tile, 3);
     const ui = {
-      bg, panel: mix(bg, text, 0.05), tile, pop: mix(bg, text, 0.075),
-      line: mix(bg, text, 0.16), lineSoft: mix(bg, text, 0.09), hover: mix(bg, text, 0.1),
+      bg, panel: shade(0.05), tile, pop: shade(0.075),
+      line: mix(bg, text, 0.16), lineSoft: mix(bg, text, 0.09), hover: shade(0.1),
       text, muted: ensure(mix(text, bg, 0.35), bg, 4.5), faint, accent,
       working: ensure(seedHex(raw.working, accent), tile, 3),
       needs: ensure(seedHex(raw.needs, st.needs), tile, 3),
@@ -64,7 +68,7 @@
     };
     const termBg = seedHex(raw.termBg, tile);
     const given = Array.isArray(raw.ansi) && raw.ansi.length === 16 ? raw.ansi : [];
-    const term = { background: termBg, foreground: ensure(seedHex(raw.termFg, text), termBg, 7), cursor: seedHex(raw.cursor, text), selectionBackground: mix(termBg, accent, 0.3) };
+    const term = { background: termBg, foreground: ensure(seedHex(raw.termFg, text), termBg, 7), cursor: ensure(seedHex(raw.cursor, text), termBg, 3), selectionBackground: mix(termBg, accent, 0.3) };
     ANSI.forEach((n, i) => {
       const c = seedHex(given[i], DEFAULT_ANSI[base][i]);
       // Black stays dark on a dark terminal on purpose; the rest must be readable.
@@ -129,6 +133,8 @@
     const v = {};
     for (const k of UI_KEYS) v[cssName(k)] = t.ui[k];
     v['--term-bg'] = t.term.background;
+    // Mixed like the stylesheet's own default, then kept readable on the send button behind it.
+    v['--accent-text'] = ensure(mix(t.ui.text, t.ui.accent, 0.35), mix(t.ui.panel, t.ui.accent, 0.22), 3);
     return v;
   }
   /** The xterm.js palette. forOverseer gives the overseer's own tint. */

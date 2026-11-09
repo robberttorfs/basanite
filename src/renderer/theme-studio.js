@@ -64,6 +64,8 @@ ${['brightRed', 'brightGreen', 'brightYellow', 'brightBlue', 'brightMagenta', 'b
     if (!w) return;
     const bad = [];
     if (T.contrast(draft.ui.text, draft.ui.bg) < 4.5) bad.push('Main text is hard to read on the window colour.');
+    if (T.contrast(draft.ui.text, draft.ui.tile) < 4.5) bad.push('Main text is hard to read on the tiles.');
+    if (T.contrast(draft.ui.text, draft.ui.pop) < 4.5) bad.push('Main text is hard to read in menus and message boxes.');
     if (T.contrast(draft.term.foreground, draft.term.background) < 4.5) bad.push('Terminal text is hard to read on its background.');
     if (T.contrast(draft.ui.needs, draft.ui.tile) < 3) bad.push('"Needs you" doesn\'t stand out on the tiles.');
     w.textContent = bad[0] || '';

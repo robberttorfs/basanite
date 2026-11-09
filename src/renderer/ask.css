@@ -46,7 +46,7 @@
 .qc-mark { flex: none; width: 15px; height: 15px; margin-top: 2px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 50%; color: transparent; }
 .qc-mark.sq { border-radius: 4px; }
 .qc-mark svg { width: 10px; height: 10px; stroke-width: 2.2; }
-.qc-opt.on .qc-mark, .qc-other.on .qc-mark { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.qc-opt.on .qc-mark, .qc-other.on .qc-mark { background: var(--accent); border-color: var(--accent); color: var(--tile); }
 .qc-other .qc-mark { margin-top: 0; }
 .qc-other textarea { flex: 1; min-width: 0; resize: none; border: 0; outline: 0; background: none; color: var(--text); font: 13px/18px var(--font); padding: 0; max-height: 120px; overflow-wrap: anywhere; user-select: text; }
 .qc-other textarea::placeholder { color: var(--muted); }
