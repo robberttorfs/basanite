@@ -202,6 +202,26 @@ test('session: status follows hooks, permission wait clears on the same source',
   assert.equal(s.status, 'done');
 });
 
+test('session: an agent stopped with no SubagentStop ends when the transcript says so', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bas-agent-'));
+  const file = path.join(dir, 's.jsonl');
+  const note = (id, status) => JSON.stringify({ type: 'queue-operation', operation: 'enqueue', timestamp: '2026-11-09T14:10:15.729Z', content: `<task-notification>\n<task-id>${id}</task-id>\n<status>${status}</status>\n</task-notification>` });
+  fs.writeFileSync(file, `${note('a1', 'running')}\n`);
+  const s = new Session({ id: 't', name: 'x', cwd: dir });
+  s.onHook({ hook_event_name: 'SubagentStart', agent_id: 'a1', agent_type: 'Explore' });
+  s.onHook({ hook_event_name: 'SubagentStart', agent_id: 'a2', agent_type: 'Explore' });
+  s.transcriptPath = file;
+  s.reader = new (require('../src/main/transcript').TranscriptReader)(file);
+  s.poll(new Map());
+  assert.equal(s.runningAgents().length, 2, 'still running');
+  fs.appendFileSync(file, `${note('a1', 'killed')}\n`);
+  s.poll(new Map());
+  assert.deepEqual(s.runningAgents().map((a) => a.type), ['Explore']);
+  assert.equal(s.agents.get('a1').running, false);
+  assert.equal(s.agents.get('a1').endedAt, Date.parse('2026-11-09T14:10:15.729Z'));
+  assert.equal(s.agents.get('a2').running, true);
+});
+
 test('session: untimed sessions never get hook output', () => {
   const s = new Session({ id: 't', name: 'x', cwd: '/tmp' });
   for (const e of ['UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Notification', 'Stop', 'SubagentStart', 'SubagentStop']) {

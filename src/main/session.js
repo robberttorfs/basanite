@@ -442,6 +442,16 @@ class Session {
       }
     }
 
+    // Agents that ended without a SubagentStop hook, once the scan above knows them all.
+    for (const { id, at } of this.reader?.drainEnded() || []) {
+      const a = this.agents.get(id);
+      if (!a?.running) continue;
+      a.running = false;
+      a.endedAt = at;
+      if (this.waitingOn === id) this.waitingOn = null;
+      changed = true;
+    }
+
     // Esc interrupts fire no Stop hook. Fall back to the transcript marker and
     // Claude Code's own busy/idle flag, only after a quiet spell.
     const cs = this.sessionId && claudeSessions.get(this.sessionId);

@@ -108,6 +108,7 @@ body.win #bar, body.linux #bar { padding-left: 8px; }
 #ov-grip { left: -8px; width: 14px; }
 #ov-grip::after { content: ""; position: absolute; left: 7px; top: 0; bottom: 0; width: 2px; background: var(--ov); opacity: 0; }
 #ov-grip:hover::after, #ov-grip:active::after { opacity: .7; }
+body.ov-closing #overseer { position: absolute; top: 0; right: 0; bottom: 0; width: var(--ov-closing-w); }
 body.ov-open #overseer { overflow: visible; }
 body.ov-open #overseer { width: var(--ov-w, 420px); max-width: max(320px, calc(100vw - 380px)); border-left-color: color-mix(in srgb, var(--ov) 22%, transparent); }
 .ov-head { display: flex; align-items: center; gap: 8px; padding: 12px 10px 8px 14px; white-space: nowrap; }
@@ -404,6 +405,10 @@ body.has-zoom .tile:not(.zoomed) { opacity: .25; transition: opacity .2s; }
 .chat { display: none; flex: 1; min-height: 0; min-width: 0; flex-direction: column; user-select: text; }
 .tile.chat-on:not(.term-forced) > .term { display: none; }
 .tile.chat-on:not(.term-forced) > .chat { display: flex; }
+/* a question in the terminal view: only the card, under the terminal */
+.tile.ask-term:not(.chat-on) > .chat { display: flex; flex: 0 1 auto; max-height: 75%; }
+.tile.ask-term:not(.chat-on) > .chat > :not(.qc) { display: none; }
+.tile.ask-term:not(.chat-on) > .chat > .qc { max-height: 100%; }
 body.ov-chat-on:not(.ov-term-forced) #ov-term { display: none; }
 #ov-chat { display: none; flex: 1; min-height: 0; min-width: 0; }
 body.ov-chat-on:not(.ov-term-forced) #ov-chat { display: flex; }

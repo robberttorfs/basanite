@@ -15,6 +15,7 @@ class TranscriptReader {
     this.model = null;
     this.lastText = null;       // latest assistant text, short
     this.interrupted = false;   // last user entry was an interrupt marker
+    this.ended = [];            // background tasks reported over since the last drainEnded(): { id, at }
     this.lastActivity = 0;
     this.lastAssistantAt = 0;   // timestamp of the latest assistant entry
     this.cacheTtlMs = 5 * 60 * 1000;  // prompt-cache lifetime seen in the latest usage
@@ -24,6 +25,7 @@ class TranscriptReader {
 
   drainTools() { const t = this.tools; this.tools = []; return t; }
   drainMentions() { const m = this.mentions; this.mentions = []; return m; }
+  drainEnded() { const e = this.ended; this.ended = []; return e; }
 
   poll() {
     let st;
@@ -52,6 +54,11 @@ class TranscriptReader {
   ingest(line) {
     let j;
     try { j = JSON.parse(line); } catch { return; }
+    // Claude Code's own note that a background task is over. A task stopped with TaskStop fires no SubagentStop hook.
+    if (j.type === 'queue-operation' && j.operation === 'enqueue' && typeof j.content === 'string') {
+      const n = /<task-id>([^<]+)<\/task-id>[\s\S]*?<status>([^<]+)<\/status>/.exec(j.content);
+      if (n && n[2] !== 'running') this.ended.push({ id: n[1], at: Date.parse(j.timestamp) || Date.now() });
+    }
     const m = j.message;
     if (j.type === 'assistant' && m && m.usage) {
       const id = m.id || j.requestId || j.uuid;

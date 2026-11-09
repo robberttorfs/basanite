@@ -66,20 +66,18 @@ test('Holds: an answer replies with allow, the questions and the answers', async
   assert.equal(h.answer('t', 'tu1', [{ labels: ['A'] }, { skipped: true }]), false, 'only once');
 });
 
-test('Holds: release hands back to the terminal, gone drops it, questions queue', async () => {
+test('Holds: gone drops a question, the next in the queue takes its place', async () => {
   const seen = [];
   const h = new q.Holds((id, cur, waiting) => seen.push([cur?.id ?? null, waiting]));
   const a = h.hold('t', hook({ tool_use_id: 'a' }));
   const b = h.hold('t', hook({ tool_use_id: 'b' }));
   assert.equal(h.current('t').id, 'a');
-  a.entry.passthrough = { keep: 1 };
-  h.release('t');
-  assert.deepEqual(await a.reply, { keep: 1 }, 'an empty or original reply lets Claude Code show its menu');
+  h.gone('t', a.entry);
+  assert.equal(await a.reply, null, 'an empty reply lets Claude Code carry on');
+  assert.equal(h.current('t').id, 'b');
+  assert.deepEqual(seen.at(-1), ['b', true], 'another question is still open');
+  h.gone('t', b.entry);
   assert.equal(await b.reply, null);
-  assert.deepEqual(seen.at(-1), [null, true], 'Claude Code still needs an answer');
-  const c = h.hold('t', hook({ tool_use_id: 'c' }));
-  h.gone('t', c.entry);
-  assert.equal(await c.reply, null);
   assert.deepEqual(seen.at(-1), [null, false], 'Esc: nothing is waiting any more');
 });
 

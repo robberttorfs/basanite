@@ -332,7 +332,8 @@ const typingToOverseer = () => $('#overseer').contains(document.activeElement);
 function focusInput(id) {
   const t = tiles.get(id);
   if (!t) return;
-  if (t.chat?.on && !t.el.classList.contains('term-forced')) t.chat.view.focus();
+  const card = t.el.classList.contains('ask-term');
+  if (card || (t.chat?.on && !t.el.classList.contains('term-forced'))) t.chat.view.focus();
   else t.term.focus();
 }
 
@@ -390,9 +391,9 @@ function whenReady(id, fn) {
   (t.waiting ||= []).push(fn);
 }
 
-function setView(id, on, tile = tiles.get(id)) {
-  if (!tile || tile.snap.kind === 'shell') return;
-  if (on && !tile.chat) {
+/** The tile's clean view, made the first time it is needed. */
+function ensureChat(id, tile) {
+  if (!tile.chat) {
     const view = HangarChat.create({
       send: (text, files) => whenReady(id, () => typeMessage((d) => hangar.input(id, d), text, files)),
       answer: (question, picks) => hangar.askAnswer(id, question, picks),
@@ -404,15 +405,20 @@ function setView(id, on, tile = tiles.get(id)) {
     $('.chat-slot', tile.el).replaceWith(view.el);
     tile.chat = { view, on: false };
   }
+}
+
+function setView(id, on, tile = tiles.get(id)) {
+  if (!tile || tile.snap.kind === 'shell') return;
+  if (on) ensureChat(id, tile);
   if (!tile.chat) return;
   tile.chat.on = on;
   tile.el.classList.toggle('chat-on', on);
   saveViewPref(id, on);
-  hangar.chatView(id, on);
   $('.view', tile.el).classList.toggle('active', on);
   $('.view', tile.el).title = on ? `Show the terminal (${HangarCommands.shortcutLabel('view.clean')})` : `Clean view (${HangarCommands.shortcutLabel('view.clean')})`;
   if (on) hangar.chatOpen(id).then((items) => { tile.chat.view.set(items, true); tile.chat.view.scrollToEnd(); });
-  else { hangar.chatClose(id); tile.chat.view.setQuestion(null); }
+  else hangar.chatClose(id);
+  updateTile(tile, tile.snap); // an open question moves with the view at once
   tile.fitSoon(60);
   if (focused === id && !typingToOverseer()) setTimeout(() => focusInput(id), 0);
 }
@@ -424,7 +430,6 @@ function updateTile(tile, snap) {
     tile.chat.on = false;
     tile.el.classList.remove('chat-on');
     $('.view', tile.el).classList.remove('active');
-    hangar.chatView(snap.id, false);
     hangar.chatClose(snap.id);
     tile.fitSoon(60);
   }
@@ -436,7 +441,7 @@ function updateTile(tile, snap) {
   const el = tile.el;
   const shell = snap.kind === 'shell';
   el.className = `tile st-${snap.status}${shell ? ' shell' : ''}${focused === snap.id ? ' focused' : ''}${tile.sizeClass || ''}${snap.color ? ' colored' : ''}` +
-    `${tile.chat?.on ? ' chat-on' : ''}${el.classList.contains('term-forced') ? ' term-forced' : ''}${zoomed === snap.id ? ' zoomed' : ''}${snap.ws && snap.ws !== state.activeWs ? ' ws-off' : ''}`;
+    `${tile.chat?.on ? ' chat-on' : ''}${el.classList.contains('term-forced') ? ' term-forced' : ''}${el.classList.contains('ask-term') ? ' ask-term' : ''}${zoomed === snap.id ? ' zoomed' : ''}${snap.ws && snap.ws !== state.activeWs ? ' ws-off' : ''}`;
   el.style.setProperty('--tc', snap.color || 'transparent');
   $('.name', el).textContent = snap.name;
   el.classList.toggle('snoozed', !!snap.snoozed);  // a tiny moon instead of the glow
@@ -501,6 +506,7 @@ function updateTile(tile, snap) {
   if (tile.chat?.on) {
     // Menus and permission prompts need the real terminal; the chat comes back after.
     // A question Basanite is holding is answered on the card instead.
+    el.classList.remove('ask-term');
     const forced = snap.status === 'needs_input' && !snap.question;
     if (forced !== el.classList.contains('term-forced')) {
       el.classList.toggle('term-forced', forced);
@@ -511,7 +517,17 @@ function updateTile(tile, snap) {
     tile.chat.view.setBusy(working, snap.handover ? label : working ? label || 'Working' : '');
     tile.chat.view.showQueued(working || snap.status === 'needs_input'); // a session that stopped has no live queue
     if (tile.chat.view.setQuestion(snap.question) && focused === snap.id && !typingToOverseer()) setTimeout(() => focusInput(snap.id), 0);
-  } else el.classList.remove('term-forced');
+  } else {
+    el.classList.remove('term-forced');
+    // In the terminal view the same card sits under the terminal, so switching views keeps the question.
+    const asking = !shell && !!snap.question;
+    if (asking) ensureChat(snap.id, tile);
+    if (asking !== el.classList.contains('ask-term')) {
+      el.classList.toggle('ask-term', asking);
+      tile.fitSoon(40);
+    }
+    if (tile.chat?.view.setQuestion(snap.question) && focused === snap.id && !typingToOverseer()) setTimeout(() => focusInput(snap.id), 0);
+  }
   $('.view', el).hidden = shell;
   if (!$('.view', el).title) $('.view', el).title = `Clean view (${HangarCommands.shortcutLabel('view.clean')})`;
   $('.overlay .msg', el).textContent = shell ? 'Terminal closed' : 'Session ended';
@@ -1329,6 +1345,7 @@ $('#btn-settings').onclick = () => openSettings();
 let ov = null;
 function toggleOverseer(force, prompt) {
   const open = force ?? !document.body.classList.contains('ov-open');
+  const width = $('#overseer').offsetWidth;
   document.body.classList.toggle('ov-open', open);
   $('#btn-overseer').classList.toggle('on', open);
   $('#btn-overseer').setAttribute('aria-pressed', String(open));
@@ -1346,12 +1363,31 @@ function toggleOverseer(force, prompt) {
   }
   if (open && prompt) hangar.overseerAsk(prompt);
   else if (open && !state.overseerRunning) hangar.overseerStart();
-  // The tiles jump to their new size, the same as when the window is resized. No fade, no slide.
-  document.body.classList.add('win-resizing');
-  layout(true);
-  clearTimeout(winResizeTimer);
-  winResizeTimer = setTimeout(() => document.body.classList.remove('win-resizing'), 200);
+  layout(true); // the tiles glide to their new size, as when a session is added
+  slideOverseer(open, width);
   if (open) setTimeout(() => { ov?.fit(); focusOverseer(); }, 30);
+}
+
+/**
+ * Slides the panel in time with the tiles. Its real width changes at once, so the tiles
+ * are laid out for the final size only; just the picture moves.
+ */
+let ovSlide = null;
+function slideOverseer(open, closingWidth) {
+  const panel = $('#overseer');
+  ovSlide?.cancel();
+  const w = open ? panel.offsetWidth : closingWidth;
+  if (!w) return;
+  if (!open) {
+    panel.style.setProperty('--ov-closing-w', `${w}px`);
+    document.body.classList.add('ov-closing');
+  }
+  const off = { transform: `translateX(${w}px)` }, on = { transform: 'translateX(0)' };
+  const slide = panel.animate(open ? [off, on] : [on, off], { duration: 280, easing: 'cubic-bezier(.2, .7, .2, 1)' });
+  ovSlide = slide;
+  const done = () => { if (ovSlide === slide) ovSlide = null; if (!open) document.body.classList.remove('ov-closing'); };
+  slide.onfinish = done;
+  slide.oncancel = done;
 }
 
 /** Drag the panel's left edge. The sessions refit once when the drag ends. */

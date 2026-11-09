@@ -1,8 +1,9 @@
 // Questions Claude asks with AskUserQuestion, answered from the clean view.
 // The PreToolUse hook stays open while the card is on screen; the reply carries
 // the answers in updatedInput, so Claude Code never draws its own menu. Letting
-// go without an answer (view switched, input we can't read, hook timed out)
-// simply lets Claude Code draw that menu in the terminal as usual.
+// go without an answer (input we can't read, hook timed out) simply lets Claude
+// Code draw that menu in the terminal. Once drawn, a menu can't be taken back, so
+// the card is used in both views and switching view never touches the question.
 'use strict';
 
 const crypto = require('crypto');
@@ -72,7 +73,7 @@ function replyBody(input, fields, passthrough) {
   };
 }
 
-/** Open questions per tile. onChange(tileId, currentOrNull, waiting): waiting = Claude Code will still ask. */
+/** Open questions per tile. onChange(tileId, currentOrNull, waiting): waiting = another question is still open. */
 class Holds {
   constructor(onChange = () => {}) {
     this.onChange = onChange;
@@ -97,7 +98,7 @@ class Holds {
     return { reply, entry };
   }
 
-  finish(tileId, entry, body, waiting) {
+  finish(tileId, entry, body) {
     const queue = this.byTile.get(tileId);
     const i = queue ? queue.indexOf(entry) : -1;
     if (i < 0) return false;
@@ -105,7 +106,7 @@ class Holds {
     if (!queue.length) this.byTile.delete(tileId);
     entry.resolve(body);
     const now = this.current(tileId);
-    this.onChange(tileId, now, waiting || !!now);
+    this.onChange(tileId, now, !!now);
     return true;
   }
 
@@ -116,7 +117,7 @@ class Holds {
     const e = this.entry(tileId, id);
     const answers = e && buildAnswers(e.questions, picks);
     if (!answers) return false;
-    return this.finish(tileId, e, replyBody(e.input, { answers }, e.passthrough), false);
+    return this.finish(tileId, e, replyBody(e.input, { answers }, e.passthrough));
   }
 
   /** Words instead of picks (hangarctl send, from the overseer): the answer to every open part. */
@@ -124,16 +125,11 @@ class Holds {
     const e = this.byTile.get(tileId)?.[0];
     if (!e) return false;
     const answers = Object.fromEntries(e.questions.map((q) => [q.question, String(text)]));
-    return this.finish(tileId, e, replyBody(e.input, { answers }, e.passthrough), false);
-  }
-
-  /** Hands every open question back to Claude Code, which draws its menu in the terminal. */
-  release(tileId) {
-    for (const e of [...(this.byTile.get(tileId) || [])]) this.finish(tileId, e, e.passthrough, true);
+    return this.finish(tileId, e, replyBody(e.input, { answers }, e.passthrough));
   }
 
   /** Claude Code stopped waiting (Esc, timeout, the session ended). */
-  gone(tileId, entry) { this.finish(tileId, entry, null, false); }
+  gone(tileId, entry) { this.finish(tileId, entry, null); }
 }
 
 /** One record for the chat feed from the transcript's result of the tool. */
