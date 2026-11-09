@@ -304,6 +304,14 @@ const HangarAsk = (() => {
       /** On screen and not yet sent. */
       active: () => !!q && !sending,
       focus,
+      // For the terminal view's menu (term-menu.js), which works on these same answers.
+      state: () => (q && !sending ? { id: q.id, questions: q.questions, picks, at } : null),
+      settled,
+      send,
+      stop,
+      setAt(i) { at = i; },
+      /** Shows what the menu changed while the card was out of sight. */
+      redraw() { if (q && !sending) draw(); },
       onShown(fn) { onShown = fn; },
     };
   }

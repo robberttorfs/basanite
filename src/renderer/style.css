@@ -405,10 +405,10 @@ body.has-zoom .tile:not(.zoomed) { opacity: .25; transition: opacity .2s; }
 .chat { display: none; flex: 1; min-height: 0; min-width: 0; flex-direction: column; user-select: text; }
 .tile.chat-on:not(.term-forced) > .term { display: none; }
 .tile.chat-on:not(.term-forced) > .chat { display: flex; }
-/* a question in the terminal view: only the card, under the terminal */
-.tile.ask-term:not(.chat-on) > .chat { display: flex; flex: 0 1 auto; max-height: 75%; }
-.tile.ask-term:not(.chat-on) > .chat > :not(.qc) { display: none; }
-.tile.ask-term:not(.chat-on) > .chat > .qc { max-height: 100%; }
+/* a question in the terminal view: drawn over the real terminal, cell for cell (term-menu.js) */
+.tile > .term { position: relative; }
+.term-menu { position: absolute; z-index: 2; overflow: hidden; pointer-events: none; }
+.term-menu[hidden] { visibility: hidden; display: block; }
 body.ov-chat-on:not(.ov-term-forced) #ov-term { display: none; }
 #ov-chat { display: none; flex: 1; min-height: 0; min-width: 0; }
 body.ov-chat-on:not(.ov-term-forced) #ov-chat { display: flex; }

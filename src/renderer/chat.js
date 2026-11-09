@@ -362,6 +362,7 @@ const HangarChat = (() => {
         return pending.length > 0 || queued.length > 0 || last?.k === 'you' || (last?.k === 'tool' && !last.done);
       },
       focus() { if (ask?.active()) ask.focus(); else box.focus({ preventScroll: true }); },
+      ask,
       /** Shows or clears the question card. True when a new question just went up. */
       setQuestion(q) {
         if (!ask) return false;
