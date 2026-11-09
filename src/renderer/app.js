@@ -509,6 +509,7 @@ function updateTile(tile, snap) {
     }
     const working = snap.status === 'working' || !!snap.handover;
     tile.chat.view.setBusy(working, snap.handover ? label : working ? label || 'Working' : '');
+    tile.chat.view.showQueued(working || snap.status === 'needs_input'); // a session that stopped has no live queue
     if (tile.chat.view.setQuestion(snap.question) && focused === snap.id && !typingToOverseer()) setTimeout(() => focusInput(snap.id), 0);
   } else el.classList.remove('term-forced');
   $('.view', el).hidden = shell;
@@ -1436,14 +1437,14 @@ dz.addEventListener('drop', () => dz.classList.remove('hover'));
 // ---------- wiring ----------
 
 hangar.onData(({ id, data }) => tiles.get(id)?.term.write(data));
-hangar.onChat(({ id, items, reset }) => {
+hangar.onChat(({ id, items, reset, queued }) => {
   if (id === 'overseer') {
     if (!ovChat) return;
-    ovChat.set(items, reset);
+    ovChat.set(items, reset, queued);
     ovChat.setBusy(ovChat.guessBusy());
     return;
   }
-  tiles.get(id)?.chat?.view.set(items, reset);
+  tiles.get(id)?.chat?.view.set(items, reset, queued);
 });
 hangar.onClear(({ id }) => tiles.get(id)?.term.reset());
 

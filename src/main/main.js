@@ -729,7 +729,8 @@ function pollChats() {
   for (const [id, feed] of chats) {
     feed.follow(chatFile(id));
     const items = feed.poll();
-    if (items.length) send('chat:items', { id, items });
+    const queued = feed.takeWaiting();
+    if (items.length || queued) send('chat:items', { id, items, ...(queued ? { queued } : {}) });
   }
 }
 
@@ -1098,6 +1099,8 @@ function wireIpc() {
     if (!feed) { feed = new ChatFeed(); chats.set(id, feed); }
     feed.follow(chatFile(id));
     feed.poll();
+    feed.takeWaiting();
+    send('chat:items', { id, items: [], queued: [...feed.waiting] });
     return feed.recent();
   });
   ipcMain.on('chat:close', (_e, id) => chats.delete(id));

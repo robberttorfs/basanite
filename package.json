@@ -1,6 +1,6 @@
 {
   "name": "basanite",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "description": "A calm, fullscreen home for your Claude Code sessions.",
   "main": "src/main/main.js",
   "scripts": {

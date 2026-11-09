@@ -143,6 +143,10 @@ const HangarChat = (() => {
   // Claude Code writes attachments into the message as [Image #1]; show them as small tags.
   const youHtml = (text) => md(text).replace(/\[(Image #\d+|\d+ files?)\]/g, (_, t) => `<span class="ftag">${esc(t.replace('#', ''))}</span>`);
 
+  // A sent message shows at once; the transcript normally confirms it within a moment.
+  const PENDING_MS = 15000;
+  const squash = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
+
   // ---------- the view ----------
 
   function create({ send, interrupt, answer, takeFiles, fileDir, placeholder = 'Message Claude', empty = 'No messages yet.' }) {
@@ -174,7 +178,10 @@ const HangarChat = (() => {
     let atts = [];                 // files waiting to go with the next message: { path, name, url }
     const items = new Map();       // n -> item, in arrival order
     const open = new Set();        // expanded step groups and steps
-    let pending = null;            // the message just sent, until the transcript has it
+    let pending = [];              // messages just sent, until the transcript has them
+    let queued = [];               // messages waiting in Claude Code's queue
+    let queuedShown = true;
+    let pendingId = 0;
     let raf = 0;
     let busy = false;
 
@@ -221,8 +228,22 @@ const HangarChat = (() => {
       box.value = '';
       grow();
       const n = files.length;
-      pending = { text: [n ? `[${n} ${n > 1 ? 'files' : 'file'}]` : '', text].filter(Boolean).join(' '), at: Date.now() };
+      pending.push({ id: ++pendingId, typed: squash(text), text: [n ? `[${n} ${n > 1 ? 'files' : 'file'}]` : '', text].filter(Boolean).join(' '), at: Date.now() });
+      setTimeout(expirePending, PENDING_MS + 50);
       draw(true);
+    }
+
+    function expirePending() {
+      const left = pending.filter((p) => Date.now() - p.at <= PENDING_MS);
+      if (left.length !== pending.length) { pending = left; draw(); }
+    }
+
+    /** The transcript has a message: drop the matching stand-in, or the oldest if the text was changed on the way. */
+    function settle(text) {
+      if (!pending.length) return;
+      const seen = squash(text);
+      const i = pending.findIndex((p) => seen.endsWith(p.typed));
+      pending.splice(Math.max(i, 0), 1);
     }
 
     feed.addEventListener('click', (e) => {
@@ -272,7 +293,9 @@ const HangarChat = (() => {
         else if (it.k === 'note') out.push({ key: `m${it.n}`, html: `<div class="note">${esc(it.text)}</div>` });
         else if (it.k === 'divider') out.push({ key: `m${it.n}`, html: `<div class="divider"><span>${esc(it.text)}</span></div>` });
       }
-      if (pending) out.push({ key: 'pending', html: `<div class="msg you pending"><div class="bubble">${youHtml(pending.text)}</div></div>` });
+      const waitingBubble = (key, text) => ({ key, html: `<div class="msg you pending"><div class="bubble">${youHtml(text)}</div></div>` });
+      if (queuedShown) queued.forEach((text, i) => out.push(waitingBubble(`q${i}`, text)));
+      for (const p of pending) out.push(waitingBubble(`p${p.id}`, p.text));
       if (!out.length) out.push({ key: 'empty', html: `<div class="empty-chat">${esc(empty)}</div>` });
       return out;
     }
@@ -308,14 +331,24 @@ const HangarChat = (() => {
 
     return {
       el,
-      set(list, reset) {
+      set(list, reset, nowQueued) {
         if (reset) { items.clear(); open.clear(); }
         for (const it of list) {
+          // A message moving out of the queue already matched its stand-in when it went in.
+          if (!reset && it.k === 'you' && !items.has(it.n) && !queued.includes(it.text)) settle(it.text);
           items.set(it.n, it);
-          if (pending && it.k === 'you') pending = null;
         }
-        if (pending && Date.now() - pending.at > 15000) pending = null;
+        if (nowQueued) {
+          for (const text of nowQueued) if (!queued.includes(text)) settle(text);
+          queued = nowQueued;
+        }
+        expirePending();
         draw(reset);
+      },
+      showQueued(on) {
+        if (on === queuedShown) return;
+        queuedShown = on;
+        draw();
       },
       /** Working state: from the session status, or guessed from the feed for the overseer. */
       setBusy(on, label = 'Working') {
@@ -326,7 +359,7 @@ const HangarChat = (() => {
       },
       guessBusy() {
         const last = [...items.values()].pop();
-        return !!pending || last?.k === 'you' || (last?.k === 'tool' && !last.done);
+        return pending.length > 0 || queued.length > 0 || last?.k === 'you' || (last?.k === 'tool' && !last.done);
       },
       focus() { if (ask?.active()) ask.focus(); else box.focus({ preventScroll: true }); },
       /** Shows or clears the question card. True when a new question just went up. */

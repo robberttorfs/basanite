@@ -47,6 +47,20 @@ function toolDetail(name, i = {}) {
   try { return clip(JSON.stringify(i, null, 2), 1500); } catch { return ''; }
 }
 
+const REMINDERS = /\n*<system-reminder>[\s\S]*?<\/system-reminder>\n*/g;
+/** What you typed, or '' for automatic entries such as task notifications. */
+function promptText(raw) {
+  const text = unwrapPasted(textOf(raw)).replace(REMINDERS, '').trim();
+  return text.startsWith('<') ? '' : text;
+}
+
+// Claude's short progress updates are stored as "thinking" blocks marked as
+// narration inside their signature. Real thinking is never shown.
+function isNarration(c) {
+  if (c.type !== 'thinking' || !c.thinking?.trim() || typeof c.signature !== 'string') return false;
+  return Buffer.from(c.signature, 'base64').includes('narration');
+}
+
 function resultText(c) {
   const v = c.content;
   if (typeof v === 'string') return v;
@@ -64,6 +78,8 @@ class ChatFeed {
     this.partial = '';
     this.changed = new Map();  // items to send on the next flush
     this.delivered = new Set(); // queued messages already shown
+    this.waiting = [];         // messages queued for Claude and not yet delivered
+    this.waitingChanged = false;
   }
 
   /** Follows the session to a new transcript (after /clear), keeping what came before. */
@@ -73,6 +89,7 @@ class ChatFeed {
     this.file = file;
     this.offset = 0;
     this.partial = '';
+    if (this.waiting.length) { this.waiting = []; this.waitingChanged = true; }
   }
 
   push(item) {
@@ -114,24 +131,55 @@ class ChatFeed {
   queued(a) {
     if (a?.type !== 'queued_command' || a.commandMode !== 'prompt' || a.origin?.kind !== 'human') return;
     if (a.delivery_id) { if (this.delivered.has(a.delivery_id)) return; this.delivered.add(a.delivery_id); }
-    const text = unwrapPasted(textOf(a.prompt)).replace(/\n*<system-reminder>[\s\S]*?<\/system-reminder>\n*/g, '').trim();
-    if (text && !text.startsWith('<')) this.push({ k: 'you', text });
+    const text = promptText(a.prompt);
+    if (text) this.you(text);
+  }
+
+  you(text) {
+    this.unqueue(text);
+    this.push({ k: 'you', text });
+  }
+
+  unqueue(text) {
+    const i = this.waiting.indexOf(text);
+    if (i < 0) return;
+    this.waiting.splice(i, 1);
+    this.waitingChanged = true;
+  }
+
+  /** Follows Claude Code's own record of the message queue. Your messages leave it before notifications do. */
+  queueOp(j) {
+    const text = promptText(j.content);
+    if (j.operation === 'enqueue') {
+      if (text) { this.waiting.push(text); this.waitingChanged = true; }
+    } else if (j.operation === 'dequeue') {
+      if (this.waiting.length) { this.waiting.shift(); this.waitingChanged = true; }
+    } else if (text) this.unqueue(text); // remove, popAll
+  }
+
+  /** The queue, when it has changed since the last call; otherwise null. */
+  takeWaiting() {
+    if (!this.waitingChanged) return null;
+    this.waitingChanged = false;
+    return [...this.waiting];
   }
 
   ingest(line) {
     let j;
     try { j = JSON.parse(line); } catch { return; }
+    if (j.type === 'queue-operation') { this.queueOp(j); return; }
     if (j.type === 'attachment' && !j.isSidechain) { this.queued(j.attachment); return; }
     if (j.isSidechain || !j.message || (j.type !== 'user' && j.type !== 'assistant')) return;
     const content = j.message.content;
     if (j.type === 'assistant') {
       if (!Array.isArray(content)) return;
       for (const c of content) {
-        if (c.type === 'text' && c.text?.trim()) {
+        const said = c.type === 'text' ? c.text?.trim() : isNarration(c) ? c.thinking.trim() : '';
+        if (said) {
           // Streaming can split one reply into several lines with the same message id.
           const last = this.items[this.items.length - 1];
-          if (last?.k === 'claude' && last.mid && last.mid === j.message.id) { last.text += `\n\n${c.text.trim()}`; this.changed.set(last.n, last); }
-          else this.push({ k: 'claude', text: c.text.trim(), mid: j.message.id });
+          if (last?.k === 'claude' && last.mid && last.mid === j.message.id) { last.text += `\n\n${said}`; this.changed.set(last.n, last); }
+          else this.push({ k: 'claude', text: said, mid: j.message.id });
         } else if (c.type === 'tool_use' && c.name === questions.TOOL) {
           // Open, the card shows it; answered, the feed keeps what was asked and said.
           const it = this.push({ k: 'ask', questions: c.input?.questions, qa: [], done: false });
@@ -167,8 +215,8 @@ class ChatFeed {
     const cmd = /<command-name>([^<]+)<\/command-name>/.exec(text);
     if (cmd) { const args = /<command-args>([^<]*)<\/command-args>/.exec(text)?.[1]?.trim(); this.push({ k: 'note', text: `${cmd[1]}${args ? ` ${clip(args, 80)}` : ''}` }); return; }
     if (text.startsWith('<')) return; // local command output, reminders and other plumbing
-    text = text.replace(/\n*<system-reminder>[\s\S]*?<\/system-reminder>\n*/g, '').trim();
-    if (text) this.push({ k: 'you', text });
+    text = text.replace(REMINDERS, '').trim();
+    if (text) this.you(text);
   }
 
   recent(n = 400) {

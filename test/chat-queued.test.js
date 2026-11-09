@@ -32,3 +32,56 @@ test('clean view: queued entries that are not yours stay hidden', () => {
   f.ingest(JSON.stringify({ type: 'attachment', isSidechain: true, attachment: { type: 'queued_command', prompt: 'sub', commandMode: 'prompt', origin: { kind: 'human' } } }));
   assert.deepEqual(you(f), []);
 });
+
+const op = (operation, content) => JSON.stringify({ type: 'queue-operation', operation, ...(content === undefined ? {} : { content }) });
+
+test('clean view: every queued message waits, in order, until it is delivered', () => {
+  const f = new ChatFeed();
+  f.ingest(op('enqueue', 'one'));
+  f.ingest(op('enqueue', 'two'));
+  assert.deepEqual(f.takeWaiting(), ['one', 'two']);
+  assert.equal(f.takeWaiting(), null);
+  assert.deepEqual(you(f), []);
+  f.ingest(op('remove', 'one'));
+  f.ingest(queued('one'));
+  assert.deepEqual(f.waiting, ['two']);
+  assert.deepEqual(you(f), ['one']);
+});
+
+test('clean view: dequeue, popAll and notifications keep the queue right', () => {
+  const f = new ChatFeed();
+  f.ingest(op('enqueue', '<task-notification>x</task-notification>'));
+  assert.deepEqual(f.waiting, []);
+  f.ingest(op('enqueue', 'a'));
+  f.ingest(op('enqueue', 'b'));
+  f.ingest(op('enqueue', 'c'));
+  f.ingest(op('dequeue'));
+  f.ingest(op('popAll', 'b'));
+  assert.deepEqual(f.waiting, ['c']);
+  f.follow('other.jsonl');
+  f.follow('next.jsonl');
+  assert.deepEqual(f.waiting, []);
+});
+
+test('clean view: a message that arrives as a user line leaves the queue', () => {
+  const f = new ChatFeed();
+  f.ingest(op('enqueue', 'hello'));
+  f.ingest(JSON.stringify({ type: 'user', message: { role: 'user', content: 'hello' } }));
+  assert.deepEqual(f.waiting, []);
+  assert.deepEqual(you(f), ['hello']);
+});
+
+const sig = (kind) => Buffer.from(`xx${kind}yy`).toString('base64');
+const said = (id, block) => JSON.stringify({ type: 'assistant', message: { id, content: [block] } });
+
+test('clean view: progress updates show, real thinking never does', () => {
+  const f = new ChatFeed();
+  f.ingest(said('a', { type: 'thinking', thinking: '', signature: sig('thinking') }));
+  f.ingest(said('a', { type: 'thinking', thinking: 'private reasoning', signature: sig('thinking') }));
+  f.ingest(said('a', { type: 'thinking', thinking: 'unsigned', signature: '' }));
+  f.ingest(said('a', { type: 'thinking', thinking: 'Checking the tests.', signature: sig('narration') }));
+  f.ingest(said('a', { type: 'tool_use', id: 't', name: 'Read', input: {} }));
+  f.ingest(said('a', { type: 'thinking', thinking: 'Found it.', signature: sig('narration') }));
+  assert.deepEqual(f.items.map((i) => [i.k, i.text]).filter(([k]) => k === 'claude'), [['claude', 'Checking the tests.'], ['claude', 'Found it.']]);
+  assert.deepEqual(f.items.map((i) => i.k), ['claude', 'tool', 'claude']);
+});
