@@ -393,3 +393,17 @@ test('needs you: a prompt that was never on screen does not clear it', () => {
   s.onDialog(false);
   assert.equal(s.status, 'needs_input');
 });
+
+test('session: a restart does not end the tile, and its next start clears the flag', () => {
+  const s = new Session({ id: 't', name: 'x', cwd: '/tmp' });
+  s.onHook({ hook_event_name: 'UserPromptSubmit', prompt: 'go' });
+  s.restarting = true;
+  s.setStatus('starting');
+  s.onHook({ hook_event_name: 'SessionEnd', reason: 'other' });
+  assert.notEqual(s.status, 'exited');
+  s.restarted();
+  s.onHook({ hook_event_name: 'SessionStart', source: 'resume' });
+  assert.equal(s.restarting, false);
+  s.onHook({ hook_event_name: 'SessionEnd', reason: 'prompt_input_exit' });
+  assert.equal(s.status, 'exited');
+});

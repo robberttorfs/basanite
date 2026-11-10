@@ -1,6 +1,6 @@
 /* global HangarCommands, HangarPalette, hangar, state, tiles, focused, isMac, ICON, STATUS_LABEL, folderName, esc, h, $,
    openNew, start, openFresh, openRename, openTimer, openModePicker, openUsage, openSettings, toggleOverseer,
-   toggleZoom, closeTile, resetSizes, nextWaiting, setFocus, setView, setOvView, ov, ovChatOn, modeById, openPop, closePop */
+   toggleZoom, closeTile, restartTile, resetSizes, nextWaiting, setFocus, setView, setOvView, ov, ovChatOn, modeById, openPop, closePop */
 // Basanite's own commands. The native menu, the command palette, the shortcut sheet and
 // the tile menus all read this one list (see commands.js for the fields).
 'use strict';
@@ -37,6 +37,8 @@
       shortcut: 'CmdOrCtrl+Shift+P', menu: { menu: 'Session', section: 'edit' }, when: any, run: (cx) => hangar.pin(cx.id) },
     { id: 'session.zoom', label: 'Zoom', group: 'Actions', aliases: ['maximise', 'maximize', 'full'],
       shortcut: 'CmdOrCtrl+Shift+Enter', menu: { menu: 'Session', section: 'edit' }, when: any, run: (cx) => { setFocus(cx.id); toggleZoom(cx.id); } },
+    { id: 'session.reload', label: 'Restart session', group: 'Actions', aliases: ['reload', 'stuck', 'reboot'],
+      menu: { menu: 'Session', section: 'edit' }, when: (cx) => claude(cx) && cx.snap.status !== 'exited', run: (cx) => restartTile(cx.id) },
     { id: 'session.restart', label: 'Resume', group: 'Actions', aliases: ['restart', 'reopen'],
       when: (cx) => any(cx) && cx.snap.status === 'exited', run: (cx) => hangar.restart(cx.id) },
     { id: 'session.close', label: 'Close session', group: 'Actions', aliases: ['quit', 'kill', 'end'],

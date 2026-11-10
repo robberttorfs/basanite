@@ -54,6 +54,7 @@ contextBridge.exposeInMainWorld('hangar', {
   resize: (id, cols, rows) => ipcRenderer.send('tile:resize', { id, cols, rows }),
   close: (id) => ipcRenderer.send('tile:close', id),
   restart: (id) => ipcRenderer.send('tile:restart', id),
+  reload: (id) => ipcRenderer.send('tile:reload', id),
   rename: (id, name) => ipcRenderer.send('tile:rename', { id, name }),
   pin: (id) => ipcRenderer.send('tile:pin', id),
   move: (id, to) => ipcRenderer.send('tile:move', { id, to }),

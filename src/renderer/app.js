@@ -971,6 +971,7 @@ function openMore(id, anchorEl) {
     ...(shell ? [] : [{ label: 'Mode…', kbd: HangarCommands.shortcutLabel('mode.choose'), run: () => openModePicker(id) }]),
     ...(shell || snap.status === 'exited' ? [] : [{ label: 'Fresh start…', run: () => openFresh(id) }]),
     ...(shell || snap.status === 'exited' || !asks ? [] : [{ label: snap.snoozed ? 'Glow again' : 'Snooze…', run: () => (snap.snoozed ? hangar.snooze(id, 'off') : window.HangarOverview?.snoozeMenu(id)) }]),
+    ...(shell || snap.status === 'exited' ? [] : [{ label: 'Restart session', run: () => restartTile(id) }]),
     ...(snap.status === 'exited' ? [{ label: shell ? 'Reopen' : snap.sessionId ? 'Resume' : 'Restart', run: () => hangar.restart(id) }] : []),
     ...(!shell && snap.files ? [{ label: 'Files', run: () => window.HangarViewer?.filesMenu(id, anchorEl) }] : []),
     null,
@@ -1172,6 +1173,14 @@ function closeTile(id) {
   if (!snap) return;
   if (snap.kind !== 'shell' && (snap.status === 'working' || snap.status === 'needs_input')) askTile(id, `${snap.name} is still working. Close it?`, 'Close', () => closeNow(id));
   else closeNow(id);
+}
+
+/** Stops Claude and resumes the same conversation in the tile. */
+function restartTile(id) {
+  const snap = state.tiles.find((t) => t.id === id);
+  if (!snap) return;
+  if (snap.status === 'working') askTile(id, `${snap.name} is still working. Restarting stops the current step.`, 'Restart', () => hangar.reload(id));
+  else hangar.reload(id);
 }
 
 function flash(el, text) {

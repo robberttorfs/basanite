@@ -217,6 +217,16 @@ class Session {
     this.goalSet = false; // a new conversation has no /goal
   }
 
+  /** Restarted in place: same conversation, but nothing of the stopped run is still going. */
+  restarted() {
+    this.agents.clear();
+    this.doing.clear();
+    this.pendingDescs = [];
+    this.waitingOn = null;
+    this.question = null;
+    this.error = null;
+  }
+
   /** The card's question changed. With none left and nothing else to wait for, Claude carries on. */
   setQuestion(q, waiting) {
     this.question = q || null;
@@ -244,6 +254,7 @@ class Session {
     const context = [];
     switch (event) {
       case 'SessionStart': {
+        this.restarting = false;
         if (hook.source === 'clear') { this.agents.clear(); this.pendingDescs = []; }
         this.onChange({ type: 'session-start', source: hook.source });
         const mode = modes.get(this.mode);
@@ -336,7 +347,7 @@ class Session {
         this.setStatus('error');
         break;
       case 'SessionEnd':
-        if (hook.reason === 'clear' || hook.reason === 'resume') break;
+        if (hook.reason === 'clear' || hook.reason === 'resume' || this.restarting) break;
         if (this.kind === 'shell') { this.detach(); return null; }
         this.setStatus('exited');
         break;

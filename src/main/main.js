@@ -1042,6 +1042,27 @@ function wireIpc() {
     send('tile:clear', { id });
     launch(s, s.kind !== 'shell' && transcriptExists(s) ? 'resume' : 'new');
   });
+  // Restart a running session: stop Claude, then resume the same conversation in the tile.
+  ipcMain.on('tile:reload', (_e, id) => {
+    const s = find(id);
+    const p = ptys.get(id);
+    if (!s || s.kind === 'shell' || !p) return;
+    ptys.delete(id);  // its exit is ours now, not "Session ended"
+    s.restarting = true;
+    let force = null;
+    p.onExit(() => {
+      clearTimeout(force);
+      if (!find(id) || ptys.get(id)) return;
+      s.restarted();
+      send('tile:clear', { id });
+      launch(s, transcriptExists(s) ? 'resume' : 'new');
+    });
+    lifecycle.killPty(p);
+    // A hung Claude can ignore the hangup.
+    if (process.platform !== 'win32') force = setTimeout(() => { try { p.kill('SIGKILL'); } catch {} }, 3000);
+    s.setStatus('starting');
+    broadcast();
+  });
   ipcMain.on('tile:rename', (_e, { id, name }) => {
     const s = find(id);
     if (s && name.trim()) { s.name = name.trim().slice(0, 40); saveWorkspace(); broadcast(); }
