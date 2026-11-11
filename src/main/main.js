@@ -16,6 +16,7 @@ const modes = require('./modes');
 const modesIpc = require('./modes-ipc');
 const { ChatFeed, findTranscript } = require('./chat');
 const questions = require('./questions');
+const { plan: answerPlan } = require('./answer');
 const { migrate: loadWorkspaces } = require('./workspaces');
 const attention = require('../shared/attention');
 const palette = require('../shared/palette');
@@ -1359,6 +1360,29 @@ const serverHandlers = {
     // A separate Enter, so Claude Code does not treat it as part of a paste.
     setTimeout(() => p.write('\r'), 120);
     return { text: `Sent to ${s.name}. Check it landed with: hangarctl screen ${sessions.indexOf(s) + 1} 15` };
+  },
+  // Picks an option in a question card, or presses one key in a menu Claude Code drew (no Enter after it).
+  answer: ({ tile, choice }) => {
+    const s = resolveTile(tile);
+    const a = answerPlan(s.question, choice);
+    if (a.picks || a.words) {
+      const done = a.picks ? holds.answer(s.id, s.question.id, a.picks) : holds.respond(s.id, a.words);
+      if (!done) throw new Error(`The question in ${s.name} has gone.`);
+      return { text: `Answered ${a.picks ? `"${a.text}"` : 'the question'} in ${s.name}.` };
+    }
+    if (s.status !== 'needs_input') throw new Error(`${s.name} is not waiting on you.`);
+    const p = ptys.get(s.id);
+    if (!p) throw new Error(`${s.name} is not running.`);
+    p.write(a.key);
+    return { text: `Pressed ${a.text} in ${s.name}. Check it with: hangarctl screen ${sessions.indexOf(s) + 1} 15` };
+  },
+  focus: ({ tile }) => {
+    const s = resolveTile(tile);
+    if (!win || win.isDestroyed()) throw new Error('Basanite has no window open.');
+    if (win.isMinimized()) win.restore();
+    win.show(); win.focus();
+    send('tile:focus', { id: s.id });
+    return { text: `Showing ${s.name}.` };
   },
 };
 

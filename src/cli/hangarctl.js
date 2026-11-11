@@ -1,12 +1,14 @@
 // hangarctl: tiny helper that talks to the running Basanite app.
 //
 //   hangarctl statusline          (run by Claude Code's statusline)
-//   hangarctl list                one line per open session
+//   hangarctl list [--json]       one line per open session (or the raw data)
 //   hangarctl screen <tile> [n]   last n lines of its terminal
 //   hangarctl log <tile> [n]      last n user/Claude messages
 //   hangarctl send <tile> <text>  type text into the session and press Enter
 //   hangarctl folders             recent project folders
 //   hangarctl open <folder> ...   open a new session (see help)
+//   hangarctl answer <tile> <n>   pick option n in its question or permission menu
+//   hangarctl focus <tile>        bring Basanite forward on that session
 //   hangarctl modes               the modes a session can be put in
 //   hangarctl mode <tile> <mode>  put a session in a mode (or "none")
 //   hangarctl mode-save ...       create or update a mode (see help)
@@ -100,12 +102,15 @@ async function main() {
     if (cmd === 'list') {
       const r = await request('GET', '/api/TOKEN/list');
       if (r?.error) fail(r.error);
+      if (rest[0] === '--json') return console.log(JSON.stringify(r));
       if (!r.tiles.length) return console.log('No sessions open.');
       for (const [i, t] of r.tiles.entries()) {
         let line = `${i + 1}. ${t.name} [${t.status}${t.statusAge ? ` ${t.statusAge}` : ''}] ctx ${k(t.tokens.context)}/${k(t.tokens.contextSize)} out ${k(t.tokens.output + t.tokens.agentOutput)}`;
         const running = t.agents.filter((a) => a.running);
         if (running.length) line += ` | agents running: ${running.map((a) => `${a.type || 'agent'}${a.desc ? ` "${a.desc}"` : ''}`).join('; ')}`;
         if (t.timer && !t.timer.finished) line += ` | timer ${Math.max(0, Math.round(t.timer.remaining))}m left of ${t.timer.minutes}`;
+        if (t.mode) line += ` | mode: ${t.mode.name}`;
+        if (t.question) line += ` | asking: "${t.question.questions[0].question.slice(0, 90).replace(/\s+/g, ' ')}"`;
         if (t.error) line += ` | error: ${t.error}`;
         if (t.lastPrompt) line += ` | last prompt: "${t.lastPrompt.slice(0, 90).replace(/\s+/g, ' ')}"`;
         line += ` | ${t.cwd}`;
@@ -132,6 +137,11 @@ async function main() {
       const r = await request('POST', '/api/TOKEN/open-session', { dir: f._.join(' '), mode: f.mode, name: f.name });
       if (r?.error) fail(r.error);
       console.log(r.text);
+    } else if (cmd === 'answer' || cmd === 'focus') {
+      if (!rest[0] || (cmd === 'answer' && rest.length < 2)) fail(cmd === 'answer' ? 'usage: hangarctl answer <tile> <option number | label | esc>' : 'usage: hangarctl focus <tile>');
+      const r = await request('POST', `/api/TOKEN/${cmd}`, { tile: rest[0], choice: rest.slice(1).join(' ') });
+      if (r?.error) fail(r.error === 'not found' ? `This Basanite is older than "hangarctl ${cmd}"; it works after Basanite restarts.` : r.error);
+      console.log(r.text);
     } else if (cmd === 'modes') {
       const r = await request('GET', '/api/TOKEN/modes');
       if (r?.error) fail(r.error);
@@ -157,13 +167,15 @@ async function main() {
       console.log(r.text);
     } else {
       console.log([
-        'hangarctl list                 one line per open session',
+        'hangarctl list [--json]        one line per open session (--json: the raw data)',
         'hangarctl screen <tile> [n]    last n lines of its terminal (default 30)',
         'hangarctl log <tile> [n]       last n user/Claude messages (default 4)',
         'hangarctl send <tile> <text>   type text into the session and press Enter',
         'hangarctl folders              recent project folders',
         'hangarctl open <folder> [--mode M] [--name N]',
         '                               open a new session in that folder',
+        'hangarctl answer <tile> <n>    pick option n (or its label, or esc) in a question card or permission menu',
+        'hangarctl focus <tile>         bring Basanite forward on that session',
         'hangarctl modes [--full]       list modes (--full shows their instructions)',
         'hangarctl mode <tile> <mode>   put a session in a mode, or "none"',
         'hangarctl mode-save --name N [--id ID] [--description D] [--color #hex] [--exit "start, go"] --instructions T',
