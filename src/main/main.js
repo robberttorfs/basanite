@@ -37,6 +37,26 @@ app.setPath('userData', paths.dataDir());
 // Must match package.json build.appId (the installer stamps it on the Start menu
 // shortcut), or Windows files notifications under another app.
 if (isWin) app.setAppUserModelId(brand.appId);
+// Run from source, Electron writes a Start menu "<name>.lnk" for notifications that points at
+// bare electron.exe (no app folder), so opening it shows Electron's default page. Keep one fixed
+// activator id and rewrite that shortcut with the app folder after each notification.
+const sourceShortcut = isWin && !app.isPackaged && !process.env.HANGAR_DEV;
+if (sourceShortcut) app.setToastActivatorCLSID('{B969F05B-2131-4203-AD2E-0069940FA3A6}');
+function fixStartShortcut() {
+  if (!sourceShortcut) return;
+  try {
+    const lnk = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs', `${brand.name}.lnk`);
+    shell.writeShortcutLink(lnk, 'create', {
+      target: process.execPath,
+      args: `"${app.getAppPath()}"`,
+      cwd: path.dirname(app.getAppPath()),
+      icon: path.join(app.getAppPath(), 'build', 'icon.ico'), iconIndex: 0,
+      appUserModelId: brand.appId,
+      toastActivatorClsid: app.toastActivatorCLSID,
+      description: brand.name,
+    });
+  } catch (e) { console.warn('[shortcut]', e.message); }
+}
 // A second launch only wakes the first. Stop here, before anything starts a server
 // or touches server.json (app.quit() alone would let whenReady still run).
 if (!app.requestSingleInstanceLock()) { app.exit(0); return; }
@@ -507,6 +527,7 @@ function notify(key, title, body, tileId) {
     if (tileId) send('tile:focus', { id: tileId });
   });
   n.show();
+  setTimeout(fixStartShortcut, 2000);   // after Electron's own write of the shortcut
 }
 
 function userIsLookingAt(s) {
@@ -1401,6 +1422,7 @@ app.on('second-instance', () => {
 
 app.whenReady().then(async () => {
   look.init({ settings: () => settings, win: () => win, send });
+  fixStartShortcut();
   server = await startServer(serverHandlers);
   installHelpers();
   wireIpc();
